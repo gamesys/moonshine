@@ -1,0 +1,87 @@
+<html>
+	<head>
+		<title></title>
+				
+		<script src="../../vendor/jquery.min.js"></script>
+		<script src="./core.luajs.js"></script>
+		<script src="./lib.luajs.js"></script>
+		<!-- script src="./display.luajs.js"></script -->
+		<script src="./vm.luajs.js"></script>
+		<!-- script src="./text1.out.js"></script -->
+		
+		<script>
+			var debugText = '';
+			window.setTimeout (function () { $('#debug').text (debugText); }, 500);
+			luajs.onDebug = function (message) {
+				//$('<p>').html (message).appendTo ('#debug');
+				debugText += message + '\n';
+			};
+
+			luajs.onOutput = function (message) {
+				//$('<p>').html (message).appendTo ('#output');
+				$('#output').append (message + '\n');
+			};
+
+			luajs.outputError = function (message) {
+				$('<p>').addClass ('error').html (message).appendTo ('#output');
+			};
+
+
+			$(function () {
+				vm = new luajs.VM ();				
+				vm.load ('./scripts/test-suite.out.js');
+			
+				$(document).keypress (function () {
+					$('#debug').empty ();
+				});
+			});
+			
+		</script>
+		
+		<style>
+
+			
+			#debug,
+			#output {
+				width: 1000px;
+				height: 300px;
+				overflow-y: auto;
+				background-color: black;
+				color: white;
+				font-family: 'Monaco';
+				font-size: 10px;
+				margin: 20px auto;
+				padding: 4px;
+			}
+
+			#debug {
+				color: #ddd;
+				xheight: 600px;
+			}
+			
+			p {
+				margin: 0;
+				padding: 0;
+			}			
+
+			p.error {
+				color: red;
+			}
+			
+			#surface {
+				font-size: 100px; 
+				height: 480px; 
+				margin: 0 auto; 
+				overflow: hidden;
+				position: relative; 
+				width: 320px; 
+			}
+		</style>
+	</head>
+	
+	<body>
+		<pre id="output"></pre>
+		<pre id="debug"></pre>
+		<div id="surface"></div>
+	</body>
+</html>
