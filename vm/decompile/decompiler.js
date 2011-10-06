@@ -174,7 +174,8 @@ Parser.prototype._readConstant = function () {
 		case LUA_TNUMBER: 	return this._readNumber ();
 		case LUA_TSTRING: 	return this._readString ();
 
-		default: throw new Error ('Unknown constant type.');
+		case 69: throw new Error ('Constant too large!');	// Assumpion drawn only from observation. No documentation found.
+		default: throw new Error ('Unknown constant type: ' + type);
 	}
 };
 

@@ -12,7 +12,7 @@ parser.parse (filename, function (tree) {
 
 	fs.writeFile (filename + '.js', JSON.stringify (tree), function (err) {
 		if (err) throw new Error (err);
-		sys.print ('File written.\n');
+		console.log ('File written: ' + filename + '.js');
 	});
 	
 });
