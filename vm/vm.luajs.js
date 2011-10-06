@@ -24,7 +24,8 @@ luajs.VM.prototype._resetGlobals = function () {
 luajs.VM.prototype.load = function (url, execute) {
 	var me = this;
 	
-	$.get (url, function (data) {			
+	// TODO: Remove dependency on jQuery here!
+	jQuery.get (url, function (data) {			
 		me._data = JSON.parse (data);
 		if (execute || execute === undefined) me.execute ();
 	});
@@ -95,6 +96,7 @@ luajs.VM.Closure.prototype.getInstance = function () {
 
 
 
+
 luajs.VM.Closure.prototype.call = function (obj) {
 	var args = [],
 		l = arguments.length,
@@ -103,6 +105,7 @@ luajs.VM.Closure.prototype.call = function (obj) {
 	for (i = 1; i < l; i++) args.push (arguments[i]);
 	return this.apply (obj, args);
 };
+
 
 
 
