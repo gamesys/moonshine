@@ -8,8 +8,8 @@ var sys = require ('sys'),
 
 parser.parse (filename, function (tree) {
 
-	var fs = require ('fs');	
-
+	var fs = require ('fs');
+	
 	fs.writeFile (filename + '.js', JSON.stringify (tree), function (err) {
 		if (err) throw new Error (err);
 		console.log ('File written: ' + filename + '.js');

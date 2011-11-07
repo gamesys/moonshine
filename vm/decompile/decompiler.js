@@ -97,9 +97,16 @@ Parser.prototype._readByte = function (length) {
 
 Parser.prototype._readString = function () {
 	
-	var length = this._readByte (this._config.sizes.size_t).charCodeAt (0),		
-		result = length? this._readByte (length) : '',
-		pos = result.indexOf (String.fromCharCode (0));
+	var byte = this._readByte (this._config.sizes.size_t),
+		length = 0,
+		result,
+		pos,
+		i;
+
+	for (i = this._config.sizes.size_t - 1; i >= 0; i--) length = length * 256 + byte.charCodeAt (i);
+
+	result = length? this._readByte (length) : '',
+	pos = result.indexOf (String.fromCharCode (0));
 
 	if (pos >= 0) result = result.substr (0, pos);
 	return result;
@@ -172,9 +179,8 @@ Parser.prototype._readConstant = function () {
 		case LUA_TNIL: 		return;
 		case LUA_TBOOLEAN: 	return !!this._readByte ();
 		case LUA_TNUMBER: 	return this._readNumber ();
-		case LUA_TSTRING: 	return this._readString ();
+		case LUA_TSTRING:	return this._readString ();
 
-		case 69: throw new Error ('Constant too large!');	// Assumpion drawn only from observation. No documentation found.
 		default: throw new Error ('Unknown constant type: ' + type);
 	}
 };
