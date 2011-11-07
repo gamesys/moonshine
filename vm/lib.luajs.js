@@ -253,7 +253,7 @@ luajs.lib = {
 	
 	
 	tostring: function (e) {
-		return e.toString ();
+		return e === undefined? 'nil' : e.toString ();
 	},
 	
 	

@@ -62,7 +62,6 @@ luajs.VM.prototype.setGlobal = function (name, value) {
 	var setTimeout = window.setTimeout;
 	
 	window.setTimeout = function (func, timeout) {
-
 		return setTimeout (function () {
 			try {
 				func ();
@@ -71,6 +70,20 @@ luajs.VM.prototype.setGlobal = function (name, value) {
 				throw e;
 			}
 		}, timeout);
+	}
+	
+	
+	var setInterval = window.setInterval;
+	
+	window.setInterval = function (func, interval) {
+		return setInterval (function () {
+			try {
+				func ();
+			} catch (e) {
+				if (e instanceof luajs.Error && console) throw new Error ('[luajs] ' + e.message + '\n    ' + (e.luaStack || []).join ('\n    '));
+				throw e;
+			}
+		}, interval);
 	}
 })();
 
@@ -208,9 +221,9 @@ luajs.VM.Function.operations = [
 		name: 'GETTABLE',
 		handler: function (a, b, c) {
 			c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
-			
+
 			if (this._register[b] == undefined) {
-				throw new luajs.Error ('Attempt to index a nil value');
+				throw new luajs.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
 			} else if (this._register[b] instanceof luajs.Table) {
 				this._register[a] = this._register[b].getMember (c);
 			} else {
@@ -265,7 +278,9 @@ luajs.VM.Function.operations = [
 			c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
 			this._register[a + 1] = this._register[b];
 
-			if (this._register[b] instanceof luajs.Table) {
+			if (this._register[b] == undefined) {
+				throw new luajs.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
+			} else if (this._register[b] instanceof luajs.Table) {
 				this._register[a] = this._register[b].getMember (c);
 			} else {
 				this._register[a] = this._register[b][c];					
@@ -417,6 +432,9 @@ luajs.VM.Function.operations = [
 			} else if (typeof this._register[b] == 'object') {				
 				for (var i in this._register[b]) if (this._register[b].hasOwnProperty (i)) length++;
 				this._register[a] = length;
+
+			} else if (this._register[b] == undefined) {
+				throw new luajs.Error ('attempt to get length of a nil value');
 
 			} else if (this._register[b].length === undefined) {
 				this._register[a] = undefined;
@@ -818,7 +836,7 @@ luajs.VM.Function.operations = [
 luajs.VM.Function.prototype._executeInstruction = function (instruction, line) {
 	var op = this.constructor.operations[instruction.opcode];
 	if (!op || !op.handler) throw new Error ('Operation not implemented! (' + instruction.opcode + ')');
-	
+
 	var tab = '';
 	for (var i = 0; i < this._index; i++) tab += '\t';
 	luajs.stddebug.write (tab + '[' + this._pc + ']\t' + line + '\t' + op.name.toLowerCase () + '\t' + instruction.A + '\t' + instruction.B + (instruction.C !== undefined? '\t' + instruction.C : ''));
