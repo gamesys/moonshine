@@ -164,10 +164,10 @@ luajs.utils = {
 			i;
 		
 		for (i in table) {
-			if (table.hasOwnProperty (i) && i !== '__luajs') result[i] = table[i]
+			if (table.hasOwnProperty (i) && i !== '__luajs') {
+				result[i] = (table[i] instanceof luajs.Table)? luajs.utils.toObject (table[i]) : table[i];
+			}
 		}
-		
-		// TODO Make recursive (convert children)
 		
 		return result;
 	},
