@@ -1,8 +1,5 @@
 
-var sys = require ('sys'),
-		
-	// Constants
-	LUA_TNIL = 0,
+var LUA_TNIL = 0,
 	LUA_TBOOLEAN = 1,
 	LUA_TNUMBER = 3,
 	LUA_TSTRING = 4;
@@ -68,18 +65,7 @@ Parser.prototype._readGlobalHeader = function () {
 		},
 		
 		integral: this._readByte ()
-	};
-		
-	
-	// sys.print ('Header Signature: ' + this._config.signature.substr (1, 3));
-	// sys.print ('\nVersion: ' + this._config.version);
-	// sys.print ('\nFormat verison: ' + this._config.formatVersion);
-	// sys.print ('\nEndianness: ' + (this._config.endianess? 'little' : 'big') + '-endian');
-	// sys.print ('\nSize of int: ' + this._config.sizes.int);
-	// sys.print ('\nSize of size_t: ' + this._config.sizes.size_t);
-	// sys.print ('\nSize of Instruction: ' + this._config.sizes.instruction);
-	// sys.print ('\nSize of a Lua number: ' + this._config.sizes.number);
-	// sys.print ('\nIntegral flag: ' + this._config.integral);
+	};	
 };
 
 
@@ -315,7 +301,6 @@ Parser.prototype._parseInstruction = function (instruction) {
 		data = ('0000000' + instruction.charCodeAt (i).toString (2)).substr (-8) + data;	// Beware: may need to be different for other endianess
 	}
 
-	//sys.print (data + '\n');
 	result.opcode = parseInt (data.substr (-6), 2);
 	result.A = parseInt (data.substr (-14, 8), 2);
 
