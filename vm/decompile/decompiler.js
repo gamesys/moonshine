@@ -301,10 +301,10 @@ Parser.prototype._parseInstruction = function (instruction) {
 		data = ('0000000' + instruction.charCodeAt (i).toString (2)).substr (-8) + data;	// Beware: may need to be different for other endianess
 	}
 
-	result.opcode = parseInt (data.substr (-6), 2);
+	result.op = parseInt (data.substr (-6), 2);
 	result.A = parseInt (data.substr (-14, 8), 2);
 
-	switch (result.opcode) {
+	switch (result.op) {
 		
 		// iABx
 		case 1: //loadk

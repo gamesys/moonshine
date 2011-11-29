@@ -752,16 +752,16 @@ luajs.VM.Function.operations = [
 				upvalues = [],
 				instruction;
 			
-			while ((instruction = this._instructions[this._pc]) && (instruction.opcode === 0 || instruction.opcode === 4) && instruction.A === 0) {	// move, getupval
+			while ((instruction = this._instructions[this._pc]) && (instruction.op === 0 || instruction.op === 4) && instruction.A === 0) {	// move, getupval
 	
 				(function () {
 					var i = instruction,
 						upvalue;
 
-					luajs.stddebug.write ('-> ' + me.constructor.operations[i.opcode].name.toLowerCase () + '\t' + i.A + '\t' + i.B + '\t' + i.C);
+					luajs.stddebug.write ('-> ' + me.constructor.operations[i.op].name.toLowerCase () + '\t' + i.A + '\t' + i.B + '\t' + i.C);
 
 					
-					if (i.opcode === 0) {	// move
+					if (i.op === 0) {	// move
 						for (var j = 0, l = me._localsUsedAsUpvalues.length; j < l; j++) {
 							var up = me._localsUsedAsUpvalues[j];
 							if (up.registerIndex === i.B) {
@@ -834,8 +834,8 @@ luajs.VM.Function.operations = [
 
 
 luajs.VM.Function.prototype._executeInstruction = function (instruction, line) {
-	var op = this.constructor.operations[instruction.opcode];
-	if (!op || !op.handler) throw new Error ('Operation not implemented! (' + instruction.opcode + ')');
+	var op = this.constructor.operations[instruction.op];
+	if (!op || !op.handler) throw new Error ('Operation not implemented! (' + instruction.op + ')');
 
 	var tab = '';
 	for (var i = 0; i < this._index; i++) tab += '\t';
