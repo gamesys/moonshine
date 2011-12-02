@@ -639,7 +639,8 @@ luajs.VM.Function.operations = [
 	{
 		name: 'RETURN',
 		handler: function (a, b) {
-			var retvals = [];
+			var retvals = [],
+				i;
 
 			if (b === 0) {
 				l = this._register.length;
@@ -719,7 +720,8 @@ luajs.VM.Function.operations = [
 	{
 		name: 'SETLIST',
 		handler: function (a, b, c) {
-			var length = b || this._register.length -  a - 1;
+			var length = b || this._register.length -  a - 1,
+			i;
 			
 			for (i = 0; i < length; i++) {
 				this._register[a].setMember (50 * (c - 1) + i + 1, this._register[a + i + 1]);
@@ -816,13 +818,15 @@ luajs.VM.Function.operations = [
 	{
 		name: 'VARARG',
 		handler: function (a, b) {
+			var i;
+			
 			if (b === 0) {
-				for (var i = 0; i < b - 1; i++) {
+				for (i = 0; i < b - 1; i++) {
 					this._register[a + i] = this._params[this._data.paramCount + i];
 				}
 			
 			} else {
-				for (var i = 0; i < b - 1; i++) {
+				for (i = 0; i < b - 1; i++) {
 					this._register[a + i] = this._params[this._data.paramCount + i];
 				}
 			}

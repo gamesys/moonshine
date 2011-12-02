@@ -763,7 +763,7 @@ luajs.lib.math = {
 	
 	max: function () {
 		var max = -Infinity,
-			length = arguments.length
+			length = arguments.length,
 			i;
 		
 		for (i = 0; i < length; i++) if (arguments[i] > max) max = arguments[i];
@@ -775,7 +775,7 @@ luajs.lib.math = {
 	
 	min: function () {
 		var min = Infinity,
-			length = arguments.length
+			length = arguments.length,
 			i;
 		
 		for (i = 0; i < length; i++) if (arguments[i] < min) min = arguments[i];
