@@ -98,7 +98,11 @@ luajs.VM.Closure = function (data, globals, upvalues) {
 	this._data = data;
 	this._globals = globals;
 	this._upvalues = upvalues || {};
+	this._index = luajs.VM.Closure._index++;
 };
+
+
+luajs.VM.Closure._index = 0;
 
 
 
@@ -130,6 +134,12 @@ luajs.VM.Closure.prototype.apply = function (obj, args) {
 
 
 
+luajs.VM.Closure.prototype.toString = function () {
+	return 'function: 0x' + this._index.toString (16);
+};
+
+
+
 
 
 
@@ -150,12 +160,15 @@ luajs.VM.Function = function (data, globals, upvalues) {
 	this._localsUsedAsUpvalues = [];
 
 	
-	var me = this;
-	return function () { 
-		var args = [];		
-		for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);
-		return me.execute (args);
-	};
+	var me = this,
+		result = function () { 
+			var args = [];		
+			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);
+			return me.execute (args);
+		};
+		
+	result._instance = this;	
+	return result;
 };
 
 
@@ -582,6 +595,9 @@ luajs.VM.Function.operations = [
 			retvals = this._register[a].apply ({}, args);
 			if (!(retvals instanceof Array)) retvals = [retvals];
 
+			if (this._yielded) return retvals;	// For coroutines
+
+
 			if (c === 0) {
 				l = retvals.length;
 				
@@ -891,6 +907,38 @@ luajs.VM.Function.prototype._run = function () {
 	var instruction,
 		line,
 		retval;
+
+
+	if (this._yielded) {
+		// Coroutine is resuming
+		
+		var a = this._yielded.A,
+			b = this._yielded.B,
+			c = this._yielded.C,
+			retvals = [];
+		
+		for (var i = 0, l = arguments.length; i < l; i++) retvals.push (arguments[i]);
+
+		if (c === 0) {
+			l = retvals.length;
+			
+			for (i = 0; i < l; i++) {
+				this._register[a + i] = retvals[i];
+			}
+
+			this._register.splice (a + l);
+			
+		} else {
+			for (i = 0; i < c - 1; i++) {
+				this._register[a + i] = retvals[i];
+			}
+		}
+		
+		delete this._yielded;
+	}
+
+
+	this.terminated = false;
 	
 	while (instruction = this._instructions[this._pc]) {
 		line = this._data.linePositions[this._pc];
@@ -898,8 +946,17 @@ luajs.VM.Function.prototype._run = function () {
 		this._pc++;
 		
 		retval = this._executeInstruction (instruction, line);
+		
+		if (this._yielded) {
+			this._yielded = instruction;
+		} else if (retval) {
+			this.terminated = true;
+		}	
+
 		if (retval !== undefined) return retval;
 	}
+	
+	this.terminated = true;
 };
 
 
@@ -913,3 +970,97 @@ luajs.VM.Function.prototype._getConstant = function (index) {
 
 
 
+
+
+
+
+
+
+
+
+luajs.VM.Coroutine = function (closure) {
+	
+	this._func = closure.getInstance ();
+
+	this._index = luajs.VM.Coroutine._index++;
+	this._started = false;
+	this.status = 'suspended';
+
+	this._addFunctions ();
+};
+
+luajs.VM.Coroutine._index = 0;
+
+
+
+
+luajs.VM.Coroutine.yield = function () {
+	var args = [];
+	for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
+
+	this._func._instance._yielded = true;
+	return args;
+};
+
+
+
+
+luajs.VM.Coroutine.running = function () {
+	return this;
+};
+
+
+
+
+luajs.VM.Coroutine.prototype._addFunctions = function () {
+
+	var globalsClone = {},
+		coroutineLib = {},
+		me = this;
+
+	for (var i in this._func._instance._globals) globalsClone[i] = this._func._instance._globals[i];
+	for (var i in globalsClone.coroutine) coroutineLib[i] = globalsClone[i];
+	
+	coroutineLib.yield = function () { return luajs.VM.Coroutine.yield.apply (me, arguments); };
+	coroutineLib.running = function () { return luajs.VM.Coroutine.running.apply (me, arguments); };
+	
+	globalsClone.coroutine = coroutineLib;
+	this._func._instance._globals = globalsClone;
+
+};
+
+
+
+
+luajs.VM.Coroutine.prototype.resume = function () {
+
+	var retval;
+
+	try {
+		if (this.status == 'dead') throw new luajs.Error ('cannot resume dead coroutine');
+		
+		if (!this._started) {
+			this._started = true;
+			retval = this._func.apply ({}, arguments);
+
+		} else {
+			retval = this._func._instance._run.apply (this._func._instance, arguments);
+		}	
+	
+		this.status = this._func._instance.terminated? 'dead' : 'suspended';	
+		retval.unshift (true);
+
+	} catch (e) {
+		retval = [false, e];
+		this.status = 'dead';
+	}
+
+	return retval;
+};
+
+
+
+
+luajs.VM.Coroutine.prototype.toString = function () {
+	return 'thread: 0x' + this._index.toString (16);
+};

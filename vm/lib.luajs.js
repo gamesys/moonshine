@@ -1073,3 +1073,64 @@ luajs.lib.os = {
 
 };
 
+
+
+luajs.lib.coroutine = {
+	
+	create: function (closure) {
+		return new luajs.VM.Coroutine (closure);
+	},
+	
+	
+	
+	
+	resume: function (thread) {
+		var args = [];
+		for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);	
+		
+		return thread.resume.apply (thread, args);
+	},
+	
+	
+	
+	
+	running: function () {
+		// When not in a coroutine, running() returns nil.
+		return;
+	},
+	
+	
+	
+	
+	status: function (closure) {
+		return closure.status;
+	},
+	
+	
+	
+	
+	wrap: function (closure) {
+		var cr = luajs.lib.coroutine.create (closure);
+		
+		return function () {
+			var args = [cr];
+			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
+
+			var retvals = luajs.lib.coroutine.resume.apply ({}, args),
+				success = retvals.shift ();
+				
+			if (success) return retvals;
+			throw retvals[0];
+		};
+	},
+	
+
+	
+	
+	yield: function () {
+		// Thow error as not in coroutine.
+		throw new luajs.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
+	}
+	
+};
+
