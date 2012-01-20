@@ -94,18 +94,20 @@ luajs.lib = {
 	/**
 	 * Implementation of Lua's next function.
 	 * @param {object} table The table that will receive the metatable.
-	 * @param {object} metatable The metatable to attach.
+	 * @param {object} index Index of the item to return.
 	 */
 	next: function (table, index) {	
 		// SLOOOOOOOW...
 		var found = (index == undefined);
 	
 		for (var i in table) {
-			if (!found) {
-				if (i == index) found = true;
+			if (table.hasOwnProperty (i) && !(i in luajs.Table.prototype) && i !== '__luajs') {
+				if (!found) {
+					if (i == index) found = true;
 
-			} else if (table.hasOwnProperty (i) && i.substr (0, 2) != '__') {
-				return [i, table[i]];
+				} else if (table.hasOwnProperty (i) && i.substr (0, 2) != '__') {
+					return [i, table[i]];
+				}
 			}
 		}
 	
