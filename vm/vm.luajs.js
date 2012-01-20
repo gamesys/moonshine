@@ -235,7 +235,7 @@ luajs.VM.Function.operations = [
 		handler: function (a, b, c) {
 			c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
 
-			if (this._register[b] == undefined) {
+			if (this._register[b] === undefined) {
 				throw new luajs.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
 			} else if (this._register[b] instanceof luajs.Table) {
 				this._register[a] = this._register[b].getMember (c);
@@ -270,6 +270,10 @@ luajs.VM.Function.operations = [
 
 			if (this._register[a] instanceof luajs.Table) {
 				this._register[a].setMember (b, c);
+			
+			} else if (this._register[a] === undefined) {
+				throw new luajs.Error ('Attempt to index a missing field (can\'t set "' + b + '" on a nil value)');
+				
 			} else {
 				this._register[a][b] = c;
 			}
@@ -291,7 +295,7 @@ luajs.VM.Function.operations = [
 			c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
 			this._register[a + 1] = this._register[b];
 
-			if (this._register[b] == undefined) {
+			if (this._register[b] === undefined) {
 				throw new luajs.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
 			} else if (this._register[b] instanceof luajs.Table) {
 				this._register[a] = this._register[b].getMember (c);
