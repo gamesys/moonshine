@@ -841,7 +841,7 @@ luajs.VM.Function.operations = [
 			var i;
 			
 			if (b === 0) {
-				for (i = 0; i < b - 1; i++) {
+				for (i = 0; i < this._params.length; i++) {
 					this._register[a + i] = this._params[this._data.paramCount + i];
 				}
 			
