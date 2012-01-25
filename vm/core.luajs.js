@@ -66,14 +66,18 @@ luajs.Table.prototype.getMember = function (key) {
 luajs.Table.prototype.setMember = function (key, value) {
 	var mt = this.__luajs.metatable;
 
-	if (this[key] == undefined && mt && mt.__newindex) {
+	if (this[key] === undefined && mt && mt.__newindex) {
 		switch (mt.__newindex.constructor) {
 			case luajs.Table: return mt.__newindex.setMember (key, value);
 			case Function: return mt.__newindex (this, key, value);
 		}
 	}
-	
-	this[key] = value;
+
+	if (value === undefined) {
+		delete this[key];
+	} else {
+		this[key] = value;
+	}
 };
 
 
