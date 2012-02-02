@@ -838,17 +838,16 @@ luajs.VM.Function.operations = [
 	{
 		name: 'VARARG',
 		handler: function (a, b) {
-			var i;
+			var i,
+				limit = b === 0? this._params.length : b - 1;
 			
-			if (b === 0) {
-				for (i = 0; i < this._params.length; i++) {
-					this._register[a + i] = this._params[this._data.paramCount + i];
-				}
-			
-			} else {
-				for (i = 0; i < b - 1; i++) {
-					this._register[a + i] = this._params[this._data.paramCount + i];
-				}
+			for (i = 0; i < limit; i++) {
+				this._register[a + i] = this._params[this._data.paramCount + i];
+			}
+
+			// Assumption: Clear the remaining items in the register.
+			for (i = a + limit; i < this._register.length; i++) {
+				delete this._register[i];
 			}
 		}
 	}
