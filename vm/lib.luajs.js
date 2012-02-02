@@ -1089,7 +1089,7 @@ luajs.lib.coroutine = {
 	resume: function (thread) {
 		var args = [];
 		for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);	
-		
+
 		return thread.resume.apply (thread, args);
 	},
 	
@@ -1097,11 +1097,10 @@ luajs.lib.coroutine = {
 	
 	
 	running: function () {
-		// When not in a coroutine, running() returns nil.
-		return;
+		return luajs.VM.Coroutine._running;
 	},
 	
-	
+
 	
 	
 	status: function (closure) {
@@ -1112,10 +1111,10 @@ luajs.lib.coroutine = {
 	
 	
 	wrap: function (closure) {
-		var cr = luajs.lib.coroutine.create (closure);
+		var co = luajs.lib.coroutine.create (closure);
 		
-		return function () {
-			var args = [cr];
+		var result = function () {			
+			var args = [co];
 			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 
 			var retvals = luajs.lib.coroutine.resume.apply ({}, args),
@@ -1124,15 +1123,27 @@ luajs.lib.coroutine = {
 			if (success) return retvals;
 			throw retvals[0];
 		};
+		
+		result._coroutine = co;
+		return result;
 	},
 	
 
 	
 	
 	yield: function () {
-		// Thow error as not in coroutine.
-		throw new luajs.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
+		// If running in main thread, throw error.
+		if (!luajs.VM.Coroutine._running) throw new luajs.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
+
+		var args = [];
+		for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
+
+		luajs.VM.Coroutine._running._yieldVars = args;
+		luajs.VM.Coroutine._running.status = 'suspending';
+
+		return;
 	}
+
 	
 };
 
