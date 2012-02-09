@@ -284,7 +284,7 @@ luajs.lib = {
 	
 
 	unpack: function (table, i, j) {
-		luajs.warn ('unpack is deprecated. Use table.unpack instead.');
+		// v5.2: luajs.warn ('unpack is deprecated. Use table.unpack instead.');
 		return luajs.lib.table.unpack (table, i, j);
 	},
 	
@@ -544,7 +544,7 @@ luajs.lib.table = {
 	
 	
 	maxn: function (table) {
-		luajs.warn ('table.maxn is deprecated');
+		// v5.2: luajs.warn ('table.maxn is deprecated');
 		
 		if (!(table instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.maxn(). Table expected');
 
@@ -756,7 +756,7 @@ luajs.lib.math = {
 	
 	
 	log10: function (x) {
-		luajs.warn ('math.log10 is deprecated. Use math.log with 10 as its second argument, instead.');
+		// v5.2: luajs.warn ('math.log10 is deprecated. Use math.log with 10 as its second argument, instead.');
 		return Math.log (x, 10);
 	},
 	
