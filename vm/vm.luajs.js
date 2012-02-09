@@ -42,10 +42,10 @@ luajs.VM.prototype.execute = function (asCoroutine) {
 		if (!asCoroutine) {
 			mainThread.call ({});
 		} else {
-			var co = luajs.lib.coroutine.create (mainThread),
+			var co = luajs.lib.coroutine.wrap (mainThread),
 				resume = function () {
-					co.resume ();
-					if (co.status != 'dead') window.setTimeout (resume, 1);
+					co ();
+					if (co._coroutine.status != 'dead') window.setTimeout (resume, 1);
 				};
 
 			resume ();
@@ -604,10 +604,10 @@ luajs.VM.Function.operations = [
 				retvals,
 				funcToResume;
 
-			
+
 			if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming') {
-					funcToResume = luajs.VM.Coroutine._running._resumeStack.pop ()
-					retVals = funcToResume._run ();
+				funcToResume = luajs.VM.Coroutine._running._resumeStack.pop ()
+				retVals = funcToResume._run ();
 				
 			} else {
 				if (b === 0) {
@@ -682,7 +682,7 @@ luajs.VM.Function.operations = [
 				this._register[a + i] = retvals[i];
 			}
 			
-			// NOTE: Currently not replacing stack, so infininately recursive calls WOULD drain memory, unlike how tail calls were intended.
+			// NOTE: Currently not replacing stack, so infinately recursive calls WOULD drain memory, unlike how tail calls were intended.
 			// TODO: For non-external function calls, replace this stack with that of the new function. Possibly return the Function and handle the call in the RETURN section (for the calling function).
 		}
 	},
@@ -871,7 +871,7 @@ luajs.VM.Function.operations = [
 		name: 'VARARG',
 		handler: function (a, b) {
 			var i,
-				limit = b === 0? this._params.length : b - 1;
+				limit = b === 0? this._params.length - this._data.paramCount : b - 1;
 			
 			for (i = 0; i < limit; i++) {
 				this._register[a + i] = this._params[this._data.paramCount + i];
@@ -908,8 +908,19 @@ luajs.VM.Function.prototype.execute = function (args) {
 	if (this._data && this._data.sourceName) luajs.stddebug.write ('Executing ' + this._data.sourceName + '...'); //? ' ' + this._data.sourceName : ' function') + '...<br><br>');
 	luajs.stddebug.write ('\n');
 
-	// ASSUMPTION: Parameter values are automatically copied to R(0) onwards of the function on initialisation. This is based on observation and is neither confirmed nor denied in any documentation. (Different rules apply to VARARG functions)
-	this._register = [].concat (this._params = [].concat (args));
+	// ASSUMPTION: Parameter values are automatically copied to R(0) onwards of the function on initialisation. This is based on observation and is neither confirmed nor denied in any documentation. (Different rules apply to v5.0-style VARARG functions)
+	this._params = [].concat (args)
+	this._register = [].concat (args.splice (0, this._data.paramCount));
+
+	if (this._data.is_vararg == 7) {	// v5.0 compatibility (LUA_COMPAT_VARARG)
+		var arg = [].concat (args),
+			length = arg.length;
+					
+		arg = new luajs.Table (arg);
+		arg.setMember ('n', length);
+		
+		this._register.push (arg);
+	}
 	
 	try {
 		return this._run ();
