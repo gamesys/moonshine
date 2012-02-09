@@ -9,16 +9,21 @@ var luajs = luajs || {};
  * @param {Object} obj Initial values to set up in the new table.
  */
 luajs.Table = function (obj) {
+
 	var isArr = (obj instanceof Array),
 		key,
 		value,
 		i;
-	
+
 	for (i in obj || {}) {
 		key = isArr? parseInt (i, 10) + 1: i;
 		value = obj[i];
-		
-		this[key] = typeof value == 'object'? new luajs.Table (value) : value;
+
+		if (typeof value != 'object' || value.constructor != Object) {
+			this[key] = value;
+		} else {
+			this[key] = new luajs.Table (value);
+		}
 	}
 	
 	this.__luajs = { 
