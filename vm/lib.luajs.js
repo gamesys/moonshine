@@ -159,11 +159,11 @@ luajs.lib = {
 			item = arguments[i];
 			
 			if (item instanceof luajs.Table) {
-				output.push ('[Lua table]');
+				output.push ('table: 0x' + item.__luajs.index.toString (16));
 				
 			} else if (item instanceof Function) {
-				output.push ('[JavaScript function]');
-				
+				output.push ('JavaScript function: ' + item.toString ());
+								
 			} else if (item === undefined) {
 				output.push ('nil');
 				
