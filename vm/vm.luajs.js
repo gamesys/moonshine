@@ -249,8 +249,13 @@ luajs.VM.Function.operations = [
 
 			if (this._register[b] === undefined) {
 				throw new luajs.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
+
 			} else if (this._register[b] instanceof luajs.Table) {
 				this._register[a] = this._register[b].getMember (c);
+
+			} else if (typeof this._register[b] == 'string' && luajs.lib.string[c]) {
+				this._register[a] = luajs.lib.string[c];
+
 			} else {
 				this._register[a] = this._register[b][c];
 			}
@@ -309,8 +314,13 @@ luajs.VM.Function.operations = [
 
 			if (this._register[b] === undefined) {
 				throw new luajs.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
+
 			} else if (this._register[b] instanceof luajs.Table) {
 				this._register[a] = this._register[b].getMember (c);
+
+			} else if (typeof this._register[b] == 'string' && luajs.lib.string[c]) {
+				this._register[a] = luajs.lib.string[c];
+
 			} else {
 				this._register[a] = this._register[b][c];					
 			}
