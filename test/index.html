@@ -3,33 +3,29 @@
 		<title></title>
 				
 		<script src="../../vendor/jquery.min.js"></script>
-		<script src="./core.luajs.js"></script>
-		<script src="./lib.luajs.js"></script>
-		<!-- script src="./display.luajs.js"></script -->
-		<script src="./vm.luajs.js"></script>
-		<!-- script src="./text1.out.js"></script -->
+		<script src="../vm/core.luajs.js"></script>
+		<script src="../vm/lib.luajs.js"></script>
+		<script src="../vm/vm.luajs.js"></script>
 		
 		<script>
+		
 			var debugText = '';
 			window.setTimeout (function () { $('#debug').text (debugText); }, 500);
-			luajs.onDebug = function (message) {
-				//$('<p>').html (message).appendTo ('#debug');
+
+			luajs.stdout.write = function (message) {
+				$('#output').append (message + '\n');
+				//if (console && console.log) console.log (message);
+			};
+			
+
+			luajs.stddebug.write = function (message) {
 				debugText += message + '\n';
 			};
-
-			luajs.onOutput = function (message) {
-				//$('<p>').html (message).appendTo ('#output');
-				$('#output').append (message + '\n');
-			};
-
-			luajs.outputError = function (message) {
-				$('<p>').addClass ('error').html (message).appendTo ('#output');
-			};
-
+			
 
 			$(function () {
 				vm = new luajs.VM ();				
-				vm.load ('./scripts/test-suite.out.js');
+				vm.load ('./scripts/test-suite.json');
 			
 				$(document).keypress (function () {
 					$('#debug').empty ();
@@ -39,8 +35,6 @@
 		</script>
 		
 		<style>
-
-			
 			#debug,
 			#output {
 				width: 1000px;
