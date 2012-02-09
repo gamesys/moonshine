@@ -47,7 +47,7 @@ luajs.lib = {
 	 * Implementation of Lua's getmetatable function.
 	 * @param {object} table The table from which to obtain the metatable.
 	 */
-	getmetatable: function (table) {		
+	getmetatable: function (table) {
 		if (!(table instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in getmetatable(). Table expected');
 		return table.__luajs.metatable;
 	},

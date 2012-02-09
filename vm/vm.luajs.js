@@ -605,7 +605,11 @@ luajs.VM.Function.operations = [
 				funcToResume;
 
 
-			if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming') {
+			if (luajs.debug.status == 'resuming') {
+				funcToResume = luajs.debug.resumeStack.pop ()
+				retVals = funcToResume._run ();
+				
+			} else if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming') {
 				funcToResume = luajs.VM.Coroutine._running._resumeStack.pop ()
 				retVals = funcToResume._run ();
 				
@@ -942,46 +946,61 @@ luajs.VM.Function.prototype.execute = function (args) {
 luajs.VM.Function.prototype._run = function () {
 	var instruction,
 		line,
-		retval;
+		retval,
+		yieldVars;
 
 	this.terminated = false;
 	
 	
-	if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming') {
+	if (luajs.debug.status == 'resuming') {
+	 	if (luajs.debug.resumeStack.length) {
+			this._pc--;
+			
+		} else {
+			luajs.debug.status = 'running';
+			yieldVars = luajs.debug.yieldVars;
+		}
+
+	} else if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming') {
 	 	if (luajs.VM.Coroutine._running._resumeStack.length) {
 			this._pc--;
 			
 		} else {
 			luajs.VM.Coroutine._running.status = 'running';
 			luajs.stddebug.write ('[coroutine resumed]\n');
+	
+			yieldVars = luajs.VM.Coroutine._running._yieldVars;
+		}
+	}	
+	
 
-			instruction = this._instructions[this._pc - 1];
-				
-			var a = instruction.A,
-				b = instruction.B,
-				c = instruction.C,
-				yieldVars = luajs.VM.Coroutine._running._yieldVars,
-				retvals = [];
+	if (yieldVars) {
+		instruction = this._instructions[this._pc - 1];
+			
+		var a = instruction.A,
+			b = instruction.B,
+			c = instruction.C,
+			retvals = [];
+	
+		for (var i = 0, l = yieldVars.length; i < l; i++) retvals.push (yieldVars[i]);
+
+		if (c === 0) {
+			l = retvals.length;
 		
-			for (var i = 0, l = yieldVars.length; i < l; i++) retvals.push (yieldVars[i]);
-	
-			if (c === 0) {
-				l = retvals.length;
-			
-				for (i = 0; i < l; i++) {
-					this._register[a + i] = retvals[i];
-				}
-	
-				this._register.splice (a + l);
-			
-			} else {
-				for (i = 0; i < c - 1; i++) {
-					this._register[a + i] = retvals[i];
-				}
+			for (i = 0; i < l; i++) {
+				this._register[a + i] = retvals[i];
 			}
+
+			this._register.splice (a + l);
 		
+		} else {
+			for (i = 0; i < c - 1; i++) {
+				this._register[a + i] = retvals[i];
+			}
 		}
 	}
+
+
 	
 		
 	while (instruction = this._instructions[this._pc]) {
@@ -989,6 +1008,8 @@ luajs.VM.Function.prototype._run = function () {
 
 		this._pc++;
 		retval = this._executeInstruction (instruction, line);
+
+		if (luajs.debug.status == 'suspending') return;
 		
 		if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'suspending') {
 			luajs.VM.Coroutine._running._resumeStack.push (this);

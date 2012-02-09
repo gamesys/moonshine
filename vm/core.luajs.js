@@ -160,6 +160,7 @@ luajs.warn = function (message) {
 
 
 
+luajs.debug = {};
 
 
 
