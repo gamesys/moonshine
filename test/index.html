@@ -11,7 +11,7 @@
 		<script>
 		
 			var debugText = '';
-			window.setTimeout (function () { $('#debug').text (debugText); }, 500);
+			window.setInterval (function () { $('#debug').text (debugText); }, 500);
 
 			luajs.stdout.write = function (message) {
 				$('#output').append (message + '\n');
@@ -26,7 +26,7 @@
 
 			$(function () {
 				vm = new luajs.VM ();				
-				vm.load ('./scripts/test-suite.json');
+				vm.load ('./scripts/simple.json');
 			
 				$(document).keypress (function () {
 					$('#debug').empty ();

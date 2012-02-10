@@ -36,13 +36,13 @@ luajs.VM.prototype.load = function (url, execute, asCoroutine) {
 
 luajs.VM.prototype.execute = function (asCoroutine) {
 	if (!this._data) throw new Error ('No data loaded.'); 
-	var mainThread = new luajs.VM.Closure (this._data, this._globals);
+	this._thread = new luajs.VM.Closure (this._data, this._globals);
 	
 	try {
 		if (!asCoroutine) {
-			mainThread.call ({});
+			this._thread.call ({});
 		} else {
-			var co = luajs.lib.coroutine.wrap (mainThread),
+			var co = luajs.lib.coroutine.wrap (this._thread),
 				resume = function () {
 					co ();
 					if (co._coroutine.status != 'dead') window.setTimeout (resume, 1);
@@ -1009,7 +1009,14 @@ luajs.VM.Function.prototype._run = function () {
 		this._pc++;
 		retval = this._executeInstruction (instruction, line);
 
-		if (luajs.debug.status == 'suspending') return;
+		if (luajs.debug.status == 'suspending' && !(this._instructions[this._pc - 1] && this._instructions[this._pc - 1].op == 30)) {
+			console.log ('>>>>>>', retval);
+			luajs.debug.retval = retval;
+
+			luajs.debug.resumeStack.push (this);
+			
+			return retval;
+		}
 		
 		if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'suspending') {
 			luajs.VM.Coroutine._running._resumeStack.push (this);
