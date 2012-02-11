@@ -607,11 +607,11 @@ luajs.VM.Function.operations = [
 
 			if (luajs.debug.status == 'resuming') {
 				funcToResume = luajs.debug.resumeStack.pop ()
-				retVals = funcToResume._run ();
+				retvals = funcToResume._run ();
 				
 			} else if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming') {
 				funcToResume = luajs.VM.Coroutine._running._resumeStack.pop ()
-				retVals = funcToResume._run ();
+				retvals = funcToResume._run ();
 				
 			} else {
 				if (b === 0) {
@@ -896,10 +896,12 @@ luajs.VM.Function.prototype._executeInstruction = function (instruction, line) {
 	var op = this.constructor.operations[instruction.op];
 	if (!op || !op.handler) throw new Error ('Operation not implemented! (' + instruction.op + ')');
 
-	var tab = '';
-	for (var i = 0; i < this._index; i++) tab += '\t';
-	luajs.stddebug.write (tab + '[' + this._pc + ']\t' + line + '\t' + op.name.toLowerCase () + '\t' + instruction.A + '\t' + instruction.B + (instruction.C !== undefined? '\t' + instruction.C : ''));
-	
+	if (luajs.debug.status != 'resuming') {
+		var tab = '';
+		for (var i = 0; i < this._index; i++) tab += '\t';
+		luajs.stddebug.write (tab + '[' + this._pc + ']\t' + line + '\t' + op.name.toLowerCase () + '\t' + instruction.A + '\t' + instruction.B + (instruction.C !== undefined? '\t' + instruction.C : ''));
+	}
+		
 	return op.handler.call (this, instruction.A, instruction.B, instruction.C);
 };
 	
@@ -1009,12 +1011,8 @@ luajs.VM.Function.prototype._run = function () {
 		this._pc++;
 		retval = this._executeInstruction (instruction, line);
 
-		if (luajs.debug.status == 'suspending' && !(this._instructions[this._pc - 1] && this._instructions[this._pc - 1].op == 30)) {
-			console.log ('>>>>>>', retval);
-			luajs.debug.retval = retval;
-
-			luajs.debug.resumeStack.push (this);
-			
+		if (luajs.debug.status == 'suspending' && !retval) {
+			luajs.debug.resumeStack.push (this);			
 			return retval;
 		}
 		

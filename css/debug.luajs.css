@@ -1,0 +1,65 @@
+
+div.luajs-debug {
+	position: fixed;
+	top: 0;
+	right: 0;
+	width: 400px;
+	background-color: #ddd;
+}
+
+
+div.luajs-debug .buttons {
+	
+}
+
+
+div.luajs-debug ol {
+	background-color: #bbb;
+	font-family: monospace; 
+	max-height: 500px;
+	overflow: auto;
+	color: #666;
+	font-size: 9px;
+	margin: 0;
+	cursor: pointer;
+	padding-right: 0;
+}
+
+
+div.luajs-debug ol li {
+	min-width: 500px;
+	white-space: pre;
+}
+
+
+div.luajs-debug ol li code {
+	display: block;
+	width: 100%;
+	background-color: #fff;
+	color: #111;
+	font-size: 11px;
+	border-left: 1px solid #888;
+	padding: 1px 0;
+	margin-left: -10px;
+	padding-right: 10px;
+	text-indent: 4px;
+	cursor: default;
+}
+
+
+div.luajs-debug ol li code:after {
+	content: '';
+}
+
+
+div.luajs-debug ol li.highlighted code {
+	border-top: 1px solid #55f; 
+	border-bottom: 1px solid #55f; 
+	background-color: #aaf;
+	padding: 0 10px 0 0;
+}
+
+div.luajs-debug ol li.highlighted.error code {
+	border-color: #f55; 
+	background-color: #faa;
+}

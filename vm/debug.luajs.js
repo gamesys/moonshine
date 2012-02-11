@@ -6,6 +6,7 @@ var luajs = luajs || {};
 
 luajs.debug = { 
 	active: true,
+	stepping: true,
 	breakpoints: [],
 	loaded: {},
 	ui: {},
@@ -17,9 +18,9 @@ luajs.debug = {
 
 
 luajs.debug._init = function () {
-	luajs.debug.ui.container = $('<div>').css ({ position: 'fixed', top: 0, right: 0, width: 400 })[0];
-	luajs.debug.ui.buttons = $('<div>').css ({ height: 40 }).appendTo (luajs.debug.ui.container)[0];
-	luajs.debug.ui.code = $('<ol>').css ({ fontFamily: 'monospace', maxHeight: 500, overflow: 'auto' }).appendTo (luajs.debug.ui.container)[0];
+	luajs.debug.ui.container = $('<div>').addClass ('luajs-debug')[0];
+	luajs.debug.ui.buttons = $('<div>').addClass ('buttons').appendTo (luajs.debug.ui.container)[0];
+	luajs.debug.ui.code = $('<ol>').appendTo (luajs.debug.ui.container)[0];
 
 
 	$('<button>').text ('Step into').appendTo (luajs.debug.ui.buttons).click (function () {
@@ -27,7 +28,7 @@ luajs.debug._init = function () {
 	});
 
 	$(window).load (function () { 
-		$('body').append (luajs.debug.ui.container).append ('<style>li.highlighted { background: #5555ff; color: #ffffff; }</style>'); 
+		$('body').append (luajs.debug.ui.container); 
 	});
 };
 
@@ -54,8 +55,8 @@ luajs.debug.showScript = function (jsonUrl) {
 	luajs.debug.ui.lines = [];
 	
 	for (index in lines) {
-		p = $('<li>').css ({ width: 800, whiteSpace: 'pre' }).appendTo (luajs.debug.ui.code)[0];
-		p.innerHTML = lines[index];
+		p = $('<li>').appendTo (luajs.debug.ui.code)[0];
+		p.innerHTML = '<code>' + lines[index] + '</code>';
 		luajs.debug.ui.lines.push (p);
 	}
 
@@ -64,17 +65,18 @@ luajs.debug.showScript = function (jsonUrl) {
 	
 
 
-luajs.debug.highlightLine = function (lineNumber) {
+luajs.debug.highlightLine = function (lineNumber, error) {
 	$(luajs.debug.ui.highlighted).removeClass ('highlighted');
-	luajs.debug.ui.highlighted = $(luajs.debug.ui.lines[lineNumber - 1]).addClass ('highlighted')[0];	
+	luajs.debug.ui.highlighted = $(luajs.debug.ui.lines[lineNumber - 1]).addClass ('highlighted' + (error? ' error' : ''))[0];	
 
-	if (luajs.debug.ui.highlighted.scrollIntoView) luajs.debug.ui.highlighted.scrollIntoView ();
+	//if (luajs.debug.ui.highlighted.scrollIntoView) luajs.debug.ui.highlighted.scrollIntoView ();
 };
 
 
 	
 
 (function () {
+	
 	
 	var load = luajs.VM.prototype.load;
 	
@@ -89,11 +91,8 @@ luajs.debug.highlightLine = function (lineNumber) {
 	var execute = luajs.VM.prototype.execute;
 
 	luajs.VM.prototype.execute = function () {
-
 		var result = execute.apply (this, arguments);
-	
-		luajs.debug.status = 'suspended';
-		luajs.debug.thread = this._thread;
+		if (luajs.debug.stepping) luajs.debug.status = 'suspended';
 
 		return result;
 	};
@@ -104,28 +103,31 @@ luajs.debug.highlightLine = function (lineNumber) {
 	var executeInstruction = luajs.VM.Function.prototype._executeInstruction;
 	
 	luajs.VM.Function.prototype._executeInstruction = function (instruction, lineNumber) {
-		luajs.debug.highlightLine (lineNumber);
 
-		if (!luajs.debug.resumeStack.length && lineNumber != luajs.debug.currentLine && [35, 36].indexOf (instruction.op) < 0) {
-console.log (this);
-//			luajs.debug.resumeStack.push (this);
+		if (luajs.debug.stepping && !luajs.debug.resumeStack.length && lineNumber != luajs.debug.currentLine && [35, 36].indexOf (instruction.op) < 0) {
+			luajs.debug.highlightLine (lineNumber);
 			luajs.debug.status = 'suspending';
 			luajs.debug.currentLine = lineNumber;
 			this._pc--;
 
-console.log ('==>', lastRetval);
-
 			return;
 		}
-console.log (instruction.op);		
-			var result = executeInstruction.apply (this, arguments);
-console.log ('result>>', result);
-var lastRetval = result;
-			return result;
-// 		if (luajs.debug.status == 'running') { // && [22, 23, 35, 36].indexOf (instruction.op) < 0) {
-// //			luajs.debug.resumeStack.push (this);
-		
+
+		luajs.debug.lastLine = lineNumber;
+		return executeInstruction.apply (this, arguments);		
 	};
+
+
+
+
+	var error = luajs.Error;
+	
+	luajs.Error = function () {
+		luajs.debug.highlightLine (luajs.debug.lastLine, true);		
+		return error.apply (this, arguments);
+	};
+	
+
 		
 })();
 
@@ -135,11 +137,10 @@ var lastRetval = result;
 luajs.debug.resume = function () {
 	luajs.debug.status = 'resuming';
 	var f = luajs.debug.resumeStack.pop ();
-	f._run ();
+	if (f) f._run ();
 };
 
 
 
 
-luajs.debug.stepping = true;
 luajs.debug._init ();
