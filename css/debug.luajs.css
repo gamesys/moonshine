@@ -52,6 +52,8 @@ div.luajs-debug ol {
 	font-size: 9px;
 	margin: 0;
 	padding-right: 0;
+	counter-reset: li;
+	background-color: #bbb;
 }
 
 
@@ -65,14 +67,9 @@ div.luajs-debug ol li {
 	white-space: pre;
 	position: relative;
 	z-index: 2;
+	list-style: none;
 }
  
-
-div.luajs-debug ol li.breakpoint {
-	background-color: #d99;
-	color: #b77;
-}
-
 
 div.luajs-debug ol li code {
 	display: block;
@@ -89,15 +86,22 @@ div.luajs-debug ol li code {
 
 
 div.luajs-debug ol li code:before {
-	content: '';
-	background-color: #bbb;
-	background-color: red;
-	padding-left: 30px;
-	height: 14px;
+	content: counter(li);
+    counter-increment: li;
+	display: inline-block;
+	text-align: right;
+	padding-right: 3px;
+	width: 27px;
 	position: relative;
 	left: -35px;
 	cursor: pointer;
 	z-index: 0;
+}
+
+
+div.luajs-debug ol li.breakpoint code:before {
+	background-color: #c66;
+	color: #822;
 }
 
 

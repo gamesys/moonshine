@@ -6,7 +6,7 @@ var luajs = luajs || {};
 
 luajs.debug = { 
 	active: true,
-	stepping: true,
+	stepping: false,
 	breakpoints: [],
 	stopAtBreakpoints: true,
 	loaded: {},
@@ -32,6 +32,14 @@ luajs.debug._init = function () {
 	$(window).load (function () { 
 		$('body').append (luajs.debug.ui.container); 
 	});
+	
+	if (window.sessionStorage) {
+		var data = JSON.parse (window.sessionStorage.getItem ('breakpoints') || '{}'),
+			i;
+		
+		for (i in data) luajs.debug.breakpoints[i] = data[i];
+	}
+
 };
 
 
@@ -63,6 +71,8 @@ luajs.debug.showScript = function (jsonUrl) {
 			})[0];
 			
 			li.innerHTML = '<code>' + lines[index] + '</code>';
+			if (luajs.debug.breakpoints[index]) $(li).addClass ('breakpoint');
+
 			luajs.debug.ui.lines.push (li);
 		})(index);
 	}
@@ -75,6 +85,8 @@ luajs.debug.showScript = function (jsonUrl) {
 luajs.debug._toggleBreakpoint = function (lineNumber) {
 	var breakOn = luajs.debug.breakpoints[lineNumber] = !luajs.debug.breakpoints[lineNumber];
 	$(luajs.debug.ui.lines[lineNumber])[breakOn? 'addClass' : 'removeClass'] ('breakpoint');
+	
+	if (window.sessionStorage) window.sessionStorage.setItem ('breakpoints', JSON.stringify (luajs.debug.breakpoints));
 };
 
 
