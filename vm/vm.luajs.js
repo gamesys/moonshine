@@ -232,7 +232,10 @@ luajs.VM.Function.operations = [
 		name: 'GETGLOBAL',
 		handler: function (a, b) {
 
-			if (this._globals[this._getConstant (b)] !== undefined) {
+			if (this._getConstant (b) == '_G') {	// Special case
+				this._register[a] = new luajs.Table (this._globals);
+				
+			} else if (this._globals[this._getConstant (b)] !== undefined) {
 				this._register[a] = this._globals[this._getConstant (b)];
 
 			} else {
