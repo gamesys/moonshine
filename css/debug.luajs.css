@@ -2,55 +2,75 @@
 div.luajs-debug {
 	position: fixed;
 	top: 0;
-	right: 0;
-	width: 400px;
-	background-color: #ddd;
+	right: 20px;
+	width: 450px;
+	background: #ddd;
+	background: -webkit-linear-gradient(#eee,#ddd);
+	background: -moz-linear-gradient(#eee,#ddd);
+	background: -o-linear-gradient(#eee,#ddd);
+	background: -ms-linear-gradient(#eee,#ddd);
+	background: linear-gradient(#eee,#ddd);
+	border: 1px solid #bbb;
+	border-top: none;
+	border-radius: 0 0 8px 8px;
+	padding: 2px 4px;
+}
+
+
+div.luajs-debug.showing-code {
+	padding: 2px 4px 4px 4px;
 }
 
 
 div.luajs-debug .buttons {
-	
+	font-family: monospace;
+	font-size: 11px;
+	line-height: 20px;
+	padding-left: 3px;
 }
 
 
-div.luajs-debug button.step-in {
-	/* TODO */
+div.luajs-debug button {
+	border: 1px solid #aaa;
+	background-color: transparent;
+	border-radius: 8px;
+	margin-left: 2px;
 }
 
 
-div.luajs-debug button.step-in.disabled {
-	/* TODO */
-}
-
-
-div.luajs-debug button.breakpoints {
-	/* TODO */
+div.luajs-debug button:hover {
+	background-color: d0d0d0;
 }
 
 
 div.luajs-debug.stop-at-breakpoints button.breakpoints {
-	/* TODO */
+	background-color: #bfbfbf;
 }
 
 
-div.luajs-debug button.toggle-code {
-	/* TODO */
+div.luajs-debug.stop-at-breakpoints ol li.breakpoint code:before {
+	background-color: #c66;
 }
 
 
 div.luajs-debug.showing-code button.toggle-code {
-	/* TODO */
+	background-color: #bfbfbf;
+}
+
+
+div.luajs-debug.showing-code {
+	background: #ddd;
 }
 
 
 div.luajs-debug ol {
+	position: relative;
 	display: none;
 	font-family: monospace; 
 	max-height: 500px;
 	overflow: auto;
-	color: #666;
 	font-size: 9px;
-	margin: 0;
+	margin: 2px 0 0;
 	padding-right: 0;
 	counter-reset: li;
 	background-color: #bbb;
@@ -95,12 +115,11 @@ div.luajs-debug ol li code:before {
 	position: relative;
 	left: -35px;
 	cursor: pointer;
-	z-index: 0;
+	color: #444;
 }
 
 
 div.luajs-debug ol li.breakpoint code:before {
-	background-color: #c66;
 	color: #822;
 }
 
@@ -111,9 +130,9 @@ div.luajs-debug ol li code:after {
 
 
 div.luajs-debug ol li.highlighted code {
-	border-top: 1px solid #55f; 
-	border-bottom: 1px solid #55f; 
-	background-color: #aaf;
+	border-top: 1px solid #66f; 
+	border-bottom: 1px solid #66f; 
+	background-color: #ccf;
 	padding: 0 10px 0 0;
 }
 

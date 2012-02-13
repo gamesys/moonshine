@@ -20,11 +20,15 @@ luajs.debug = {
 
 luajs.debug._init = function () {
 	luajs.debug.ui.container = $('<div>').addClass ('luajs-debug')[0];
-	luajs.debug.ui.buttons = $('<div>').addClass ('buttons').appendTo (luajs.debug.ui.container)[0];
+	luajs.debug.ui.buttons = $('<div>').text ('luajs.debug ').addClass ('buttons').appendTo (luajs.debug.ui.container)[0];
 	luajs.debug.ui.code = $('<ol>').appendTo (luajs.debug.ui.container)[0];
 
 
-	$('<button>').text ('Step in').addClass ('step-in').appendTo (luajs.debug.ui.buttons).click (luajs.debug.resume);
+	$('<button>').text ('Pause/resume').addClass ('pause-resume').appendTo (luajs.debug.ui.buttons).click (function () {
+		luajs.debug[luajs.debug.status == 'running'? 'pause' : 'resume'] ();
+	});
+	
+	$('<button>').text ('Step in').addClass ('step-in').appendTo (luajs.debug.ui.buttons).click (luajs.debug.stepIn);
 	$('<button>').text ('Toggle breakpoints').addClass ('breakpoints').appendTo (luajs.debug.ui.buttons).click (luajs.debug._toggleStopAtBreakpoints);
 	$('<button>').text ('Toggle code').addClass ('toggle-code').appendTo (luajs.debug.ui.buttons).click (luajs.debug._toggleCode);
 
@@ -38,8 +42,13 @@ luajs.debug._init = function () {
 			i;
 		
 		for (i in data) luajs.debug.breakpoints[i] = data[i];
+		
+		luajs.debug.stopAtBreakpoints = (window.sessionStorage.getItem ('stopAtBreakpoints') == 'true');
+		if (luajs.debug.stopAtBreakpoints === null) luajs.debug.stopAtBreakpoints = true;
 	}
 
+
+	if (luajs.debug.stopAtBreakpoints) $(luajs.debug.ui.container).addClass ('stop-at-breakpoints');
 };
 
 
@@ -102,7 +111,9 @@ luajs.debug._toggleCode = function () {
 
 luajs.debug._toggleStopAtBreakpoints = function () {
 	var stop = luajs.debug.stopAtBreakpoints = !luajs.debug.stopAtBreakpoints;
-	$(luajs.debug.ui.container)[showing? 'addClass' : 'removeClass'] ('stopAtBreakpoints'); 
+	
+	window.sessionStorage.setItem ('stopAtBreakpoints', stop);
+	$(luajs.debug.ui.container)[stop? 'addClass' : 'removeClass'] ('stop-at-breakpoints'); 
 };
 
 
@@ -112,14 +123,27 @@ luajs.debug.highlightLine = function (lineNumber, error) {
 	$(luajs.debug.ui.highlighted).removeClass ('highlighted');
 	luajs.debug.ui.highlighted = $(luajs.debug.ui.lines[lineNumber - 1]).addClass ('highlighted' + (error? ' error' : ''))[0];	
 
-	var offset = $(luajs.debug.ui.highlighted).offset ().top;
-	offset += ($(luajs.debug.code).height () - $(luajs.debug.ui.highlighted).height ()) / 2;
-	if (offset < 0) offset = 0;
-
-	$(luajs.debug.ui.code).scrollTop (offset);
 	if (!luajs.debug.showingCode) luajs.debug._toggleCode ();
+
+	var currentTop = $(luajs.debug.ui.code).scrollTop (),
+		offset = currentTop + $(luajs.debug.ui.highlighted).position ().top,
+		visibleRange = $(luajs.debug.ui.code).height () - $(luajs.debug.ui.highlighted).height ();
+		
+	offset -= visibleRange / 2;
+	if (offset < 0) offset = 0;
+	
+	if (Math.abs (offset - currentTop) > (visibleRange / 2) * 0.8) {
+		$(luajs.debug.ui.code).scrollTop (offset);
+	}
 };
 
+
+
+
+luajs.debug._clearLineHighlight = function () {
+	$(luajs.debug.ui.highlighted).removeClass ('highlighted');
+	luajs.debug.ui.highlighted = null;
+};
 
 	
 
@@ -152,7 +176,7 @@ luajs.debug.highlightLine = function (lineNumber, error) {
 	
 	luajs.VM.Function.prototype._executeInstruction = function (instruction, lineNumber) {
 
-		if ((luajs.debug.stepping || luajs.debug.breakpoints[lineNumber]) && !luajs.debug.resumeStack.length && lineNumber != luajs.debug.currentLine && [35, 36].indexOf (instruction.op) < 0) {
+		if ((luajs.debug.stepping || (luajs.debug.stopAtBreakpoints && luajs.debug.breakpoints[lineNumber - 1])) && !luajs.debug.resumeStack.length && lineNumber != luajs.debug.currentLine && [35, 36].indexOf (instruction.op) < 0) {
 			luajs.debug.highlightLine (lineNumber);
 			luajs.debug.status = 'suspending';
 			luajs.debug.currentLine = lineNumber;
@@ -162,7 +186,22 @@ luajs.debug.highlightLine = function (lineNumber, error) {
 		}
 
 		luajs.debug.lastLine = lineNumber;
-		return executeInstruction.apply (this, arguments);		
+
+
+		try {
+			var result = executeInstruction.apply (this, arguments);
+
+		} catch (e) {
+			if (e instanceof luajs.Error) {
+				if (!e.luaStack) e.luaStack = [];
+				var message = 'at ' + (this._data.sourceName || 'function') + ' on line ' + this._data.linePositions[this._pc - 1];	
+				if (message != e.luaStack[e.luaStack.length - 1]) e.luaStack.push ();
+			} 
+	
+			throw e;
+		}
+
+		return result;
 	};
 
 
@@ -182,10 +221,43 @@ luajs.debug.highlightLine = function (lineNumber, error) {
 
 
 
+luajs.debug.stepIn = function () {
+	luajs.debug.stepping = true;
+	luajs.debug._resumeThread ();
+};
+
+
+
+
 luajs.debug.resume = function () {
+	luajs.debug.stepping = false;
+	luajs.debug._resumeThread ();
+};
+
+
+
+
+luajs.debug.pause = function () {
+	luajs.debug.stepping = true;
+};
+
+
+
+
+luajs.debug._resumeThread = function () {
 	luajs.debug.status = 'resuming';
 	var f = luajs.debug.resumeStack.pop ();
-	if (f) f._run ();
+
+	if (f) {
+		try {
+			f._run ();
+		} catch (e) {
+			if (e instanceof luajs.Error && console) throw new Error ('[luajs] ' + e.message + '\n    ' + (e.luaStack || []).join ('\n    '));
+			throw e;
+		}
+	}
+	
+	if (luajs.debug.status == 'running') luajs.debug._clearLineHighlight ();
 };
 
 

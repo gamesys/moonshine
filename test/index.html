@@ -28,7 +28,7 @@
 
 			$(function () {
 				vm = new luajs.VM ();				
-				vm.load ('./scripts/simple.json');
+				vm.load ('./scripts/coroutine.json');
 			
 				$(document).keypress (function () {
 					$('#debug').empty ();
@@ -49,13 +49,9 @@
 				font-size: 10px;
 				margin: 20px auto;
 				padding: 4px;
+				color: #ddd;
 			}
 
-			#debug {
-				color: #ddd;
-				xheight: 600px;
-			}
-			
 			p {
 				margin: 0;
 				padding: 0;
@@ -65,20 +61,11 @@
 				color: red;
 			}
 			
-			#surface {
-				font-size: 100px; 
-				height: 480px; 
-				margin: 0 auto; 
-				overflow: hidden;
-				position: relative; 
-				width: 320px; 
-			}
 		</style>
 	</head>
 	
 	<body>
 		<pre id="output"></pre>
 		<pre id="debug"></pre>
-		<div id="surface"></div>
 	</body>
 </html>

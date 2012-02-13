@@ -1,4 +1,5 @@
 
+
 print 'Hello World'
 
 local function multiply (a, b)
@@ -11,9 +12,13 @@ local function multiply (a, b)
 	return x
 end
 
+
+
+
 print (multiply (2, 3))
 print ('2 x 3 = '..multiply (2, 3))
 
 print ('x' / 2)
 
 print ('end')
+

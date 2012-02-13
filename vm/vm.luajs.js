@@ -960,7 +960,6 @@ luajs.VM.Function.prototype._run = function () {
 			
 		} else {
 			luajs.debug.status = 'running';
-			yieldVars = luajs.debug.yieldVars;
 		}
 
 	} else if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming') {
