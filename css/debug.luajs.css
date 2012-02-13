@@ -13,22 +13,64 @@ div.luajs-debug .buttons {
 }
 
 
+div.luajs-debug button.step-in {
+	/* TODO */
+}
+
+
+div.luajs-debug button.step-in.disabled {
+	/* TODO */
+}
+
+
+div.luajs-debug button.breakpoints {
+	/* TODO */
+}
+
+
+div.luajs-debug.stop-at-breakpoints button.breakpoints {
+	/* TODO */
+}
+
+
+div.luajs-debug button.toggle-code {
+	/* TODO */
+}
+
+
+div.luajs-debug.showing-code button.toggle-code {
+	/* TODO */
+}
+
+
 div.luajs-debug ol {
-	background-color: #bbb;
+	display: none;
 	font-family: monospace; 
 	max-height: 500px;
 	overflow: auto;
 	color: #666;
 	font-size: 9px;
 	margin: 0;
-	cursor: pointer;
 	padding-right: 0;
+}
+
+
+div.luajs-debug.showing-code ol {
+	display: block;
 }
 
 
 div.luajs-debug ol li {
 	min-width: 500px;
 	white-space: pre;
+	position: relative;
+	z-index: 2;
+}
+ 
+
+div.luajs-debug ol li.breakpoint {
+	background-color: #d99;
+	color: #b77;
 }
 
 
@@ -43,7 +85,19 @@ div.luajs-debug ol li code {
 	margin-left: -10px;
 	padding-right: 10px;
 	text-indent: 4px;
-	cursor: default;
+}
+
+
+div.luajs-debug ol li code:before {
+	content: '';
+	background-color: #bbb;
+	background-color: red;
+	padding-left: 30px;
+	height: 14px;
+	position: relative;
+	left: -35px;
+	cursor: pointer;
+	z-index: 0;
 }
 
 
@@ -59,7 +113,10 @@ div.luajs-debug ol li.highlighted code {
 	padding: 0 10px 0 0;
 }
 
+
 div.luajs-debug ol li.highlighted.error code {
 	border-color: #f55; 
 	background-color: #faa;
 }
+
+
