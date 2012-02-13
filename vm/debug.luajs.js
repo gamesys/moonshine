@@ -54,13 +54,22 @@ luajs.debug._init = function () {
 
 	
 
-luajs.debug.loadScript = function (jsonUrl) {
+luajs.debug.loadScript = function (jsonUrl, callback) {
 	var url = jsonUrl.replace (/.json$/, '.lua');
 	
-	jQuery.get (url, function (data) {
-		luajs.debug.loaded[jsonUrl] = data;
-		luajs.debug.showScript (jsonUrl);
-	});	
+	jQuery.ajax ({
+		url: url, 
+		success: function (data) {
+			luajs.debug.loaded[jsonUrl] = data;
+			luajs.debug.showScript (jsonUrl);
+		
+			callback ();
+		},
+		error: function () {
+			$(luajs.debug.ui.code).html ('<li class="load-error">' + url + ' could not be loaded.</li>');
+			callback ();
+		}
+	});
 };
 
 
@@ -120,20 +129,22 @@ luajs.debug._toggleStopAtBreakpoints = function () {
 
 
 luajs.debug.highlightLine = function (lineNumber, error) {
-	$(luajs.debug.ui.highlighted).removeClass ('highlighted');
-	luajs.debug.ui.highlighted = $(luajs.debug.ui.lines[lineNumber - 1]).addClass ('highlighted' + (error? ' error' : ''))[0];	
+	if (luajs.debug.ui.lines) {
+		$(luajs.debug.ui.highlighted).removeClass ('highlighted');
+		luajs.debug.ui.highlighted = $(luajs.debug.ui.lines[lineNumber - 1]).addClass ('highlighted' + (error? ' error' : ''))[0];	
 
-	if (!luajs.debug.showingCode) luajs.debug._toggleCode ();
+		if (!luajs.debug.showingCode) luajs.debug._toggleCode ();
 
-	var currentTop = $(luajs.debug.ui.code).scrollTop (),
-		offset = currentTop + $(luajs.debug.ui.highlighted).position ().top,
-		visibleRange = $(luajs.debug.ui.code).height () - $(luajs.debug.ui.highlighted).height ();
+		var currentTop = $(luajs.debug.ui.code).scrollTop (),
+			offset = currentTop + $(luajs.debug.ui.highlighted).position ().top,
+			visibleRange = $(luajs.debug.ui.code).height () - $(luajs.debug.ui.highlighted).height ();
 		
-	offset -= visibleRange / 2;
-	if (offset < 0) offset = 0;
+		offset -= visibleRange / 2;
+		if (offset < 0) offset = 0;
 	
-	if (Math.abs (offset - currentTop) > (visibleRange / 2) * 0.8) {
-		$(luajs.debug.ui.code).scrollTop (offset);
+		if (Math.abs (offset - currentTop) > (visibleRange / 2) * 0.8) {
+			$(luajs.debug.ui.code).scrollTop (offset);
+		}
 	}
 };
 
@@ -153,8 +164,12 @@ luajs.debug._clearLineHighlight = function () {
 	var load = luajs.VM.prototype.load;
 	
 	luajs.VM.prototype.load = function (url, execute, asCoroutine) {
-		luajs.debug.loadScript (url);
-		return load.apply (this, arguments);
+		var me = this,
+			args = arguments;
+		
+		luajs.debug.loadScript (url, function () {
+			load.apply (me, args);
+		});
 	};
 
 
@@ -176,14 +191,22 @@ luajs.debug._clearLineHighlight = function () {
 	
 	luajs.VM.Function.prototype._executeInstruction = function (instruction, lineNumber) {
 
-		if ((luajs.debug.stepping || (luajs.debug.stopAtBreakpoints && luajs.debug.breakpoints[lineNumber - 1])) && !luajs.debug.resumeStack.length && lineNumber != luajs.debug.currentLine && [35, 36].indexOf (instruction.op) < 0) {
-			luajs.debug.highlightLine (lineNumber);
-			luajs.debug.status = 'suspending';
-			luajs.debug.currentLine = lineNumber;
-			this._pc--;
+		if ((luajs.debug.stepping || (luajs.debug.stopAtBreakpoints && luajs.debug.breakpoints[lineNumber - 1])) &&		// Only break if stepping through or we've hit a breakpoint.
+			!luajs.debug.resumeStack.length && 																			// Don't break if we're in the middle of resuming from the previous debug step.
+			lineNumber != luajs.debug.currentLine && 																	// Don't step more than once per line.
+			[35, 36].indexOf (instruction.op) < 0 && 																	// Don't break on closure declarations.
+			!(luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming')) {						// Don't break while a coroutine is resuming.
 
-			return;
+				// Break execution
+				
+				luajs.debug.highlightLine (lineNumber);
+				luajs.debug.status = 'suspending';
+				luajs.debug.currentLine = lineNumber;
+				this._pc--;
+
+				return;
 		}
+
 
 		luajs.debug.lastLine = lineNumber;
 

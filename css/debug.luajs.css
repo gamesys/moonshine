@@ -89,6 +89,15 @@ div.luajs-debug ol li {
 	z-index: 2;
 	list-style: none;
 }
+
+
+div.luajs-debug ol li.load-error {
+	min-width: 0;
+	text-align: center;
+	font-size: 11px;
+	color: #722;
+	padding: 2px;
+}
  
 
 div.luajs-debug ol li code {
