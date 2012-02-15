@@ -945,7 +945,7 @@ luajs.VM.Function.prototype.execute = function (args) {
 	luajs.stddebug.write ('\n');
 
 	// ASSUMPTION: Parameter values are automatically copied to R(0) onwards of the function on initialisation. This is based on observation and is neither confirmed nor denied in any documentation. (Different rules apply to v5.0-style VARARG functions)
-	this._params = [].concat (args)
+	this._params = [].concat (args);
 	this._register = [].concat (args.splice (0, this._data.paramCount));
 
 	if (this._data.is_vararg == 7) {	// v5.0 compatibility (LUA_COMPAT_VARARG)

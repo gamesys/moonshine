@@ -89,6 +89,7 @@ luajs.Table.prototype.setMember = function (key, value) {
 
 
 luajs.Table.prototype.toString = function () {
+	if (this.constructor != luajs.Table) return 'userdata';
 	return 'table: 0x' + this.__luajs.index.toString (6);
 };
 

@@ -3,7 +3,7 @@ div.luajs-debug {
 	position: fixed;
 	top: 0;
 	right: 20px;
-	width: 450px;
+	width: 658px;
 	background: #ddd;
 	background: -webkit-linear-gradient(#eee,#ddd);
 	background: -moz-linear-gradient(#eee,#ddd);
@@ -66,25 +66,27 @@ div.luajs-debug.showing-code {
 
 
 div.luajs-debug div.code {
+	display: none;
 	position: relative;
-	max-height: 500px;
+	height: 498px;
+	width: 448px;
 	overflow: auto;
+	border: 1px solid #bbb;
+}
+
+div.luajs-debug.showing-code div.code {
+	display: inline-block;
 }
 
 
 div.luajs-debug ol {
-	display: none;
+	display: inline-block;
 	font-family: monospace; 
 	font-size: 9px;
 	margin: 2px 0 0;
 	padding-right: 0;
 	counter-reset: li;
 	background-color: #bbb;
-}
-
-
-div.luajs-debug.showing-code ol {
-	display: inline-block;
 }
 
 
@@ -159,6 +161,62 @@ div.luajs-debug ol li.highlighted code {
 div.luajs-debug ol li.highlighted.error code {
 	border-color: #f55; 
 	background-color: #faa;
+}
+
+
+div.luajs-debug div.inspector {
+	display: none;
+	font-family: monospace; 
+	height: 498px;
+	overflow-y: auto;
+	background-color: #fff;
+	vertical-align: top;
+	margin-left: 4px;
+	border: 1px solid #bbb;
+	font-size: 11px;
+}
+
+
+div.luajs-debug.showing-code div.inspector {
+	display: inline-block;
+}
+
+
+div.luajs-debug div.inspector dl {
+	width: 200px;
+	margin: 0;
+}
+
+div.luajs-debug div.inspector dt,
+div.luajs-debug div.inspector dd {
+	width: 48%;
+	float: right;
+	overflow: hidden;
+	margin: 0;
+	padding: 4px 0;
+	border-top: 1px solid #eee;
+	color: #555;
+}
+
+div.luajs-debug div.inspector dt {
+	float: left;
+	clear: both;
+	text-indent: 3px;
+	color: #000;
+}
+
+div.luajs-debug div.inspector h6 {
+	clear: both;
+	background-color: #ccc;
+	margin: 0;
+	font-size: 12px;
+	font-weight: normal;
+	padding: 1px 3px;
+	margin-top: 4px;
+}
+
+div.luajs-debug div.inspector h6:first-child {
+	margin-top: 0;
 }
 
 
