@@ -665,31 +665,54 @@ luajs.VM.Function.operations = [
 	{
 		name: 'TAILCALL',
 		handler: function (a, b) {
+
 			var args = [], 
 				i, l,
-				retvals;
-			
-			if (b === 0) {
-				l = this._register.length;
-				
-				for (i = a + 1; i < l; i++) {
-					args.push (this._register[i]);
-				}
+				retvals,
+				funcToResume;
 
+
+			if (luajs.debug.status == 'resuming') {
+				funcToResume = luajs.debug.resumeStack.pop ()
+				retvals = funcToResume._run ();
+				
+			} else if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming') {
+				funcToResume = luajs.VM.Coroutine._running._resumeStack.pop ()
+				retvals = funcToResume._run ();
+				
 			} else {
-				for (i = 0; i < b - 1; i++) {
-					args.push (this._register[a + i + 1]);
+				if (b === 0) {
+					l = this._register.length;
+				
+					for (i = a + 1; i < l; i++) {
+						args.push (this._register[i]);
+					}
+
+				} else {
+					for (i = 0; i < b - 1; i++) {
+						args.push (this._register[a + i + 1]);
+					}
 				}
 			}
 
-			retvals = this._register[a].apply ({}, args);
-			if (!(retvals instanceof Array)) retvals = [retvals];
+	
+			if (!funcToResume) {
+				if (!this._register[a] || !this._register[a].apply) throw new luajs.Error ('Attempt to call non-function');
+				retvals = this._register[a].apply ({}, args);
+			}
 			
+			if (!(retvals instanceof Array)) retvals = [retvals];
+			if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'suspending') return;
+
+
 			l = retvals.length;
 			
 			for (i = 0; i < l; i++) {
 				this._register[a + i] = retvals[i];
 			}
+
+			this._register.splice (a + l);
+
 			
 			// NOTE: Currently not replacing stack, so infinately recursive calls WOULD drain memory, unlike how tail calls were intended.
 			// TODO: For non-external function calls, replace this stack with that of the new function. Possibly return the Function and handle the call in the RETURN section (for the calling function).
@@ -707,7 +730,7 @@ luajs.VM.Function.operations = [
 				l = this._register.length;
 				
 				for (i = a; i < l; i++) {
-					retvals.push (this._register[a]);
+					retvals.push (this._register[i]);
 				}
 
 			} else {

@@ -383,7 +383,9 @@ luajs.lib.string = {
 	
 	
 	gsub: function (s, pattern, repl, n) {
-		// TODO Only the real basics covered here. Plus pattern can currently only be a string. Needs a lot more work
+		// TODO Only the real basics covered here. Plus pattern can currently only be a string. Needs a lot more work.
+
+		pattern = pattern.replace (/%%/g, '{:%%:}');
 		
 		pattern = pattern.replace (/%a/g, '[a-zA-Z]');
 		pattern = pattern.replace (/%A/g, '[^a-zA-Z]');
@@ -410,6 +412,8 @@ luajs.lib.string = {
 
 		pattern = pattern.replace (/%x/g, '[0-9a-fA-F]');
 		pattern = pattern.replace (/%X/g, '[^0-9a-fA-F]');
+
+		pattern = pattern.replace (/{:%%:}/g, '%');
 
 
 		var reg = new RegExp (pattern),
