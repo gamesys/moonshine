@@ -864,7 +864,8 @@ luajs.VM.Function.operations = [
 								},
 								setValue: function (val) {
 									this.open? me._register[i.B] = val : this.value = val;
-								}
+								},
+								name: me._functions[bx].upvalues[upvalues.length]
 							};
 
 							me._localsUsedAsUpvalues.push ({
@@ -885,7 +886,8 @@ luajs.VM.Function.operations = [
 							},
 							setValue: function (val) {
 								me._upvalues[i.B].setValue (val);
-							}
+							},
+							name: me._upvalues[i.B].name
 						});
 					}
 					

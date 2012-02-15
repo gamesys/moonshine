@@ -288,6 +288,24 @@ luajs.debug._resumeThread = function () {
 	}
 	
 	if (luajs.debug.status == 'running') luajs.debug._clearLineHighlight ();
+	
+	
+	
+	console.log ('LOCALS:');
+	for (var i in luajs.debug.resumeStack[0]._data.locals) {
+		var local = luajs.debug.resumeStack[0]._data.locals[i],
+			pc = luajs.debug.resumeStack[0]._pc + 1;
+		
+		if (local.startpc < pc && local.endpc >= pc) {
+			console.log (local.varname + ' = ' + luajs.debug.resumeStack[0]._register[i]);
+		}
+	}
+	
+	console.log ('UPVALS:');
+	for (var i in luajs.debug.resumeStack[0]._upvalues) {
+		var up = luajs.debug.resumeStack[0]._upvalues[i];
+		console.log (up.name + ' = ' + up.getValue ());
+	}
 };
 
 
