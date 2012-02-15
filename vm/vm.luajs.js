@@ -606,8 +606,13 @@ luajs.VM.Function.operations = [
 
 
 			if (luajs.debug.status == 'resuming') {
-				funcToResume = luajs.debug.resumeStack.pop ()
-				retvals = funcToResume._run ();
+				funcToResume = luajs.debug.resumeStack.pop ();
+				
+				if (funcToResume instanceof luajs.VM.Coroutine) {
+					retvals = funcToResume.resume ();
+				} else {
+					retvals = funcToResume._run ();
+				}
 				
 			} else if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming') {
 				funcToResume = luajs.VM.Coroutine._running._resumeStack.pop ()
@@ -1010,11 +1015,6 @@ luajs.VM.Function.prototype._run = function () {
 		this._pc++;
 		retval = this._executeInstruction (instruction, line);
 
-		if (luajs.debug.status == 'suspending' && !retval) {
-			luajs.debug.resumeStack.push (this);			
-			return retval;
-		}
-		
 		if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'suspending') {
 			luajs.VM.Coroutine._running._resumeStack.push (this);
 
@@ -1031,6 +1031,12 @@ luajs.VM.Function.prototype._run = function () {
 			
 			return;
 		}
+
+		if (luajs.debug.status == 'suspending' && !retval) {
+			luajs.debug.resumeStack.push (this);			
+			return retval;
+		}
+		
 		
 		if (retval !== undefined) {
 			this.terminated = true;
@@ -1101,7 +1107,16 @@ luajs.VM.Coroutine.prototype.resume = function () {
 
 		luajs.VM.Coroutine._add (this);
 		
-		if (!this._started) {
+		if (luajs.debug.status == 'resuming') {
+			var funcToResume = luajs.debug.resumeStack.pop ();
+			
+			if (funcToResume instanceof luajs.VM.Coroutine) {
+				retval = funcToResume.resume ();
+			} else {
+				retval = this._func._instance._run ();
+			}
+
+		} else if (!this._started) {
 			this.status = 'running';
 			luajs.stddebug.write ('[coroutine started]\n');
 
@@ -1119,6 +1134,11 @@ luajs.VM.Coroutine.prototype.resume = function () {
 			retval = this._resumeStack.pop ()._run ();
 		}	
 	
+		if (luajs.debug.status == 'suspending') {
+			luajs.debug.resumeStack.push (this);
+			return;
+		}
+		
 		this.status = this._func._instance.terminated? 'dead' : 'suspended';
 
 		if (retval) retval.unshift (true);

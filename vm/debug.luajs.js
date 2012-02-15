@@ -179,7 +179,7 @@ luajs.debug._clearLineHighlight = function () {
 
 	luajs.VM.prototype.execute = function () {
 		var result = execute.apply (this, arguments);
-		if (luajs.debug.stepping) luajs.debug.status = 'suspended';
+	//	if (luajs.debug.stepping) luajs.debug.status = 'suspended';
 
 		return result;
 	};
@@ -198,13 +198,14 @@ luajs.debug._clearLineHighlight = function () {
 			!(luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming')) {						// Don't break while a coroutine is resuming.
 
 				// Break execution
-				
+
 				luajs.debug.highlightLine (lineNumber);
 				luajs.debug.status = 'suspending';
 				luajs.debug.currentLine = lineNumber;
 				this._pc--;
 
 				return;
+//	}
 		}
 
 
@@ -273,7 +274,12 @@ luajs.debug._resumeThread = function () {
 
 	if (f) {
 		try {
-			f._run ();
+			if (f instanceof luajs.VM.Coroutine) {
+				f.resume ();
+			} else {
+				f._run ();
+			}
+			
 		} catch (e) {
 			if (e instanceof luajs.Error && console) throw new Error ('[luajs] ' + e.message + '\n    ' + (e.luaStack || []).join ('\n    '));
 			throw e;
