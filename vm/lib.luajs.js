@@ -1001,7 +1001,8 @@ luajs.lib.os = {
 
 
 	execute: function () {
-		// Not implemented
+		if (arguments.length) throw new luajs.Error ('shell is not available. You should always check first by calling os.execute with no parameters');
+		return 0;
 	},
 
 
