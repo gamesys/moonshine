@@ -35,6 +35,8 @@ div.luajs-debug button {
 	background-color: transparent;
 	border-radius: 8px;
 	margin-left: 2px;
+	padding-left: 5px;
+}	padding-right: 5px;
 }
 
 
@@ -63,12 +65,16 @@ div.luajs-debug.showing-code {
 }
 
 
-div.luajs-debug ol {
+div.luajs-debug div.code {
 	position: relative;
-	display: none;
-	font-family: monospace; 
 	max-height: 500px;
 	overflow: auto;
+}
+
+
+div.luajs-debug ol {
+	display: none;
+	font-family: monospace; 
 	font-size: 9px;
 	margin: 2px 0 0;
 	padding-right: 0;
@@ -78,7 +84,7 @@ div.luajs-debug ol {
 
 
 div.luajs-debug.showing-code ol {
-	display: block;
+	display: inline-block;
 }
 
 
@@ -86,7 +92,7 @@ div.luajs-debug ol li {
 	min-width: 500px;
 	white-space: pre;
 	position: relative;
-	z-index: 2;
+	margin: 0;
 	list-style: none;
 }
 
@@ -120,11 +126,15 @@ div.luajs-debug ol li code:before {
 	display: inline-block;
 	text-align: right;
 	padding-right: 3px;
-	width: 27px;
-	position: relative;
-	left: -35px;
+	width: 28px;
+	position: absolute;
+	left: -40px;
 	cursor: pointer;
-	color: #444;
+	color: #555;
+
+	font-size: 9px;
+	line-height: 14px;
+	height: 13px;
 }
 
 
@@ -134,7 +144,7 @@ div.luajs-debug ol li.breakpoint code:before {
 
 
 div.luajs-debug ol li code:after {
-	content: '';
+	content: ' ';
 }
 
 

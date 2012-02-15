@@ -21,8 +21,8 @@ luajs.debug = {
 luajs.debug._init = function () {
 	luajs.debug.ui.container = $('<div>').addClass ('luajs-debug')[0];
 	luajs.debug.ui.buttons = $('<div>').text ('luajs.debug ').addClass ('buttons').appendTo (luajs.debug.ui.container)[0];
-	luajs.debug.ui.code = $('<ol>').appendTo (luajs.debug.ui.container)[0];
-
+	luajs.debug.ui.codeWrap = $('<div>').addClass ('code').appendTo (luajs.debug.ui.container)[0];
+	luajs.debug.ui.code = $('<ol>').appendTo (luajs.debug.ui.codeWrap)[0];
 
 	$('<button>').text ('Pause/resume').addClass ('pause-resume').appendTo (luajs.debug.ui.buttons).click (function () {
 		luajs.debug[luajs.debug.status == 'running'? 'pause' : 'resume'] ();
@@ -135,15 +135,15 @@ luajs.debug.highlightLine = function (lineNumber, error) {
 
 		if (!luajs.debug.showingCode) luajs.debug._toggleCode ();
 
-		var currentTop = $(luajs.debug.ui.code).scrollTop (),
+		var currentTop = $(luajs.debug.ui.codeWrap).scrollTop (),
 			offset = currentTop + $(luajs.debug.ui.highlighted).position ().top,
-			visibleRange = $(luajs.debug.ui.code).height () - $(luajs.debug.ui.highlighted).height ();
+			visibleRange = $(luajs.debug.ui.codeWrap).height () - $(luajs.debug.ui.highlighted).height ();
 		
 		offset -= visibleRange / 2;
 		if (offset < 0) offset = 0;
 	
 		if (Math.abs (offset - currentTop) > (visibleRange / 2) * 0.8) {
-			$(luajs.debug.ui.code).scrollTop (offset);
+			$(luajs.debug.ui.codeWrap).scrollTop (offset);
 		}
 	}
 };
