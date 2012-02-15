@@ -36,13 +36,13 @@ luajs.VM.prototype.load = function (url, execute, asCoroutine) {
 
 luajs.VM.prototype.execute = function (asCoroutine) {
 	if (!this._data) throw new Error ('No data loaded.'); 
-	var mainThread = new luajs.VM.Closure (this._data, this._globals);
+	this._thread = new luajs.VM.Closure (this._data, this._globals);
 	
 	try {
 		if (!asCoroutine) {
-			mainThread.call ({});
+			this._thread.call ({});
 		} else {
-			var co = luajs.lib.coroutine.wrap (mainThread),
+			var co = luajs.lib.coroutine.wrap (this._thread),
 				resume = function () {
 					co ();
 					if (co._coroutine.status != 'dead') window.setTimeout (resume, 1);
@@ -608,9 +608,18 @@ luajs.VM.Function.operations = [
 				funcToResume;
 
 
-			if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming') {
+			if (luajs.debug.status == 'resuming') {
+				funcToResume = luajs.debug.resumeStack.pop ();
+				
+				if (funcToResume instanceof luajs.VM.Coroutine) {
+					retvals = funcToResume.resume ();
+				} else {
+					retvals = funcToResume._run ();
+				}
+				
+			} else if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming') {
 				funcToResume = luajs.VM.Coroutine._running._resumeStack.pop ()
-				retVals = funcToResume._run ();
+				retvals = funcToResume._run ();
 				
 			} else {
 				if (b === 0) {
@@ -659,31 +668,54 @@ luajs.VM.Function.operations = [
 	{
 		name: 'TAILCALL',
 		handler: function (a, b) {
+
 			var args = [], 
 				i, l,
-				retvals;
-			
-			if (b === 0) {
-				l = this._register.length;
-				
-				for (i = a + 1; i < l; i++) {
-					args.push (this._register[i]);
-				}
+				retvals,
+				funcToResume;
 
+
+			if (luajs.debug.status == 'resuming') {
+				funcToResume = luajs.debug.resumeStack.pop ()
+				retvals = funcToResume._run ();
+				
+			} else if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming') {
+				funcToResume = luajs.VM.Coroutine._running._resumeStack.pop ()
+				retvals = funcToResume._run ();
+				
 			} else {
-				for (i = 0; i < b - 1; i++) {
-					args.push (this._register[a + i + 1]);
+				if (b === 0) {
+					l = this._register.length;
+				
+					for (i = a + 1; i < l; i++) {
+						args.push (this._register[i]);
+					}
+
+				} else {
+					for (i = 0; i < b - 1; i++) {
+						args.push (this._register[a + i + 1]);
+					}
 				}
 			}
 
-			retvals = this._register[a].apply ({}, args);
-			if (!(retvals instanceof Array)) retvals = [retvals];
+	
+			if (!funcToResume) {
+				if (!this._register[a] || !this._register[a].apply) throw new luajs.Error ('Attempt to call non-function');
+				retvals = this._register[a].apply ({}, args);
+			}
 			
+			if (!(retvals instanceof Array)) retvals = [retvals];
+			if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'suspending') return;
+
+
 			l = retvals.length;
 			
 			for (i = 0; i < l; i++) {
 				this._register[a + i] = retvals[i];
 			}
+
+			this._register.splice (a + l);
+
 			
 			// NOTE: Currently not replacing stack, so infinately recursive calls WOULD drain memory, unlike how tail calls were intended.
 			// TODO: For non-external function calls, replace this stack with that of the new function. Possibly return the Function and handle the call in the RETURN section (for the calling function).
@@ -701,7 +733,7 @@ luajs.VM.Function.operations = [
 				l = this._register.length;
 				
 				for (i = a; i < l; i++) {
-					retvals.push (this._register[a]);
+					retvals.push (this._register[i]);
 				}
 
 			} else {
@@ -835,7 +867,8 @@ luajs.VM.Function.operations = [
 								},
 								setValue: function (val) {
 									this.open? me._register[i.B] = val : this.value = val;
-								}
+								},
+								name: me._functions[bx].upvalues[upvalues.length]
 							};
 
 							me._localsUsedAsUpvalues.push ({
@@ -856,7 +889,8 @@ luajs.VM.Function.operations = [
 							},
 							setValue: function (val) {
 								me._upvalues[i.B].setValue (val);
-							}
+							},
+							name: me._upvalues[i.B].name
 						});
 					}
 					
@@ -895,10 +929,12 @@ luajs.VM.Function.prototype._executeInstruction = function (instruction, line) {
 	var op = this.constructor.operations[instruction.op];
 	if (!op || !op.handler) throw new Error ('Operation not implemented! (' + instruction.op + ')');
 
-	var tab = '';
-	for (var i = 0; i < this._index; i++) tab += '\t';
-	luajs.stddebug.write (tab + '[' + this._pc + ']\t' + line + '\t' + op.name.toLowerCase () + '\t' + instruction.A + '\t' + instruction.B + (instruction.C !== undefined? '\t' + instruction.C : ''));
-	
+	if (luajs.debug.status != 'resuming') {
+		var tab = '';
+		for (var i = 0; i < this._index; i++) tab += '\t';
+		luajs.stddebug.write (tab + '[' + this._pc + ']\t' + line + '\t' + op.name.toLowerCase () + '\t' + instruction.A + '\t' + instruction.B + (instruction.C !== undefined? '\t' + instruction.C : ''));
+	}
+		
 	return op.handler.call (this, instruction.A, instruction.B, instruction.C);
 };
 	
@@ -912,7 +948,7 @@ luajs.VM.Function.prototype.execute = function (args) {
 	luajs.stddebug.write ('\n');
 
 	// ASSUMPTION: Parameter values are automatically copied to R(0) onwards of the function on initialisation. This is based on observation and is neither confirmed nor denied in any documentation. (Different rules apply to v5.0-style VARARG functions)
-	this._params = [].concat (args)
+	this._params = [].concat (args);
 	this._register = [].concat (args.splice (0, this._data.paramCount));
 
 	if (this._data.is_vararg == 7) {	// v5.0 compatibility (LUA_COMPAT_VARARG)
@@ -929,11 +965,16 @@ luajs.VM.Function.prototype.execute = function (args) {
 		return this._run ();
 		
 	} catch (e) {
-	
-		if (e instanceof luajs.Error) {
-			if (!e.luaStack) e.luaStack = [];
-			e.luaStack.push ('at ' + (this._data.sourceName || 'function') + ' on line ' + this._data.linePositions[this._pc - 1])
-		} 
+		if (!(e instanceof luajs.Error)) {
+			var stack = (e.stack || '');
+
+			e = new luajs.Error ('Error in host call: ' + e.message);
+			e.stack = stack;
+			e.luaStack = stack.split ('\n');
+		}
+
+		if (!e.luaStack) e.luaStack = [];
+		e.luaStack.push ('at ' + (this._data.sourceName || 'function') + ' on line ' + this._data.linePositions[this._pc - 1])
 	
 		throw e;
 	}
@@ -945,46 +986,60 @@ luajs.VM.Function.prototype.execute = function (args) {
 luajs.VM.Function.prototype._run = function () {
 	var instruction,
 		line,
-		retval;
+		retval,
+		yieldVars;
 
 	this.terminated = false;
 	
 	
-	if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming') {
+	if (luajs.debug.status == 'resuming') {
+	 	if (luajs.debug.resumeStack.length) {
+			this._pc--;
+			
+		} else {
+			luajs.debug.status = 'running';
+		}
+
+	} else if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming') {
 	 	if (luajs.VM.Coroutine._running._resumeStack.length) {
 			this._pc--;
 			
 		} else {
 			luajs.VM.Coroutine._running.status = 'running';
 			luajs.stddebug.write ('[coroutine resumed]\n');
+	
+			yieldVars = luajs.VM.Coroutine._running._yieldVars;
+		}
+	}	
+	
 
-			instruction = this._instructions[this._pc - 1];
-				
-			var a = instruction.A,
-				b = instruction.B,
-				c = instruction.C,
-				yieldVars = luajs.VM.Coroutine._running._yieldVars,
-				retvals = [];
+	if (yieldVars) {
+		instruction = this._instructions[this._pc - 1];
+			
+		var a = instruction.A,
+			b = instruction.B,
+			c = instruction.C,
+			retvals = [];
+	
+		for (var i = 0, l = yieldVars.length; i < l; i++) retvals.push (yieldVars[i]);
+
+		if (c === 0) {
+			l = retvals.length;
 		
-			for (var i = 0, l = yieldVars.length; i < l; i++) retvals.push (yieldVars[i]);
-	
-			if (c === 0) {
-				l = retvals.length;
-			
-				for (i = 0; i < l; i++) {
-					this._register[a + i] = retvals[i];
-				}
-	
-				this._register.splice (a + l);
-			
-			} else {
-				for (i = 0; i < c - 1; i++) {
-					this._register[a + i] = retvals[i];
-				}
+			for (i = 0; i < l; i++) {
+				this._register[a + i] = retvals[i];
 			}
+
+			this._register.splice (a + l);
 		
+		} else {
+			for (i = 0; i < c - 1; i++) {
+				this._register[a + i] = retvals[i];
+			}
 		}
 	}
+
+
 	
 		
 	while (instruction = this._instructions[this._pc]) {
@@ -992,7 +1047,7 @@ luajs.VM.Function.prototype._run = function () {
 
 		this._pc++;
 		retval = this._executeInstruction (instruction, line);
-		
+
 		if (luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'suspending') {
 			luajs.VM.Coroutine._running._resumeStack.push (this);
 
@@ -1009,6 +1064,12 @@ luajs.VM.Function.prototype._run = function () {
 			
 			return;
 		}
+
+		if (luajs.debug.status == 'suspending' && !retval) {
+			luajs.debug.resumeStack.push (this);			
+			return retval;
+		}
+		
 		
 		if (retval !== undefined) {
 			this.terminated = true;
@@ -1079,7 +1140,16 @@ luajs.VM.Coroutine.prototype.resume = function () {
 
 		luajs.VM.Coroutine._add (this);
 		
-		if (!this._started) {
+		if (luajs.debug.status == 'resuming') {
+			var funcToResume = luajs.debug.resumeStack.pop ();
+			
+			if (funcToResume instanceof luajs.VM.Coroutine) {
+				retval = funcToResume.resume ();
+			} else {
+				retval = this._func._instance._run ();
+			}
+
+		} else if (!this._started) {
 			this.status = 'running';
 			luajs.stddebug.write ('[coroutine started]\n');
 
@@ -1097,6 +1167,11 @@ luajs.VM.Coroutine.prototype.resume = function () {
 			retval = this._resumeStack.pop ()._run ();
 		}	
 	
+		if (luajs.debug.status == 'suspending') {
+			luajs.debug.resumeStack.push (this);
+			return;
+		}
+		
 		this.status = this._func._instance.terminated? 'dead' : 'suspended';
 
 		if (retval) retval.unshift (true);
