@@ -232,13 +232,14 @@ luajs.debug._clearLineHighlight = function () {
 
 
 	var error = luajs.Error;
-	
+	 
 	luajs.Error = function () {
 		luajs.debug.highlightLine (luajs.debug.lastLine, true);		
-		return error.apply (this, arguments);
+		error.apply (this, arguments);
 	};
 	
-
+	luajs.Error.prototype = error.prototype;
+	
 		
 })();
 
