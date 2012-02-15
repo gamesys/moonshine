@@ -962,11 +962,16 @@ luajs.VM.Function.prototype.execute = function (args) {
 		return this._run ();
 		
 	} catch (e) {
-	
-		if (e instanceof luajs.Error) {
-			if (!e.luaStack) e.luaStack = [];
-			e.luaStack.push ('at ' + (this._data.sourceName || 'function') + ' on line ' + this._data.linePositions[this._pc - 1])
-		} 
+		if (!(e instanceof luajs.Error)) {
+			var stack = (e.stack || '');
+
+			e = new luajs.Error ('Error in host call: ' + e.message);
+			e.stack = stack;
+			e.luaStack = stack.split ('\n');
+		}
+
+		if (!e.luaStack) e.luaStack = [];
+		e.luaStack.push ('at ' + (this._data.sourceName || 'function') + ' on line ' + this._data.linePositions[this._pc - 1])
 	
 		throw e;
 	}
