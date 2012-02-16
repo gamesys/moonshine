@@ -191,11 +191,12 @@ div.luajs-debug div.inspector dt,
 div.luajs-debug div.inspector dd {
 	width: 48%;
 	float: right;
-	overflow: hidden;
 	margin: 0;
 	padding: 4px 0;
 	border-top: 1px solid #eee;
 	color: #555;
+	text-overflow: ellipsis;
+	position: relative;
 }
 
 div.luajs-debug div.inspector dt {
@@ -203,6 +204,27 @@ div.luajs-debug div.inspector dt {
 	clear: both;
 	text-indent: 3px;
 	color: #000;
+	overflow: hidden;
+}
+
+div.luajs-debug dd p.table-inspector {
+	top: 50%;
+	right: 50%;
+	opacity: 0;
+	display: none;
+}
+
+div.luajs-debug p.table-inspector {
+	position: absolute;
+	border: 1px solid #ccc;
+	background-color: #ffc;
+	padding: 4px 6px;
+	white-space: pre;
+	line-height: 15px;
+	z-index: 1;
+	font-family: monospace;
+	color: #555;
+	font-size: 11px;	
 }
 
 div.luajs-debug div.inspector h6 {

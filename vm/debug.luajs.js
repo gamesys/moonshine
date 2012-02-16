@@ -30,11 +30,17 @@ luajs.debug._init = function () {
 	$('<h6>Upvalues</h6>').appendTo (luajs.debug.ui.inspector);
 	luajs.debug.ui.upvalues = $('<dl>').addClass ('upvalues').appendTo (luajs.debug.ui.inspector)[0];
 
+	luajs.debug.ui.tableInspector = $('<p>').text ('X').addClass ('table-inspector').appendTo (luajs.debug.ui.container).mouseleave (function (e) {
+		$(this).hide ();
+	})[0];
+
 	$('<button>').text ('Pause/resume').addClass ('pause-resume').appendTo (luajs.debug.ui.buttons).click (function () {
 		luajs.debug[luajs.debug.status == 'running'? 'pause' : 'resume'] ();
 	});
 	
+	$('<button>').text ('Step over').addClass ('step-over').appendTo (luajs.debug.ui.buttons).click (luajs.debug.stepOver);
 	$('<button>').text ('Step in').addClass ('step-in').appendTo (luajs.debug.ui.buttons).click (luajs.debug.stepIn);
+	$('<button>').text ('Step out').addClass ('step-out').appendTo (luajs.debug.ui.buttons).click (luajs.debug.stepOut);
 	$('<button>').text ('Toggle breakpoints').addClass ('breakpoints').appendTo (luajs.debug.ui.buttons).click (luajs.debug._toggleStopAtBreakpoints);
 	$('<button>').text ('Toggle code').addClass ('toggle-code').appendTo (luajs.debug.ui.buttons).click (luajs.debug._toggleCode);
 
@@ -158,13 +164,48 @@ luajs.debug._showVariables = function () {
 	// locals
 	$(luajs.debug.ui.locals).empty ();
 	for (var i in luajs.debug.resumeStack[0]._data.locals) {
-		var local = luajs.debug.resumeStack[0]._data.locals[i],
-			pc = luajs.debug.resumeStack[0]._pc + 1;
-		
-		if (local.startpc < pc && local.endpc >= pc) {
-			$('<dt>').text (local.varname).appendTo (luajs.debug.ui.locals);
-			$('<dd>').text (formatValue (luajs.debug.resumeStack[0]._register[index++])).appendTo (luajs.debug.ui.locals);
-		}
+		(function (i) {
+			var local = luajs.debug.resumeStack[0]._data.locals[i],
+				pc = luajs.debug.resumeStack[0]._pc + 1;
+			
+			if (local.startpc < pc && local.endpc >= pc) {
+				var val = luajs.debug.resumeStack[0]._register[index++];
+				
+				$('<dt>').attr ({ title: local.varname }).text (local.varname).appendTo (luajs.debug.ui.locals);
+				var dd = $('<dd>').text (formatValue (val)).appendTo (luajs.debug.ui.locals)[0];
+				
+				if (val instanceof luajs.Table || val instanceof luajs.VM.Closure) {
+					var obj = luajs.utils.toObject (val),
+						p = $('<p>').addClass ('table-inspector').appendTo (dd)[0],
+						text = '';
+						
+					if (val instanceof luajs.Table) {
+						for (var j in obj) text += j + ' = ' + formatValue (obj[j]) + '</br>';
+					} else {
+						var vars = [];
+						for (var j = 0; j < val._data.paramCount; j++) vars.push (val._data.locals[j].varname);
+						text = vars.join (', ');
+						if (val._data.is_vararg) text += ', ...';
+						text = 'function (' + text + ') &hellip; end';
+					}
+					
+					p.innerHTML = text;
+					
+					$(dd).mouseenter (function () {
+						var ppos = $(p).show ().offset (),
+							contpos = $(luajs.debug.ui.container).offset ();
+						
+						$(p).hide ();
+						$(luajs.debug.ui.tableInspector).css ({ top: ppos.top - contpos.top, left: ppos.left - contpos.left }).html ($(p).html ()).show ();
+	
+					}).mouseleave (function (e) {
+						if (e.toElement != luajs.debug.ui.tableInspector) $(luajs.debug.ui.tableInspector).hide ();
+					});
+					
+					
+				}
+			}
+		})(i);
 	}
 	
 
@@ -254,7 +295,10 @@ luajs.debug._clearLineHighlight = function () {
 	
 	luajs.VM.Function.prototype._executeInstruction = function (instruction, lineNumber) {
 
-		if ((luajs.debug.stepping || (luajs.debug.stopAtBreakpoints && luajs.debug.breakpoints[lineNumber - 1])) &&		// Only break if stepping through or we've hit a breakpoint.
+		if ((
+				(luajs.debug.stepping && (!luajs.debug.steppingTo || luajs.debug.steppingTo == this)) || 				// Only break if stepping in, out or over  
+				(luajs.debug.stopAtBreakpoints && luajs.debug.breakpoints[lineNumber - 1])								// or we've hit a breakpoint.
+			) &&		
 			!luajs.debug.resumeStack.length && 																			// Don't break if we're in the middle of resuming from the previous debug step.
 			lineNumber != luajs.debug.currentLine && 																	// Don't step more than once per line.
 			[35, 36].indexOf (instruction.op) < 0 && 																	// Don't break on closure declarations.
@@ -294,6 +338,10 @@ luajs.debug._clearLineHighlight = function () {
 			throw e;
 		}
 
+		if ([30, 35].indexOf (instruction.op) >= 0) {	// If returning from or closing a function call, step out = step over = step in
+			delete luajs.debug.steppingTo;
+		}
+
 		return result;
 	};
 
@@ -317,6 +365,27 @@ luajs.debug._clearLineHighlight = function () {
 
 luajs.debug.stepIn = function () {
 	luajs.debug.stepping = true;
+	delete luajs.debug.steppingTo;
+	luajs.debug._resumeThread ();
+};
+
+
+
+
+luajs.debug.stepOver = function () {
+	luajs.debug.stepping = true;
+	luajs.debug.steppingTo = luajs.debug.resumeStack[0];
+	luajs.debug._resumeThread ();
+};
+
+
+
+
+luajs.debug.stepOut = function () {
+	if (luajs.debug.resumeStack.length < 2) return luajs.debug.resume ();
+	
+	luajs.debug.stepping = true;
+	luajs.debug.steppingTo = luajs.debug.resumeStack[1];
 	luajs.debug._resumeThread ();
 };
 
@@ -325,6 +394,7 @@ luajs.debug.stepIn = function () {
 
 luajs.debug.resume = function () {
 	luajs.debug.stepping = false;
+	delete luajs.debug.steppingTo;
 	luajs.debug._resumeThread ();
 };
 
