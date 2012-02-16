@@ -208,10 +208,9 @@ div.luajs-debug div.inspector dt {
 }
 
 div.luajs-debug dd p.table-inspector {
-	top: 50%;
+	top: -60%;
 	right: 50%;
 	opacity: 0;
-	display: none;
 }
 
 div.luajs-debug p.table-inspector {
@@ -225,6 +224,7 @@ div.luajs-debug p.table-inspector {
 	font-family: monospace;
 	color: #555;
 	font-size: 11px;	
+	display: none;
 }
 
 div.luajs-debug div.inspector h6 {

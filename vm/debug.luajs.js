@@ -140,27 +140,30 @@ luajs.debug._toggleStopAtBreakpoints = function () {
 
 
 
+luajs.debug._formatValue = function (val) {
+	if (typeof val == 'string') {
+		val = '"' + val + '"';
+
+	} else if (val === undefined) {
+		val = 'nil';
+
+	} else if (val.constructor == luajs.Table) {	// In case table has a toString field in the Lua code.
+		val = luajs.Table.prototype.toString.call (val);
+
+	} else {
+		val = '' + val;
+	}
+	
+	return val;
+};
+
+
+
+	
 luajs.debug._showVariables = function () {
 	var index = 0;
 	
-	function formatValue (val) {
-		if (typeof val == 'string') {
-			val = '"' + val + '"';
 	
-		} else if (val === undefined) {
-			val = 'nil';
-	
-		} else if (val.constructor == luajs.Table) {	// In case table has a toString field in the Lua code.
-			val = luajs.Table.prototype.toString.call (val);
-	
-		} else {
-			val = '' + val;
-		}
-		
-		return val;
-	}
-	
-
 	// locals
 	$(luajs.debug.ui.locals).empty ();
 	for (var i in luajs.debug.resumeStack[0]._data.locals) {
@@ -172,38 +175,9 @@ luajs.debug._showVariables = function () {
 				var val = luajs.debug.resumeStack[0]._register[index++];
 				
 				$('<dt>').attr ({ title: local.varname }).text (local.varname).appendTo (luajs.debug.ui.locals);
-				var dd = $('<dd>').text (formatValue (val)).appendTo (luajs.debug.ui.locals)[0];
+				var dd = $('<dd>').text (luajs.debug._formatValue (val)).appendTo (luajs.debug.ui.locals)[0];
 				
-				if (val instanceof luajs.Table || val instanceof luajs.VM.Closure) {
-					var obj = luajs.utils.toObject (val),
-						p = $('<p>').addClass ('table-inspector').appendTo (dd)[0],
-						text = '';
-						
-					if (val instanceof luajs.Table) {
-						for (var j in obj) text += j + ' = ' + formatValue (obj[j]) + '</br>';
-					} else {
-						var vars = [];
-						for (var j = 0; j < val._data.paramCount; j++) vars.push (val._data.locals[j].varname);
-						text = vars.join (', ');
-						if (val._data.is_vararg) text += ', ...';
-						text = 'function (' + text + ') &hellip; end';
-					}
-					
-					p.innerHTML = text;
-					
-					$(dd).mouseenter (function () {
-						var ppos = $(p).show ().offset (),
-							contpos = $(luajs.debug.ui.container).offset ();
-						
-						$(p).hide ();
-						$(luajs.debug.ui.tableInspector).css ({ top: ppos.top - contpos.top, left: ppos.left - contpos.left }).html ($(p).html ()).show ();
-	
-					}).mouseleave (function (e) {
-						if (e.toElement != luajs.debug.ui.tableInspector) $(luajs.debug.ui.tableInspector).hide ();
-					});
-					
-					
-				}
+				luajs.debug._addToolTip (dd, val);
 			}
 		})(i);
 	}
@@ -215,9 +189,46 @@ luajs.debug._showVariables = function () {
 		var up = luajs.debug.resumeStack[0]._upvalues[i];
 		
 		$('<dt>').text (up.name).appendTo (luajs.debug.ui.upvalues);
-		$('<dd>').text (formatValue (up.getValue ())).appendTo (luajs.debug.ui.upvalues);
+		$('<dd>').text (luajs.debug._formatValue (up.getValue ())).appendTo (luajs.debug.ui.upvalues);
 	}
 	
+};
+
+
+
+
+luajs.debug._addToolTip = function (dd, val) {
+
+	if (val && (val.constructor == luajs.Table || val instanceof luajs.VM.Closure)) {
+		var p = $('<p>').addClass ('table-inspector').appendTo (dd)[0],
+			text = '';
+			
+		if (val instanceof luajs.Table) {
+			for (var j in val) {
+				if (val.hasOwnProperty (j) && !(j in luajs.Table.prototype) && j !== '__luajs') text += j + ' = ' + luajs.debug._formatValue (val[j]) + '</br>';
+			}
+			
+		} else {
+			var vars = [];
+			for (var j = 0; j < val._data.paramCount; j++) vars.push (val._data.locals[j].varname);
+			text = vars.join (', ');
+			if (val._data.is_vararg) text += ', ...';
+			text = 'function (' + text + ') &hellip; end';
+		}
+		
+		p.innerHTML = text;
+
+		$(dd).mouseenter (function () {
+			var ppos = $(p).show ().offset (),
+				contpos = $(luajs.debug.ui.container).offset ();
+			
+			$(p).hide ();
+			$(luajs.debug.ui.tableInspector).css ({ top: ppos.top - contpos.top, left: ppos.left - contpos.left }).html ($(p).html ()).show ();
+
+		}).mouseleave (function (e) {
+			if (e.toElement != luajs.debug.ui.tableInspector) $(luajs.debug.ui.tableInspector).hide ();
+		});					
+	}
 };
 
 
@@ -318,7 +329,6 @@ luajs.debug._clearLineHighlight = function () {
 				}, 1);
 
 				return;
-//	}
 		}
 
 
@@ -346,8 +356,6 @@ luajs.debug._clearLineHighlight = function () {
 	};
 
 
-
-
 	var error = luajs.Error;
 	 
 	luajs.Error = function () {
@@ -355,8 +363,7 @@ luajs.debug._clearLineHighlight = function () {
 		error.apply (this, arguments);
 	};
 	
-	luajs.Error.prototype = error.prototype;
-	
+	luajs.Error.prototype = error.prototype;	
 		
 })();
 
@@ -428,6 +435,8 @@ luajs.debug._resumeThread = function () {
 			throw e;
 		}
 	}
+	
+	if (luajs.debug.status == 'running') luajs.debug._clearVariables ();
 };
 
 
