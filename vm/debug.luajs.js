@@ -12,6 +12,7 @@ luajs.debug = {
 	loaded: {},
 	ui: {},
 	resumeStack: [],
+	callbackQueue: [],
 	status: 'running'
 };
 
@@ -33,6 +34,9 @@ luajs.debug._init = function () {
 	luajs.debug.ui.tableInspector = $('<p>').text ('X').addClass ('table-inspector').appendTo (luajs.debug.ui.container).mouseleave (function (e) {
 		$(this).hide ();
 	})[0];
+
+	luajs.debug.ui.error = $('<p>').addClass ('error').appendTo (luajs.debug.ui.container)[0];
+
 
 	$('<button>').text ('Pause/resume').addClass ('pause-resume').appendTo (luajs.debug.ui.buttons).click (function () {
 		luajs.debug[luajs.debug.status == 'running'? 'pause' : 'resume'] ();
@@ -89,18 +93,18 @@ luajs.debug.loadScript = function (jsonUrl, callback) {
 
 luajs.debug.showScript = function (jsonUrl) {
 	var lines = luajs.debug.loaded[jsonUrl].split ('\n'),
-		index, li;
+		index, li, code;
 
 	luajs.debug.ui.code.innerHTML = '';
 	luajs.debug.ui.lines = [];
 	
 	for (index in lines) {
 		(function (index) {
-			li = $('<li>').appendTo (luajs.debug.ui.code).click (function () {
-				luajs.debug._toggleBreakpoint (index);
+			li = $('<li>').appendTo (luajs.debug.ui.code).click (function (e) {
+				if (e.pageX < $(this).offset ().left) luajs.debug._toggleBreakpoint (index);
 			})[0];
 			
-			li.innerHTML = '<code>' + lines[index] + '</code>';
+			$('<code>').text (lines[index]).appendTo (li);
 			if (luajs.debug.breakpoints[index]) $(li).addClass ('breakpoint');
 
 			luajs.debug.ui.lines.push (li);
@@ -161,7 +165,8 @@ luajs.debug._formatValue = function (val) {
 
 	
 luajs.debug._showVariables = function () {
-	var index = 0;
+	var index = 0,
+		dd;
 	
 	
 	// locals
@@ -175,7 +180,7 @@ luajs.debug._showVariables = function () {
 				var val = luajs.debug.resumeStack[0]._register[index++];
 				
 				$('<dt>').attr ({ title: local.varname }).text (local.varname).appendTo (luajs.debug.ui.locals);
-				var dd = $('<dd>').text (luajs.debug._formatValue (val)).appendTo (luajs.debug.ui.locals)[0];
+				dd = $('<dd>').text (luajs.debug._formatValue (val)).appendTo (luajs.debug.ui.locals)[0];
 				
 				luajs.debug._addToolTip (dd, val);
 			}
@@ -189,7 +194,9 @@ luajs.debug._showVariables = function () {
 		var up = luajs.debug.resumeStack[0]._upvalues[i];
 		
 		$('<dt>').text (up.name).appendTo (luajs.debug.ui.upvalues);
-		$('<dd>').text (luajs.debug._formatValue (up.getValue ())).appendTo (luajs.debug.ui.upvalues);
+		dd = $('<dd>').text (luajs.debug._formatValue (up.getValue ())).appendTo (luajs.debug.ui.upvalues)[0];
+
+		luajs.debug._addToolTip (dd, up.getValue ());
 	}
 	
 };
@@ -259,6 +266,14 @@ luajs.debug.highlightLine = function (lineNumber, error) {
 		if (Math.abs (offset - currentTop) > (visibleRange / 2) * 0.8) {
 			$(luajs.debug.ui.codeWrap).scrollTop (offset);
 		}
+		
+		if (error) {
+			var containerOffset = $(luajs.debug.ui.container).offset (),
+				codeOffset = $(luajs.debug.ui.highlighted).offset (),
+				top = codeOffset.top - containerOffset.top - 5;
+				
+			$(luajs.debug.ui.error).css ({ top: top + 'px' }).text (error).show ();
+		}
 	}
 };
 
@@ -267,6 +282,8 @@ luajs.debug.highlightLine = function (lineNumber, error) {
 
 luajs.debug._clearLineHighlight = function () {
 	$(luajs.debug.ui.highlighted).removeClass ('highlighted');
+	$(luajs.debug.ui.error).hide ();
+
 	luajs.debug.ui.highlighted = null;
 };
 
@@ -289,14 +306,27 @@ luajs.debug._clearLineHighlight = function () {
 
 
 
-	var execute = luajs.VM.prototype.execute;
+	var execute = luajs.VM.Function.prototype.execute;
 
-	luajs.VM.prototype.execute = function () {
-		var result = execute.apply (this, arguments);
-	//	if (luajs.debug.stepping) luajs.debug.status = 'suspended';
+	luajs.VM.Function.prototype.execute = function () {
+		var me = this,
+			args = arguments;
+		
+		if (luajs.debug.status != 'running') {
+			luajs.debug.callbackQueue.push (function () {
 
+			try {
+				me.execute.apply (me, args);
+			
+			} catch (e) {
+				if (e instanceof luajs.Error && console) throw new Error ('[luajs] ' + e.message + '\n    ' + (e.luaStack || []).join ('\n    '));
+				throw e;
+			}
 
-		return result;
+			});
+		} else {
+			return execute.apply (this, arguments);
+		}
 	};
 	
 	
@@ -356,11 +386,14 @@ luajs.debug._clearLineHighlight = function () {
 	};
 
 
+
+
 	var error = luajs.Error;
 	 
-	luajs.Error = function () {
-		luajs.debug.highlightLine (luajs.debug.lastLine, true);		
+	luajs.Error = function (message) {
+		luajs.debug.highlightLine (luajs.debug.lastLine, message);
 		error.apply (this, arguments);
+
 	};
 	
 	luajs.Error.prototype = error.prototype;	
@@ -437,6 +470,8 @@ luajs.debug._resumeThread = function () {
 	}
 	
 	if (luajs.debug.status == 'running') luajs.debug._clearVariables ();
+
+	while (luajs.debug.callbackQueue[0]) luajs.debug.callbackQueue.shift () ();
 };
 
 
