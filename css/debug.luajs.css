@@ -1,3 +1,5 @@
+@charset "utf-8";
+
 
 div.luajs-debug {
 	position: fixed;
@@ -164,10 +166,36 @@ div.luajs-debug ol li.highlighted.error code {
 }
 
 
+div.luajs-debug p.error {
+	border: 1px solid #f55; 
+	background-color: #faa;
+	position: absolute;
+	padding: 6px 8px;
+	white-space: pre;
+	line-height: 15px;
+	z-index: 1;
+	font-family: monospace;
+	color: #333;
+	font-size: 11px;
+	display: none;
+	border-radius: 8px;
+	right: 101%;
+	margin: 0;
+}
+
+div.luajs-debug p.error:after {
+	content: '⇢';
+	font-size: 15px;
+	position: absolute;
+	right: -9px;
+}
+
+
 div.luajs-debug div.inspector {
 	display: none;
 	font-family: monospace; 
 	height: 498px;
+	overflow-x: hidden;
 	overflow-y: auto;
 	background-color: #fff;
 	vertical-align: top;
