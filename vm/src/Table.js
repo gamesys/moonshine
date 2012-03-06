@@ -1,3 +1,7 @@
+/**
+ * @fileOverview Table class.
+ * @author <a href="http://paulcuth.me.uk">Paul Cuthbertson</a>
+ */
 
 var luajs = luajs || {};
 
@@ -36,6 +40,7 @@ luajs.Table = function (obj) {
 /**
  * Keeps a count of the number of tables created, in order to index them uniquely.
  * @type Number
+ * @static
  */
 luajs.Table.count = 0;
 
@@ -88,122 +93,14 @@ luajs.Table.prototype.setMember = function (key, value) {
 
 
 
+/**
+ * Returns a unique identifier for the table.
+ * @returns {string} Description.
+ */
 luajs.Table.prototype.toString = function () {
 	if (this.constructor != luajs.Table) return 'userdata';
 	return 'table: 0x' + this.__luajs.index.toString (6);
 };
 
 
-
-
-
-
-
-
-
-
-
-luajs.Error = function (message) {
-	Error.call (this, message);
-	this.message = message;
-};
-
-
-luajs.Error.prototype = new Error ();
-
-
-
-
-luajs.Error.prototype.toString = function () {
-	return 'Luajs Error: ' + this.message;
-};
-
-
-
-
-
-
-
-
-
-luajs.stdout = {};
-
-luajs.stdout.write = function (message) {
-	// Overwrite this in host application
-}
-
-
-
-
-luajs.stddebug = {};
-
-luajs.stddebug.write = function (message) {
-	// Luajs bytecode debugging output
-}
-
-
-
-
-luajs.stderr = {};
-
-luajs.stderr.write = function (message, level) {
-	level = level || 'error';
-	if (console && console[level]) console[level] (message);
-}
-
-
-
-
-luajs.warn = function (message) {
-	luajs.stderr.write ('Luajs warning: ' + message, 'warn');
-};
-
-
-
-
-luajs.debug = {};
-
-
-
-
-
-
-luajs.utils = {
-	
-	toObject: function (table) {
-		var result = table[1] === undefined? {} : [],
-			i;
-		
-		for (i in table) {
-			if (table.hasOwnProperty (i) && !(i in luajs.Table.prototype) && i !== '__luajs') {
-					result[i] = (table[i] instanceof luajs.Table)? luajs.utils.toObject (table[i]) : table[i];
-			}
-		}
-		
-		return result;
-	},
-	
-	
-	
-	
-	parseJSON: function (json) {
-
-		var convertToTable = function (obj) {
-			for (var i in obj) {
-
-				if (typeof obj[i] === 'object') {
-					obj[i] = convertToTable (obj[i]);
-					
-				} else if (obj[i] === null) {
-					obj[i] = undefined;
-				}				
-			}
-			
-			return new luajs.Table (obj);
-		};
-
-		return convertToTable (JSON.parse (json));
-	}
-
-};
 

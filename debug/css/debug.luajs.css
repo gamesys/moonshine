@@ -179,9 +179,14 @@ div.luajs-debug p.error {
 	font-size: 11px;
 	display: none;
 	border-radius: 8px;
-	right: 101%;
+	right: 100.5%;
 	margin: 0;
 }
+
+div.luajs-debug.showing-error p.error {
+	display: block;
+}
+
 
 div.luajs-debug p.error:after {
 	content: '⇢';

@@ -136,7 +136,16 @@ luajs.lib = {
 		for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);
 
 		try {			
-			result = func.apply ({}, args);
+			if (typeof func == 'function') {
+				result = func.apply ({}, args);
+				
+			} else if (func instanceof luajs.Function) {
+				result = func.apply (args);
+			
+			} else {
+				throw new luajs.Error ('Attempt to call non-function');
+			}
+
 		} catch (e) {
 			return [false, e.message];
 		}
@@ -275,7 +284,7 @@ luajs.lib = {
 			 
 			case 'object': 
 				if (v instanceof luajs.Table) return 'table';
-				if (v instanceof luajs.VM.Closure) return 'function';
+				if (v instanceof luajs.Function) return 'function';
 			
 				return 'userdata';
 		}
@@ -604,7 +613,7 @@ luajs.lib.table = {
 		var result = table[index];
 		table[index] = table[index + 1];
 
-		if (table[index]) {
+		if (table[index] !== undefined) {
 			luajs.lib.table.remove (table, index + 1);
 		} else {
 			delete table[index];
@@ -627,7 +636,7 @@ luajs.lib.table = {
 
 
 		if (comp) {
-			if (!(comp instanceof luajs.VM.Closure)) throw new luajs.Error ("Bad argument #2 to 'sort' (function expected)");
+			if (!(comp instanceof luajs.Function)) throw new luajs.Error ("Bad argument #2 to 'sort' (function expected)");
 
 			sortFunc = function (a, b) {
 				return comp.call ({}, a, b)[0]? -1 : 1;
@@ -1085,7 +1094,7 @@ luajs.lib.os = {
 luajs.lib.coroutine = {
 	
 	create: function (closure) {
-		return new luajs.VM.Coroutine (closure);
+		return new luajs.Coroutine (closure);
 	},
 	
 	
@@ -1102,7 +1111,7 @@ luajs.lib.coroutine = {
 	
 	
 	running: function () {
-		return luajs.VM.Coroutine._running;
+		return luajs.Coroutine._running;
 	},
 	
 
@@ -1138,13 +1147,13 @@ luajs.lib.coroutine = {
 	
 	yield: function () {
 		// If running in main thread, throw error.
-		if (!luajs.VM.Coroutine._running) throw new luajs.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
+		if (!luajs.Coroutine._running) throw new luajs.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
 
 		var args = [];
 		for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 
-		luajs.VM.Coroutine._running._yieldVars = args;
-		luajs.VM.Coroutine._running.status = 'suspending';
+		luajs.Coroutine._running._yieldVars = args;
+		luajs.Coroutine._running.status = 'suspending';
 
 		return;
 	}

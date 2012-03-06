@@ -31,7 +31,7 @@ luajs.debug._init = function () {
 	$('<h6>Upvalues</h6>').appendTo (luajs.debug.ui.inspector);
 	luajs.debug.ui.upvalues = $('<dl>').addClass ('upvalues').appendTo (luajs.debug.ui.inspector)[0];
 
-	luajs.debug.ui.tableInspector = $('<p>').text ('X').addClass ('table-inspector').appendTo (luajs.debug.ui.container).mouseleave (function (e) {
+	luajs.debug.ui.tableInspector = $('<p>').addClass ('table-inspector').appendTo (luajs.debug.ui.container).mouseleave (function (e) {
 		$(this).hide ();
 	})[0];
 
@@ -206,7 +206,7 @@ luajs.debug._showVariables = function () {
 
 luajs.debug._addToolTip = function (dd, val) {
 
-	if (val && (val.constructor == luajs.Table || val instanceof luajs.VM.Closure)) {
+	if (val && (val.constructor == luajs.Table || val instanceof luajs.Function)) {
 		var p = $('<p>').addClass ('table-inspector').appendTo (dd)[0],
 			text = '';
 			
@@ -272,7 +272,13 @@ luajs.debug.highlightLine = function (lineNumber, error) {
 				codeOffset = $(luajs.debug.ui.highlighted).offset (),
 				top = codeOffset.top - containerOffset.top - 5;
 				
-			$(luajs.debug.ui.error).css ({ top: top + 'px' }).text (error).show ();
+			$(luajs.debug.ui.error).css ({ top: top + 'px' }).text (error);
+			$(luajs.debug.ui.container).addClass ('showing-error');
+			
+			$(luajs.debug.ui.codeWrap).bind ('scroll.error', function () { 
+				$(luajs.debug.ui.container).removeClass ('showing-error');
+				$(this).unbind ('scroll.error');
+			});
 		}
 	}
 };
@@ -306,9 +312,9 @@ luajs.debug._clearLineHighlight = function () {
 
 
 
-	var execute = luajs.VM.Function.prototype.execute;
+	var execute = luajs.Closure.prototype.execute;
 
-	luajs.VM.Function.prototype.execute = function () {
+	luajs.Closure.prototype.execute = function () {
 		var me = this,
 			args = arguments;
 		
@@ -332,9 +338,9 @@ luajs.debug._clearLineHighlight = function () {
 	
 	
 
-	var executeInstruction = luajs.VM.Function.prototype._executeInstruction;
+	var executeInstruction = luajs.Closure.prototype._executeInstruction;
 	
-	luajs.VM.Function.prototype._executeInstruction = function (instruction, lineNumber) {
+	luajs.Closure.prototype._executeInstruction = function (instruction, lineNumber) {
 
 		if ((
 				(luajs.debug.stepping && (!luajs.debug.steppingTo || luajs.debug.steppingTo == this)) || 				// Only break if stepping in, out or over  

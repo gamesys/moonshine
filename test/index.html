@@ -2,14 +2,28 @@
 	<head>
 		<title></title>
 
-		<link rel="stylesheet" href="../css/debug.luajs.css" />
+		<link rel="stylesheet" href="../debug/css/debug.luajs.css" />
 				
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-		<script src="../vm/core.luajs.js"></script>
-		<script src="../vm/lib.luajs.js"></script>
-		<script src="../vm/vm.luajs.js"></script>
-		<script src="../vm/debug.luajs.js"></script>
+		<script src="/frameworks/jquery/jquery.min.js"></script>
 		
+		<!-- script src="../vm/luajs.js"></script -->
+
+		<script src="../vm/src/EventEmitter.js"></script>
+		<script src="../vm/src/VM.js"></script>
+		<script src="../vm/src/Closure.js"></script>
+		<script src="../vm/src/Function.js"></script>
+		<script src="../vm/src/Coroutine.js"></script>
+		<script src="../vm/src/Table.js"></script>
+		<script src="../vm/src/Error.js"></script>
+		<script src="../vm/src/File.js"></script>
+		<script src="../vm/src/lib.js"></script>
+		<script src="../vm/src/utils.js"></script>
+		<script src="../vm/src/output.js"></script>
+		
+		<!-- script src="../debug/debug.luajs.js"></script -->
+
+
 		<script>
 		
 			var debugText = '';
@@ -27,8 +41,15 @@
 			
 
 			$(function () {
-				vm = new luajs.VM ();				
-				vm.load ('./scripts/coroutine.json');
+				vm = new luajs.VM ();
+				
+				var loaded = 0;
+				vm.bind ('loaded-file', function () {
+					if (++loaded == 2) vm.execute ();
+				});
+				
+				vm.load ('./scripts/test-suite.json', false);
+				vm.load ('./scripts/coroutine.json', false);
 			
 				$(document).keypress (function () {
 					$('#debug').empty ();
