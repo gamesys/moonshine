@@ -32,7 +32,9 @@ luajs.Table = function (obj) {
 	
 	this.__luajs = { 
 		type: 'table',
-		index: ++luajs.Table.count
+		index: ++luajs.Table.count,
+		keys: [],
+		values: []
 	};
 };
 
@@ -53,8 +55,13 @@ luajs.Table.count = 0;
  * @returns {Object} The value of the member sought.
  */
 luajs.Table.prototype.getMember = function (key) {
-	if (this[key] !== undefined) return this[key];
-
+	if (typeof key === 'string' || typeof key === 'number') {
+		if (this[key] !== undefined) return this[key];
+	} else {
+		var index = this.__luajs.keys.indexOf (key);
+		if (index >= 0) return this.__luajs.values[index];
+	}
+	
 	var mt = this.__luajs.metatable;
 	
 	if (mt && mt.__index) {
@@ -74,7 +81,9 @@ luajs.Table.prototype.getMember = function (key) {
  * @returns {Object} The value of the member sought.
  */
 luajs.Table.prototype.setMember = function (key, value) {
-	var mt = this.__luajs.metatable;
+	var mt = this.__luajs.metatable,
+		keys,
+		index;
 
 	if (this[key] === undefined && mt && mt.__newindex) {
 		switch (mt.__newindex.constructor) {
@@ -85,8 +94,20 @@ luajs.Table.prototype.setMember = function (key, value) {
 
 	if (value === undefined) {
 		delete this[key];
-	} else {
+
+	} else if (typeof key === 'string' || typeof key === 'number') {
 		this[key] = value;
+
+	} else {
+		keys = this.__luajs.keys;
+		index = keys.indexOf(key);
+		
+		if (index < 0) {
+			index = keys.length;
+			keys[index] = key;
+		}
+		
+		this.__luajs.values[index] = value;
 	}
 };
 

@@ -98,9 +98,10 @@ luajs.lib = {
 	 */
 	next: function (table, index) {	
 		// SLOOOOOOOW...
-		var found = (index == undefined);
+		var found = (index == undefined),
+			i;
 	
-		for (var i in table) {
+		for (i in table) {
 			if (table.hasOwnProperty (i) && !(i in luajs.Table.prototype) && i !== '__luajs') {
 				if (!found) {
 					if (i == index) found = true;
@@ -108,6 +109,17 @@ luajs.lib = {
 				} else if (table.hasOwnProperty (i) && i.substr (0, 2) != '__') {
 					return [i, table[i]];
 				}
+			}
+		}
+
+		for (i in table.__luajs.keys) {
+			var key = table.__luajs.keys[i];
+
+			if (!found) {
+				if (key === index) found = true;
+
+			} else {
+				return [key, table.__luajs.values[i]];
 			}
 		}
 	
