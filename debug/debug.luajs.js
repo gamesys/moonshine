@@ -92,7 +92,7 @@ luajs.debug.loadScript = function (jsonUrl, callback) {
 	
 
 luajs.debug.showScript = function (jsonUrl) {
-	var lines = luajs.debug.loaded[jsonUrl].split ('\n'),
+	var lines = luajs.debug.loaded[jsonUrl].toString ().split ('\n'),
 		index, li, code;
 
 	luajs.debug.ui.code.innerHTML = '';
