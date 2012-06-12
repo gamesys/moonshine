@@ -244,6 +244,8 @@ luajs.Closure.prototype._getConstant = function (index) {
 // Note: The Closure instance is passed in as the "this" object for these handlers.
 (function () {
 	
+	var FLOATING_POINT_PATTERN = /^[-+]?[0-9]*\.?([0-9]+([eE][-+]?[0-9]+)?)?$/;
+	
 
 	function move (a, b) {
 		this._register[a] = this._register[b];
@@ -382,13 +384,14 @@ luajs.Closure.prototype._getConstant = function (index) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
 		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
 
-		var mt, f;
+		var mt, f, bn, cn;
 
 		if (b instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__add'))) {
 			this._register[a] = f.apply ([b, c])[0];
+
 		} else {
-			if (typeof b !== 'number' || typeof c !== 'number') throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = b + c;
+			if (!('' + b).match (FLOATING_POINT_PATTERN) || !('' + c).match (FLOATING_POINT_PATTERN)) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
+			this._register[a] = parseFloat (b) + parseFloat (c);
 		}
 	}
 
@@ -404,8 +407,8 @@ luajs.Closure.prototype._getConstant = function (index) {
 		if (b instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__sub'))) {
 			this._register[a] = f.apply ([b, c])[0];
 		} else {
-			if (typeof b !== 'number' || typeof c !== 'number') throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = b - c;
+			if (!('' + b).match (FLOATING_POINT_PATTERN) || !('' + c).match (FLOATING_POINT_PATTERN)) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
+			this._register[a] = parseFloat (b) - parseFloat (c);
 		}
 	}
 
@@ -421,8 +424,8 @@ luajs.Closure.prototype._getConstant = function (index) {
 		if (b instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mul'))) {
 			this._register[a] = f.apply ([b, c])[0];
 		} else {
-			if (typeof b !== 'number' || typeof c !== 'number') throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = b * c;
+			if (!('' + b).match (FLOATING_POINT_PATTERN) || !('' + c).match (FLOATING_POINT_PATTERN)) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
+			this._register[a] = parseFloat (b) * parseFloat (c);
 		}
 	}
 
@@ -438,8 +441,8 @@ luajs.Closure.prototype._getConstant = function (index) {
 		if (b instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__div'))) {
 			this._register[a] = f.apply ([b, c])[0];
 		} else {
-			if (typeof b !== 'number' || typeof c !== 'number') throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = b / c;
+			if (!('' + b).match (FLOATING_POINT_PATTERN) || !('' + c).match (FLOATING_POINT_PATTERN)) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
+			this._register[a] = parseFloat (b) / parseFloat (c);
 		}
 	}
 
@@ -454,8 +457,8 @@ luajs.Closure.prototype._getConstant = function (index) {
 		if (b instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mod'))) {
 			this._register[a] = f.apply ([b, c])[0];
 		} else {
-			if (typeof b !== 'number' || typeof c !== 'number') throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = b % c;
+			if (!('' + b).match (FLOATING_POINT_PATTERN) || !('' + c).match (FLOATING_POINT_PATTERN)) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
+			this._register[a] = parseFloat (b) % parseFloat (c);
 		}
 	}
 
@@ -471,8 +474,8 @@ luajs.Closure.prototype._getConstant = function (index) {
 		if (b instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__pow'))) {
 			this._register[a] = f.apply ([b, c])[0];
 		} else {
-			if (typeof b !== 'number' || typeof c !== 'number') throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = Math.pow (b, c);
+			if (!('' + b).match (FLOATING_POINT_PATTERN) || !('' + c).match (FLOATING_POINT_PATTERN)) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
+			this._register[a] = Math.pow (parseFloat (b), parseFloat (c));
 		}
 	}
 
@@ -485,8 +488,9 @@ luajs.Closure.prototype._getConstant = function (index) {
 		if (this._register[b] instanceof luajs.Table && (mt = this._register[b].__luajs.metatable) && (f = mt.getMember ('__unm'))) {
 			this._register[a] = f.apply ([this._register[b]])[0];
 		} else {
-			if (typeof this._register[b] !== 'number') throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = -this._register[b];
+			b = this._register[b];
+			if (!('' + b).match (FLOATING_POINT_PATTERN)) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
+			this._register[a] = -parseFloat (b);
 		}
 	}
 
