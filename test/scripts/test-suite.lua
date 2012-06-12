@@ -230,6 +230,65 @@ assertTrue (not (10 == '10'), 'String should coerce to number.')
 
 
 
+local tests = {
+	addition = function (a, b) return a + b end,
+	subtraction = function (a, b) return a - b end,
+	muliplication = function (a, b) return a * b end,
+	division = function (a, b) return a / b end,
+	modulus = function (a, b) return a % b end,
+	pow = function (a, b) return a ^ b end,
+	['unary-minus'] = function (a, b) return -a, -b end
+}
+
+for name, test in pairs(tests) do
+
+	local success, result = pcall (test, 5, 2)
+	assertTrue (success, 'Simple use of '..name..' operator should not fail')
+	
+	success, result = pcall (test, '3', 6)
+	assertTrue (success, 'Applying '..name..' operator to a string containing a number should not error [1]')
+	
+	success, result = pcall (test, '3.', 9)
+	assertTrue (success, 'Applying '..name..' operator to a string containing a number should not error [2]')
+	
+	success, result = pcall (test, '3.2', 9)
+	assertTrue (success, 'Applying '..name..' operator to a string containing a number should not error [3]')
+	
+	success, result = pcall (test, '3.2e4', 9)
+	assertTrue (success, 'Applying '..name..' operator to a string containing an exponenial number should not error [4]')
+	
+	success, result = pcall (test, 8, '2')
+	assertTrue (success, 'Passing a string containing a number to the '..name..' operator should not error [1]')
+	
+	success, result = pcall (test, 1, '2.')
+	assertTrue (success, 'Passing a string containing a number to the '..name..' operator should not error [2]')
+	
+	success, result = pcall (test, 1, '2.5')
+	assertTrue (success, 'Passing a string containing a number to the '..name..' operator should not error [3]')
+	
+	success, result = pcall (test, 1, '2.5e3')
+	assertTrue (success, 'Passing a string containing an exponential number to the '..name..' operator should not error [4]')
+	
+	success, result = pcall (test, '9', '2')
+	assertTrue (success, 'Applying '..name..' operator to two strings containing a numbers should not error')
+	
+	success, result = pcall (test, 'a', 2)
+	assertTrue (not success, 'Applying '..name..' operator to an alpha string should error [1]')
+	
+	success, result = pcall (test, '8a', 2)
+	assertTrue (not success, 'Applying '..name..' operator to an alpha string should error [2]')
+	
+	success, result = pcall (test, 'a8', 2)
+	assertTrue (not success, 'Applying '..name..' operator to an alpha string should error [3]')
+	
+	success, result = pcall (test, 8, '2a')
+	assertTrue (not success, 'Passing an alpha string to the '..name..' operator should error')
+	
+end
+
+
+
+
 
 -- TABLES
 
