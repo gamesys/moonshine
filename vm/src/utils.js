@@ -10,12 +10,13 @@ luajs.debug = {};
 luajs.utils = {
 	
 	toObject: function (table) {
-		var result = table[1] === undefined? {} : [],
+		var isArr = luajs.lib.table.getn (table) > 0,
+			result = isArr? [] : {},
 			i;
 		
 		for (i in table) {
 			if (table.hasOwnProperty (i) && !(i in luajs.Table.prototype) && i !== '__luajs') {
-					result[i] = (table[i] instanceof luajs.Table)? luajs.utils.toObject (table[i]) : table[i];
+					result[isArr? i - 1 : i] = (table[i] instanceof luajs.Table)? luajs.utils.toObject (table[i]) : table[i];
 			}
 		}
 		
