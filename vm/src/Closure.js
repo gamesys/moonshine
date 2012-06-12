@@ -623,7 +623,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 
 	function testset (a, b, c) {
 		if (!this._register[b] === !c) {
-			this._register[a] = !!this._register[b];
+			this._register[a] = this._register[b];
 		} else {
 			this._pc++;
 		}
