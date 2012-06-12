@@ -92,10 +92,11 @@ luajs.Table.prototype.setMember = function (key, value) {
 		}
 	}
 
-	if (value === undefined) {
-		delete this[key];
+//	if (value === undefined) {
+//		delete this[key];
 
-	} else if (typeof key === 'string' || typeof key === 'number') {
+//	} else 
+	if (typeof key === 'string' || typeof key === 'number') {
 		this[key] = value;
 
 	} else {

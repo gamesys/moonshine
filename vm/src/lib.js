@@ -541,7 +541,41 @@ luajs.lib.table = {
 		return result.join (sep);
 	},
 	
+
+
+
+	getn: function (table) {
+		if (!(table instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.getn(). Table expected');
+
+		var keys = [], 
+			i, 
+			j = 0;
+			
+		for (i in table) if ((index = 0 + parseInt (i, 10)) == i) keys[index] = true;
+		while (keys[j + 1]) j++;
+
+		// Following translated from ltable.c (http://www.lua.org/source/5.1/ltable.c.html)
+		if (j > 0 && table[j] === undefined) {
+			/* there is a boundary in the array part: (binary) search for it */
+			var i = 0;
+
+			while (j - i > 1) {
+				var m = Math.floor ((i + j) / 2);
+
+				if (table[m] === undefined) {
+					j = m;
+				} else {
+					i = m;
+				}
+			}
+		
+			return i;
+		}
+
+		return j;
+	},
 	
+		
 	
 	
 	/**
@@ -556,11 +590,11 @@ luajs.lib.table = {
 		if (obj == undefined) {
 			obj = index;
 			index = 1;
-			while (table[index] != undefined) index++;
+			while (table.getMember(index) !== undefined) index++;
 		}
 
-		var oldValue = table[index];
-		table[index] = obj;
+		var oldValue = table.getMember(index);
+		table.setMember(index, obj);
 
 		if (oldValue) luajs.lib.table.insert (table, index + 1, oldValue);
 	},	
@@ -582,7 +616,7 @@ luajs.lib.table = {
 			index,
 			i;
 			
-		for (i in table) if ((index = 0 + parseInt (i)) == i && index > result) result = index;
+		for (i in table) if ((index = 0 + parseInt (i, 10)) == i && table[i] !== null && index > result) result = index;
 		return result; 
 	},
 	
@@ -593,11 +627,7 @@ luajs.lib.table = {
 		if (!(table instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in unpack(). Table expected');	
 
 		i = i || 1;
-
-		if (j === undefined) {
-			j = 0;
-			while (table[j + 1] !== undefined) j++;
-		}
+		if (j === undefined) j = luajs.lib.table.getn (table);
 		
 		var vals = [],
 			index;
@@ -619,18 +649,17 @@ luajs.lib.table = {
 
 		if (index == undefined) {
 			index = 1;
-			while (table[index + 1] != undefined) index++;
+			while (table[index + 1] !== undefined) index++;
 		}
 
+		if (index > luajs.lib.table.getn (table)) return;
+			
 		var result = table[index];
-		table[index] = table[index + 1];
-
-		if (table[index] !== undefined) {
-			luajs.lib.table.remove (table, index + 1);
-		} else {
-			delete table[index];
-		}
+		table[index] = table[index + 1];	
 		
+		luajs.lib.table.remove (table, index + 1);
+		if (table[index] === undefined) delete table[index];
+
 		return result;
 	},
 	

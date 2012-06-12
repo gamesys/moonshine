@@ -508,8 +508,10 @@ luajs.Closure.prototype._getConstant = function (index) {
 		var length = 0;
 
 		if (this._register[b] instanceof luajs.Table) {
-			while (this._register[b][length + 1] != undefined) length++;
-			this._register[a] = length;
+
+			//while (this._register[b][length + 1] != undefined) length++;
+			//this._register[a] = length;
+			this._register[a] = luajs.lib.table.getn (this._register[b]);
 
 		} else if (typeof this._register[b] == 'object') {				
 			for (var i in this._register[b]) if (this._register[b].hasOwnProperty (i)) length++;

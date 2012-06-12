@@ -1,4 +1,5 @@
 
+
 do
 	local passed, failed = 0, 0
 	
@@ -611,26 +612,66 @@ assertTrue (f == 'function', 'type() should return "function" for a variable wit
 
 
 -- unpack
-
-local a = {0, 1, 2, 4, 20, 50, 122}
-
-local b, c, d, e, f, g = unpack (a, 3);
-local h, i = unpack (a, 3, 2);
-local j, k, l, m = unpack (a, 3, 5);
-
-assertTrue (b == 2, 'unpack() should return the correct items of the given list [1]')
-assertTrue (c == 4, 'unpack() should return the correct items of the given list [2]')
-assertTrue (d == 20, 'unpack() should return the correct items of the given list [3]')
-assertTrue (e == 50, 'unpack() should return the correct items of the given list [4]')
-assertTrue (f == 122, 'unpack() should return the correct items of the given list [5]')
-assertTrue (g == nil, 'unpack() should return the correct items of the given list [6]')
-assertTrue (h == nil, 'unpack() should return the correct items of the given list [7]')
-assertTrue (i == nil, 'unpack() should return the correct items of the given list [8]')
-assertTrue (j == 2, 'unpack() should return the correct items of the given list [9]')
-assertTrue (k == 4, 'unpack() should return the correct items of the given list [10]')
-assertTrue (l == 20, 'unpack() should return the correct items of the given list [11]')
-assertTrue (m == nil, 'unpack() should return the correct items of the given list [12]')
-
+do
+	local a = {0, 1, 2, 4, 20, 50, 122}
+	
+	local b, c, d, e, f, g = unpack (a, 3);
+	local h, i = unpack (a, 3, 2);
+	local j, k, l, m = unpack (a, 3, 5);
+	
+	assertTrue (b == 2, 'unpack() should return the correct items of the given list [1]')
+	assertTrue (c == 4, 'unpack() should return the correct items of the given list [2]')
+	assertTrue (d == 20, 'unpack() should return the correct items of the given list [3]')
+	assertTrue (e == 50, 'unpack() should return the correct items of the given list [4]')
+	assertTrue (f == 122, 'unpack() should return the correct items of the given list [5]')
+	assertTrue (g == nil, 'unpack() should return the correct items of the given list [6]')
+	assertTrue (h == nil, 'unpack() should return the correct items of the given list [7]')
+	assertTrue (i == nil, 'unpack() should return the correct items of the given list [8]')
+	assertTrue (j == 2, 'unpack() should return the correct items of the given list [9]')
+	assertTrue (k == 4, 'unpack() should return the correct items of the given list [10]')
+	assertTrue (l == 20, 'unpack() should return the correct items of the given list [11]')
+	assertTrue (m == nil, 'unpack() should return the correct items of the given list [12]')
+	
+	
+	local a = {nil, nil, 180}
+	local b, c, d, e = unpack (a);
+	assertTrue (b == nil, 'unpack() should return the correct items of the given list [13]')
+	assertTrue (c == nil, 'unpack() should return the correct items of the given list [14]')
+	assertTrue (d == 180, 'unpack() should return the correct items of the given list [15]')
+	assertTrue (e == nil, 'unpack() should return the correct items of the given list [16]')
+	
+	
+	--Make sure binary searching is implemented the same way as C…
+	local table1 = {true, nil, true, false, nil, true, nil}
+	local table2 = {true, false, nil, false, nil, true, nil}
+	local table3 = {true, false, false, false, true, true, nil}
+	
+	local a1, b1, c1, d1, e1, f1 = unpack (table1);
+	local a2, b2, c2, d2, e2, f2 = unpack (table2);
+	local a3, b3, c3, d3, e3, f3, g3 = unpack (table3);
+	
+	
+	assertTrue (a1, 'unpack() should return the same items as the C implementation [1]')
+	assertTrue (b1 == nil, 'unpack() should return the same items as the C implementation [2]')
+	assertTrue (c1, 'unpack() should return the same items as the C implementation [3]')
+	assertTrue (not d1, 'unpack() should return the same items as the C implementation [4]')
+	assertTrue (e1 == nil, 'unpack() should return the same items as the C implementation [5]')
+	assertTrue (f1 == nil, 'unpack() should return the same items as the C implementation [6]')
+	assertTrue (a2, 'unpack() should return the same items as the C implementation [7]')
+	assertTrue (not b2, 'unpack() should return the same items as the C implementation [8]')
+	assertTrue (c2 == nil, 'unpack() should return the same items as the C implementation [9]')
+	assertTrue (d2 == nil, 'unpack() should return the same items as the C implementation [10]')
+	assertTrue (e2 == nil, 'unpack() should return the same items as the C implementation [11]')
+	assertTrue (f2 == nil, 'unpack() should return the same items as the C implementation [12]')
+	
+	assertTrue (a3, 'unpack() should return the same items as the C implementation [13]')
+	assertTrue (not b3, 'unpack() should return the same items as the C implementation [14]')
+	assertTrue (not c3, 'unpack() should return the same items as the C implementation [15]')
+	assertTrue (not d3, 'unpack() should return the same items as the C implementation [16]')
+	assertTrue (e3, 'unpack() should return the same items as the C implementation [17]')
+	assertTrue (f3, 'unpack() should return the same items as the C implementation [18]')
+	assertTrue (g3 == nil, 'unpack() should return the same items as the C implementation [19]')
+end
 
 
 
@@ -863,6 +904,28 @@ assertTrue (i == '4+moo', 'table.concat() should return the items in the table i
 
 
 
+-- getn
+do 
+	local a = {'a', 'b', 'c'}
+	local b = {'a', 'b', 'c', nil}
+	local c = {'a', nil, 'b', 'c'}
+	local d = {'a', nil, 'b', 'c', nil}
+	local e = {'a', 'b', 'c', moo = 123 }
+	local f = { moo = 123 }
+	local g = {}
+	
+	assertTrue (table.getn (a) == 3, 'table.getn() should return the size of the array part of a table')
+	assertTrue (table.getn (b) == 3, 'table.getn() should ignore nils at the end of the array part of a table')
+	assertTrue (table.getn (c) == 4, 'table.getn() should include nils in the middle of the array part of a table')
+	assertTrue (table.getn (d) == 1, 'table.getn() should return the same random value as C implementation when the last item is nil')
+	assertTrue (table.getn (e) == 3, 'table.getn() should ignore the hash part of a table')
+	assertTrue (table.getn (f) == 0, 'table.getn() should return zero when the array part of a table is empty')
+	assertTrue (table.getn (g) == 0, 'table.getn() should return zero when the table is empty')
+end
+
+
+
+
 -- insert
 
 local b = {}
@@ -933,7 +996,7 @@ assertTrue (b == 4, 'table.maxn() should return the highest index in the passed 
 assertTrue (c == 3, 'table.maxn() should return the highest index in the passed table [2]')
 assertTrue (e == 3, 'table.maxn() should return the highest index in the passed table [3]')
 
-assertTrue (#d == 0, 'Length operator should return the first available index minus one')
+assertTrue (#d == 0, 'Length operator should return the first empty index minus one [1]')
 
 
 
@@ -972,6 +1035,27 @@ assertTrue (e[3] == nil, 'table.remove() should not affect the table if the give
 assertTrue (f == nil, 'table.remove() should return nil if the given index is past the length of the table [1]')
 assertTrue (g == nil, 'table.remove() should return nil if the given index is past the length of the table [2]')
 
+
+c = {nil, nil, 123}
+assertTrue (#c == 3, 'Length operator should return the first empty index minus one [2]')
+
+table.remove (c, 1)
+assertTrue (#c == 0, 'Length operator should return the first empty index minus one [3]')
+assertTrue (c[1] == nil, 'table.remove() should shift values down if index <= initial length [1]')
+assertTrue (c[2] == 123, 'table.remove() should shift values down if index <= initial length [2]')
+assertTrue (c[3] == nil, 'table.remove() should shift values down if index <= initial length [3]')
+
+table.remove (c, 1)
+assertTrue (#c == 0, 'Length operator should return the first empty index minus one [4]')
+assertTrue (c[1] == nil, 'table.remove() should not affect the array if index > initial length [1]')
+assertTrue (c[2] == 123, 'table.remove() should not affect the array if index > initial length [2]')
+assertTrue (c[3] == nil, 'table.remove() should not affect the array if index > initial length [3]')
+
+table.remove (c, 2)
+assertTrue (#c == 0, 'Length operator should return the first empty index minus one [5]')
+assertTrue (c[1] == nil, 'table.remove() should not affect the array if index > initial length [4]')
+assertTrue (c[2] == 123, 'table.remove() should not affect the array if index > initial length [5]')
+assertTrue (c[3] == nil, 'table.remove() should not affect the array if index > initial length [6]')
 
 
 
