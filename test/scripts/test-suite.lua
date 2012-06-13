@@ -778,6 +778,18 @@ assertTrue (g == 17, 'string.find() should return the location of the second arg
 
 
 
+-- gsub
+
+a = '<%?xml version="1.0" encoding="UTF%-8"%?>'
+b = '<?xml version="1.0" encoding="UTF-8"?><my-xml></my-xml>'
+
+c = string.gsub (b, a, 'moo')
+
+assertTrue (c == 'moo<my-xml></my-xml>', 'string.gsub() should replace the matched part of the string')
+-- Not even scraping the surface
+
+
+
 -- len
 
 local a = 'McLaren Mercedes'
