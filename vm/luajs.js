@@ -1228,7 +1228,7 @@ luajs.Function.prototype.call = function () {
 luajs.Function.prototype.apply = function (obj, args) {
 	if (obj instanceof Array && !args) {
 		args = obj;
-		delete obj;
+		obj = undefined;
 	}
 
 	try {
@@ -1677,7 +1677,6 @@ var luajs = luajs || {};
 
 		pattern = pattern.replace (/{:%%:}/g, '%');	
 		
-		console.log (pattern);
 		return pattern;	
 	};
 	
@@ -2197,6 +2196,7 @@ var luajs = luajs || {};
 			if (!(table instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.getn(). Table expected');
 	
 			var keys = [], 
+				index,
 				i, 
 				j = 0;
 				
@@ -2443,7 +2443,7 @@ var luajs = luajs || {};
 		
 		
 		ldexp: function (m, e) {
-			return m * math.pow (2, e);
+			return m * Math.pow (2, e);
 		},
 		
 		
@@ -2451,7 +2451,7 @@ var luajs = luajs || {};
 		
 		log: function (x, base) {
 			var result = Math.log (x);
-			if (base !== undefined) return result / Math.log (10)
+			if (base !== undefined) return result / Math.log (base);
 			return result;
 		},
 		
@@ -2460,7 +2460,7 @@ var luajs = luajs || {};
 		
 		log10: function (x) {
 			// v5.2: luajs.warn ('math.log10 is deprecated. Use math.log with 10 as its second argument, instead.');
-			return Math.log (x, 10);
+			return Math.log (x) / Math.log (base);
 		},
 		
 		

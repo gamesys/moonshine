@@ -78,7 +78,7 @@ luajs.Function.prototype.call = function () {
 luajs.Function.prototype.apply = function (obj, args) {
 	if (obj instanceof Array && !args) {
 		args = obj;
-		delete obj;
+		obj = undefined;
 	}
 
 	try {
