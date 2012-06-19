@@ -76,7 +76,7 @@ luajs.Function.prototype.call = function () {
  * @returns {Array} Array of the return values from the call.
  */
 luajs.Function.prototype.apply = function (obj, args) {
-	if (obj instanceof Array && !args) {
+	if ((obj || {}) instanceof Array && !args) {
 		args = obj;
 		obj = undefined;
 	}
@@ -85,7 +85,7 @@ luajs.Function.prototype.apply = function (obj, args) {
 		return this.getInstance ().apply (obj, args);
 
 	} catch (e) {
-		luajs.utils.catchExecutionError (e);
+		luajs.Error.catchExecutionError (e);
 	}
 };
 

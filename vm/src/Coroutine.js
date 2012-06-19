@@ -76,7 +76,7 @@ luajs.Coroutine.prototype.resume = function () {
 		if (luajs.debug.status == 'resuming') {
 			var funcToResume = luajs.debug.resumeStack.pop ();
 			
-			if (funcToResume instanceof luajs.Coroutine) {
+			if ((funcToResume || {}) instanceof luajs.Coroutine) {
 				retval = funcToResume.resume ();
 			} else {
 				retval = this._func._instance._run ();

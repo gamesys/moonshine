@@ -81,7 +81,7 @@ luajs.Closure.prototype.execute = function (args) {
 		return this._run ();
 		
 	} catch (e) {
-		if (!(e instanceof luajs.Error)) {
+		if (!((e || {}) instanceof luajs.Error)) {
 			var stack = (e.stack || '');
 
 			e = new luajs.Error ('Error in host call: ' + e.message);
@@ -214,9 +214,11 @@ luajs.Closure.prototype._executeInstruction = function (instruction, line) {
 	if (!op) throw new Error ('Operation not implemented! (' + instruction.op + ')');
 
 	if (luajs.debug.status != 'resuming') {
-		var tab = '';
+		var tab = '',
+			opName = this.constructor.OPERATION_NAMES[instruction.op];
+			
 		for (var i = 0; i < this._index; i++) tab += '\t';
-		luajs.stddebug.write (tab + '[' + this._pc + ']\t' + line + '\t' + op.name.replace ('_', '') + '\t' + instruction.A + '\t' + instruction.B + (instruction.C !== undefined? '\t' + instruction.C : ''));
+		luajs.stddebug.write (tab + '[' + this._pc + ']\t' + line + '\t' + opName + '\t' + instruction.A + '\t' + instruction.B + (instruction.C !== undefined? '\t' + instruction.C : ''));
 	}
 
 	return op.call (this, instruction.A, instruction.B, instruction.C);
@@ -305,7 +307,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 		if (this._register[b] === undefined) {
 			throw new luajs.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
 
-		} else if (this._register[b] instanceof luajs.Table) {
+		} else if ((this._register[b] || {}) instanceof luajs.Table) {
 			this._register[a] = this._register[b].getMember (c);
 
 		} else if (typeof this._register[b] == 'string' && luajs.lib.string[c]) {
@@ -337,7 +339,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
 		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
 
-		if (this._register[a] instanceof luajs.Table) {
+		if ((this._register[a] || {}) instanceof luajs.Table) {
 			this._register[a].setMember (b, c);
 		
 		} else if (this._register[a] === undefined) {
@@ -365,7 +367,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 		if (this._register[b] === undefined) {
 			throw new luajs.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
 
-		} else if (this._register[b] instanceof luajs.Table) {
+		} else if ((this._register[b] || {}) instanceof luajs.Table) {
 			this._register[a] = this._register[b].getMember (c);
 
 		} else if (typeof this._register[b] == 'string' && luajs.lib.string[c]) {
@@ -386,7 +388,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 
 		var mt, f, bn, cn;
 
-		if (b instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__add'))) {
+		if ((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__add'))) {
 			this._register[a] = f.apply ([b, c])[0];
 
 		} else {
@@ -404,7 +406,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 
 		var mt, f;
 
-		if (b instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__sub'))) {
+		if ((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__sub'))) {
 			this._register[a] = f.apply ([b, c])[0];
 		} else {
 			if (!('' + b).match (FLOATING_POINT_PATTERN) || !('' + c).match (FLOATING_POINT_PATTERN)) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
@@ -421,7 +423,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 
 		var mt, f;
 
-		if (b instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mul'))) {
+		if ((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mul'))) {
 			this._register[a] = f.apply ([b, c])[0];
 		} else {
 			if (!('' + b).match (FLOATING_POINT_PATTERN) || !('' + c).match (FLOATING_POINT_PATTERN)) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
@@ -438,7 +440,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 
 		var mt, f;
 
-		if (b instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__div'))) {
+		if ((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__div'))) {
 			this._register[a] = f.apply ([b, c])[0];
 		} else {
 			if (!('' + b).match (FLOATING_POINT_PATTERN) || !('' + c).match (FLOATING_POINT_PATTERN)) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
@@ -454,7 +456,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
 		var mt, f;
 
-		if (b instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mod'))) {
+		if ((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mod'))) {
 			this._register[a] = f.apply ([b, c])[0];
 		} else {
 			if (!('' + b).match (FLOATING_POINT_PATTERN) || !('' + c).match (FLOATING_POINT_PATTERN)) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
@@ -471,7 +473,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 
 		var mt, f;
 
-		if (b instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__pow'))) {
+		if ((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__pow'))) {
 			this._register[a] = f.apply ([b, c])[0];
 		} else {
 			if (!('' + b).match (FLOATING_POINT_PATTERN) || !('' + c).match (FLOATING_POINT_PATTERN)) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
@@ -485,7 +487,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 	function unm (a, b) {
 		var mt, f;
 
-		if (this._register[b] instanceof luajs.Table && (mt = this._register[b].__luajs.metatable) && (f = mt.getMember ('__unm'))) {
+		if ((this._register[b] || {}) instanceof luajs.Table && (mt = this._register[b].__luajs.metatable) && (f = mt.getMember ('__unm'))) {
 			this._register[a] = f.apply ([this._register[b]])[0];
 		} else {
 			b = this._register[b];
@@ -507,7 +509,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 	function len (a, b) {
 		var length = 0;
 
-		if (this._register[b] instanceof luajs.Table) {
+		if ((this._register[b] || {}) instanceof luajs.Table) {
 
 			//while (this._register[b][length + 1] != undefined) length++;
 			//this._register[a] = length;
@@ -537,7 +539,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 			mt, f;
 
 		for (var i = c - 1; i >= b; i--) {
-			if (this._register[i] instanceof luajs.Table && (mt = this._register[i].__luajs.metatable) && (f = mt.getMember ('__concat'))) {
+			if ((this._register[i] || {}) instanceof luajs.Table && (mt = this._register[i].__luajs.metatable) && (f = mt.getMember ('__concat'))) {
 				text = f.apply ([this._register[i], text])[0];
 			} else {
 				if (!(typeof this._register[i] === 'string' || typeof this._register[i] === 'number') || !(typeof text === 'string' || typeof text === 'number')) throw new luajs.Error ('Attempt to concatenate a non-string or non-numeric value');
@@ -564,7 +566,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 
 		var mt, f, result;
 
-		if (b !== c && typeof (b) === typeof (c) && b instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__eq'))) {
+		if (b !== c && typeof (b) === typeof (c) && (b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__eq'))) {
 			result = !!f.apply ([b, c])[0];
 		} else {
 			result = (b === c);
@@ -582,7 +584,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 
 		var mt, f, result;
 
-		if (b instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__le'))) {
+		if ((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__le'))) {
 			result = f.apply ([b, c])[0];
 		} else {
 			result = (b < c);
@@ -600,7 +602,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 
 		var mt, f, result;
 
-		if (b !== c && typeof (b) === typeof (c) && b instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__le'))) {
+		if (b !== c && typeof (b) === typeof (c) && (b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__le'))) {
 			result = f.apply ([b, c])[0];
 		} else {
 			result = (b <= c);
@@ -645,7 +647,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 		if (luajs.debug.status == 'resuming') {
 			funcToResume = luajs.debug.resumeStack.pop ();
 			
-			if (funcToResume instanceof luajs.Coroutine) {
+			if ((funcToResume || {}) instanceof luajs.Coroutine) {
 				retvals = funcToResume.resume ();
 			} else {
 				retvals = funcToResume._run ();
@@ -676,7 +678,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 			retvals = this._register[a].apply ({}, args);
 		}
 		
-		if (!(retvals instanceof Array)) retvals = [retvals];
+		if (!((retvals || {}) instanceof Array)) retvals = [retvals];
 		if (luajs.Coroutine._running && luajs.Coroutine._running.status == 'suspending') return;
 
 
@@ -700,59 +702,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 
 
 
-	function tailcall (a, b) {
-	
-
-//		var args = [], 
-//			i, l,
-//			retvals,
-//			funcToResume;
-//
-//
-//		if (luajs.debug.status == 'resuming') {
-//			funcToResume = luajs.debug.resumeStack.pop ()
-//			retvals = funcToResume._run ();
-//			
-//		} else if (luajs.Coroutine._running && luajs.Coroutine._running.status == 'resuming') {
-//			funcToResume = luajs.Coroutine._running._resumeStack.pop ()
-//			retvals = funcToResume._run ();
-//			
-//		} else {
-//			if (b === 0) {
-//				l = this._register.length;
-//			
-//				for (i = a + 1; i < l; i++) {
-//					args.push (this._register[i]);
-//				}
-//
-//			} else {
-//				for (i = 0; i < b - 1; i++) {
-//					args.push (this._register[a + i + 1]);
-//				}
-//			}
-//		}
-//
-//
-//		if (!funcToResume) {
-//			if (!this._register[a] || !this._register[a].apply) throw new luajs.Error ('Attempt to call non-function');
-//			retvals = this._register[a].apply ({}, args);
-//		}
-//		
-//		if (!(retvals instanceof Array)) retvals = [retvals];
-//		if (luajs.Coroutine._running && luajs.Coroutine._running.status == 'suspending') return;
-//
-//
-//		l = retvals.length;
-//		
-//		for (i = 0; i < l; i++) {
-//			this._register[a + i] = retvals[i];
-//		}
-//
-//		this._register.splice (a + l);
-
-		
-		
-		
+	function tailcall (a, b) {	
 		return call (a, b, 0);
 		
 		// NOTE: Currently not replacing stack, so infinately recursive calls WOULD drain memory, unlike how tail calls were intended.
@@ -823,7 +773,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 			retvals = this._register[a].apply ({}, args),
 			index;
 
-		if (!(retvals instanceof Array)) retvals = [retvals];
+		if (!((retvals || {}) instanceof Array)) retvals = [retvals];
 		if (retvals[0] && retvals[0] === '' + (index = parseInt (retvals[0], 10))) retvals[0] = index;
 		
 		for (var i = 0; i < c; i++) this._register[a + i + 3] = retvals[i];
@@ -879,7 +829,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 				var i = instruction,
 					upvalue;
 
-				luajs.stddebug.write ('-> ' + me.constructor.OPERATIONS[i.op].name.replace ('_', '') + '\t' + i.A + '\t' + i.B + '\t' + i.C);
+				luajs.stddebug.write ('-> ' + me.constructor.OPERATION_NAMES[i.op] + '\t' + i.A + '\t' + i.B + '\t' + i.C);
 
 				
 				if (i.op === 0) {	// move
@@ -954,7 +904,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 
 
 	luajs.Closure.OPERATIONS = [move, loadk, loadbool, loadnil, getupval, getglobal, gettable, setglobal, setupval, settable, newtable, self, add, sub, mul, div, mod, pow, unm, not, len, concat, jmp, eq, lt, le, test, testset, call, tailcall, return_, forloop, forprep, tforloop, setlist, close, closure, vararg];
-
+	luajs.Closure.OPERATION_NAMES = ["move", "loadk", "loadbool", "loadnil", "getupval", "getglobal", "gettable", "setglobal", "setupval", "settable", "newtable", "self", "add", "sub", "mul", "div", "mod", "pow", "unm", "not", "len", "concat", "jmp", "eq", "lt", "le", "test", "testset", "call", "tailcall", "return", "forloop", "forprep", "tforloop", "setlist", "close", "closure", "vararg"];
 
 })();
 

@@ -16,7 +16,7 @@ luajs.utils = {
 		
 		for (i in table) {
 			if (table.hasOwnProperty (i) && !(i in luajs.Table.prototype) && i !== '__luajs') {
-					result[isArr? i - 1 : i] = (table[i] instanceof luajs.Table)? luajs.utils.toObject (table[i]) : table[i];
+					result[isArr? i - 1 : i] = ((table[i] || {}) instanceof luajs.Table)? luajs.utils.toObject (table[i]) : table[i];
 			}
 		}
 		
@@ -43,16 +43,8 @@ luajs.utils = {
 		};
 
 		return convertToTable (JSON.parse (json));
-	},
-	
-
-
-	
-	catchExecutionError: function (e) {
-		if (e instanceof luajs.Error && console) throw new Error ('[luajs] ' + e.message + '\n    ' + (e.luaStack || []).join ('\n    '));
-		throw e;
 	}
-
+	
 
 };
 

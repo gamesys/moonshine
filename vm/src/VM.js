@@ -100,7 +100,7 @@ luajs.VM.prototype.execute = function (asCoroutine, file) {
 			}
 			
 		} catch (e) {
-			luajs.utils.catchExecutionError (e);
+			luajs.Error.catchExecutionError (e);
 		}
 	}
 };

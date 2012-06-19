@@ -29,7 +29,7 @@ luajs.EventEmitter.prototype._trigger = function (name, data) {
 		i;
 		
 	if (!listeners) return;
-	if (!(data instanceof Array)) data = [data];
+	if (!((data || {}) instanceof Array)) data = [data];
 	
 	for (i in listeners) {
 		result = listeners[i].apply (this, data);
