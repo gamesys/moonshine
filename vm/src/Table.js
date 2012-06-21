@@ -14,7 +14,7 @@ var luajs = luajs || {};
  */
 luajs.Table = function (obj) {
 
-	var isArr = (obj instanceof Array),
+	var isArr = ((obj || {}) instanceof Array),
 		key,
 		value,
 		i;

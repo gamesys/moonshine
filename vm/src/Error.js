@@ -21,7 +21,9 @@ luajs.Error = function (message) {
 luajs.Error.prototype = new Error ();
 
 luajs.Error.catchExecutionError = function (e) {
-	if ((e || {}) instanceof luajs.Error && console) throw new Error ('[luajs] ' + e.message + '\n    ' + (e.luaStack || []).join ('\n    '));
+	//if ((e || {}) instanceof luajs.Error && console) throw new Error ('[luajs] ' + e.message + '\n    ' + (e.luaStack || []).join ('\n    '));
+	if (e instanceof luajs.Error) e.message = e.message + '\n    ' + (e.luaStack || []).join('\n    ');
+	
 	throw e;
 };
 
