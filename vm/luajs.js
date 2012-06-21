@@ -1350,19 +1350,29 @@ var luajs = luajs || {};
  */
 luajs.Table = function (obj) {
 
-	var isArr = ((obj || {}) instanceof Array),
+	var isArr = (obj instanceof Array),
 		key,
 		value,
 		i;
 
 	for (i in obj || {}) {
+		var iterate;
+
 		key = isArr? parseInt (i, 10) + 1: i;
 		value = obj[i];
 
-		if (typeof value != 'object' || value.constructor != Object) {
-			this[key] = value;
+		if (typeof getQualifiedClassName !== 'undefined') {
+			// ActionScript
+			iterate = ((getQualifiedClassName(value) == "Object") && (!(value instanceof luajs.Table)) && (!(value instanceof luajs.Coroutine)) && (!(value instanceof luajs.Function)) && (!(value instanceof luajs.Closure) )) || (getQualifiedClassName(value) == "Array");
 		} else {
+			// JavaScript
+			iterate = (typeof value == 'object' && value.constructor === Object);
+		}
+		
+		if (iterate) {
 			this[key] = new luajs.Table (value);
+		} else {
+			this[key] = value;
 		}
 	}
 	
