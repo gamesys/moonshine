@@ -703,7 +703,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 
 
 	function tailcall (a, b) {	
-		return call (a, b, 0);
+		return call.call (this, a, b, 0);
 		
 		// NOTE: Currently not replacing stack, so infinately recursive calls WOULD drain memory, unlike how tail calls were intended.
 		// TODO: For non-external function calls, replace this stack with that of the new function. Possibly return the Function and handle the call in the RETURN section (for the calling function).

@@ -34,8 +34,8 @@ luajs.File.prototype.load = function () {
 	var me = this;
 	
 	// TODO: Remove dependency on jQuery here!
-	jQuery.get (this._url, function (data) { 
-		me.data = JSON.parse (data);
+	jQuery.getJSON (this._url, function (data) { 
+		me.data = data;
 		me._trigger ('loaded', data);
 	});
 };

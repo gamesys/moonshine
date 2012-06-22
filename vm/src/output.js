@@ -10,7 +10,7 @@ luajs.stdout.write = function (message) {
 	// Overwrite this in host application
 	if (console && console.log) {
 		console.log (message);
-	} elseif (trace) {
+	} else if (trace) {
 		trace (message);
 	}
 }
