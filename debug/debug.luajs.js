@@ -403,6 +403,7 @@ luajs.debug._clearLineHighlight = function () {
 	};
 	
 	luajs.Error.prototype = error.prototype;	
+	luajs.Error.catchExecutionError = error.catchExecutionError;	
 		
 })();
 
