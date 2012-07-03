@@ -443,7 +443,7 @@ var luajs = luajs || {};
 			*
 			**/
 			 
-			sprintfWrapper = {
+			var sprintfWrapper = {
 			 
 				init : function () {
 			 
@@ -488,9 +488,11 @@ var luajs = luajs || {};
 					if (matches.length == 0) { return string; }
 					if ((arguments.length - 1) < convCount) { return null; }
 			 
-					var code = null;
-					var match = null;
-					var i = null;
+					var code = null,
+						match = null,
+						i = null,
+						substitution;
+					
 			 
 					for (i=0; i<matches.length; i++) {
 			 
@@ -500,7 +502,7 @@ var luajs = luajs || {};
 							substitution = sprintfWrapper.convert(matches[i], true);
 						}
 						else if (matches[i].code == 'c') {
-							matches[i].argument = String(String.fromCharCode(parseInt(Math.abs(parseInt(matches[i].argument)))));
+							matches[i].argument = String(String.fromCharCode(Math.abs(parseInt(matches[i].argument))));
 							substitution = sprintfWrapper.convert(matches[i], true);
 						}
 						else if (matches[i].code == 'd') {
