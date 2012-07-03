@@ -891,7 +891,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 
 
 	function tailcall (a, b) {	
-		return call (a, b, 0);
+		return call.call (this, a, b, 0);
 		
 		// NOTE: Currently not replacing stack, so infinately recursive calls WOULD drain memory, unlike how tail calls were intended.
 		// TODO: For non-external function calls, replace this stack with that of the new function. Possibly return the Function and handle the call in the RETURN section (for the calling function).
@@ -1350,7 +1350,7 @@ var luajs = luajs || {};
  */
 luajs.Table = function (obj) {
 
-	var isArr = (obj instanceof Array),
+	var isArr = ((obj || {}) instanceof Array),
 		key,
 		value,
 		i;
@@ -1495,7 +1495,9 @@ luajs.Error = function (message) {
 luajs.Error.prototype = new Error ();
 
 luajs.Error.catchExecutionError = function (e) {
-	if ((e || {}) instanceof luajs.Error && console) throw new Error ('[luajs] ' + e.message + '\n    ' + (e.luaStack || []).join ('\n    '));
+	//if ((e || {}) instanceof luajs.Error && console) throw new Error ('[luajs] ' + e.message + '\n    ' + (e.luaStack || []).join ('\n    '));
+	if (e instanceof luajs.Error) e.message = e.message + '\n    ' + (e.luaStack || []).join('\n    ');
+	
 	throw e;
 };
 
@@ -1548,8 +1550,8 @@ luajs.File.prototype.load = function () {
 	var me = this;
 	
 	// TODO: Remove dependency on jQuery here!
-	jQuery.get (this._url, function (data) { 
-		me.data = JSON.parse (data);
+	jQuery.getJSON (this._url, function (data) { 
+		me.data = data;
 		me._trigger ('loaded', data);
 	});
 };
@@ -1715,7 +1717,7 @@ var luajs = luajs || {};
 					if (!found) {
 						if (i == index) found = true;
 	
-					} else if (table.hasOwnProperty (i) && ('' + i).substr (0, 2) != '__') {
+					} else if (table.hasOwnProperty (i) && table[i] !== undefined && ('' + i).substr (0, 2) != '__') {
 						return [i, table[i]];
 					}
 				}
@@ -1727,7 +1729,7 @@ var luajs = luajs || {};
 				if (!found) {
 					if (key === index) found = true;
 	
-				} else {
+				} else if (table.__luajs.values[i] !== undefined) {
 					return [key, table.__luajs.values[i]];
 				}
 			}
@@ -2842,6 +2844,11 @@ luajs.stdout = {};
 
 luajs.stdout.write = function (message) {
 	// Overwrite this in host application
+	if (console && console.log) {
+		console.log (message);
+	} else if (trace) {
+		trace (message);
+	}
 }
 
 
@@ -2862,13 +2869,6 @@ luajs.stderr.write = function (message, level) {
 	level = level || 'error';
 	if (console && console[level]) console[level] (message);
 }
-
-
-
-
-//luajs.warn = function (message) {
-//	luajs.stderr.write ('Luajs warning: ' + message, 'warn');
-//};
 
 
 

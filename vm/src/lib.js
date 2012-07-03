@@ -149,7 +149,7 @@ var luajs = luajs || {};
 					if (!found) {
 						if (i == index) found = true;
 	
-					} else if (table.hasOwnProperty (i) && ('' + i).substr (0, 2) != '__') {
+					} else if (table.hasOwnProperty (i) && table[i] !== undefined && ('' + i).substr (0, 2) != '__') {
 						return [i, table[i]];
 					}
 				}
@@ -161,7 +161,7 @@ var luajs = luajs || {};
 				if (!found) {
 					if (key === index) found = true;
 	
-				} else {
+				} else if (table.__luajs.values[i] !== undefined) {
 					return [key, table.__luajs.values[i]];
 				}
 			}

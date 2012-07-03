@@ -180,6 +180,24 @@ assertTrue (a[3] == 40, 'Square brackets operation on table should return correc
 assertTrue (a[4] == nil, 'Square brackets operation on table should return correct value for index when keys are used in literal assignment [4]')
 
 
+a = { a = 1, b = 2 }
+b = 0
+
+for _ in pairs(a) do b = b + 1 end
+
+assertTrue (b == 2, 'For block should iterate over all properties of a table')
+
+
+a.a = nil
+b = 0
+
+for _ in pairs(a) do b = b + 1 end
+
+assertTrue (b == 1, 'Setting a table property to nil should remove that property from the table.')
+
+
+
+
 
 function getFunc ()
 	local b = 6
