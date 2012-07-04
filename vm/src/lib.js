@@ -8,8 +8,6 @@ var luajs = luajs || {};
 	function translatePattern (pattern) {
 		// TODO Only the real basics covered here. Plus pattern can currently only be a string. Needs a lot more work.
 
-		pattern = pattern.replace (/%%/g, '{:%%:}');
-		
 		pattern = pattern.replace (/%a/g, '[a-zA-Z]');
 		pattern = pattern.replace (/%A/g, '[^a-zA-Z]');
 		
@@ -39,8 +37,6 @@ var luajs = luajs || {};
 		pattern = pattern.replace (/%([\^\$\(\)\%\.\[\]\*\+\-\?])/g, '\\$1');
 
 
-		pattern = pattern.replace (/{:%%:}/g, '%');	
-		
 		return pattern;	
 	};
 	

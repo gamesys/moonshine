@@ -803,8 +803,14 @@ b = '<?xml version="1.0" encoding="UTF-8"?><my-xml></my-xml>'
 
 c = string.gsub (b, a, 'moo')
 
-assertTrue (c == 'moo<my-xml></my-xml>', 'string.gsub() should replace the matched part of the string')
+assertTrue (c == 'moo<my-xml></my-xml>', 'string.gsub() should replace the matched part of the string[1]')
 -- Not even scraping the surface
+
+a = '%%1'
+b = 'Hello %1'
+
+c = string.gsub (b, a, 'world')
+assertTrue (c == 'Hello world', 'string.gsub() should replace the matched part of the string[2]')
 
 
 
