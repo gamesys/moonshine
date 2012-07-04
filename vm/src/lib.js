@@ -389,7 +389,7 @@ var luajs = luajs || {};
 	luajs.lib.string = {
 		
 		
-		byte: function (s, i, j) {
+		'byte': function (s, i, j) {
 			i = i || 1;
 			j = j || i;
 			
@@ -404,7 +404,7 @@ var luajs = luajs || {};
 		
 		
 		
-		char: function () {
+		'char': function () {
 			var result = '';
 			for (var i = 0, l = arguments.length; i < l; i++) result += String.fromCharCode (arguments[i]);
 	
@@ -990,9 +990,9 @@ var luajs = luajs || {};
 		
 		
 		modf: function (x) {
-			var int = Math.floor (x),
-				mantissa = x - int;
-			return [int, mantissa];
+			var intValue = Math.floor (x),
+				mantissa = x - intValue;
+			return [intValue, mantissa];
 		},
 		
 		
