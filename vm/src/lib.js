@@ -1334,13 +1334,25 @@ var luajs = luajs || {};
 			// If running in main thread, throw error.
 			if (!luajs.Coroutine._running) throw new luajs.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
 	
-			var args = [];
+			var args = [],
+				running = luajs.Coroutine._running;
+				
 			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 	
-			luajs.Coroutine._running._yieldVars = args;
-			luajs.Coroutine._running.status = 'suspending';
+			running._yieldVars = args;
+			running.status = 'suspending';
 	
-			return;
+			return {
+				resume: function () {
+//					var args = [running],
+//						i, 
+//						l = arguments.length;
+//						
+//					for (i = 0; i < l; i++) args.push (arguments[i]);
+//					luajs.lib.coroutine.resume.apply (undefined, args);
+					luajs.lib.coroutine.resume (running);
+				}
+			}
 		}
 	
 		

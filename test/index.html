@@ -40,16 +40,27 @@
 			};
 			
 
-			$(function () {
-				vm = new luajs.VM ();
+			function loadImage () {
+				var promise;
 				
+				window.setTimeout (function () {
+					luajs.stdout.write ('loaded');
+					promise.resume();
+				}, 2000);
+
+				promise = luajs.lib.coroutine.yield();
+			}
+
+			$(function () {
+				vm = new luajs.VM ({ loadImage: loadImage });
+/*				
 				var loaded = 0;
 				vm.bind ('loaded-file', function () {
 					if (++loaded == 2) vm.execute ();
 				});
 				
 				vm.load ('./scripts/test-suite.json', false);
-				vm.load ('./scripts/coroutine.json', false);
+*/				vm.load ('./scripts/yield-from-js.json', true, {});
 			
 				$(document).keypress (function () {
 					$('#debug').empty ();
