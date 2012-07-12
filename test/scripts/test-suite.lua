@@ -75,6 +75,16 @@ assertTrue (b >= a, 'Greater than or equal to should return true if first operan
 assertTrue (a >= a, 'Greater than or equal to should return true if first operand is equal to second')
 assertTrue (not (a >= b), 'Greater than or equal to should return false if first operand is less than second')
 
+assertTrue (true, 'True should be true')
+assertTrue (0, '0 should coerce to true')
+assertTrue (1, '1 should coerce to true')
+assertTrue ('moo', 'A string should coerce to true')
+assertTrue ('', 'An empty string should coerce to true')
+assertTrue ({}, 'An empty table should coerce to true')
+
+assertTrue (not false, 'False should coerce to false')
+assertTrue (not nil, 'nil should coerce to false')
+
 
 function addOne ()
 	assertTrue (b == 20, 'Functions should be able to access locals of parent closures [1]')
@@ -401,11 +411,32 @@ assertTrue (t[3] == 9, 'Table should be able to be instantiated by the result of
 
 
 -- assert
+local ass = function (test)
+	return assert (test, 'error message')
+end
 
-local t, m = assert (true, 'Assert should not error when passed a true value')	-- Can't test any further as we can't catch errors
+a, b, c = pcall (ass, true)
+assertTrue (a, 'Assert should not throw an error when passed true')
+assertTrue (b, 'Assert should return the value passed in the first return value')
+assertTrue (c == 'error message', 'Assert should return the message passed in the second return value')
 
-assertTrue (t, 'Assert should return the passed expression as the first value')
-assertTrue (m == 'Assert should not error when passed a true value', 'Assert should return the passed message as the second value')
+a, b, c = pcall (ass, 0)
+assertTrue (a, 'Assert should not throw an error when passed 0')
+
+a, b, c = pcall (ass, 1)
+assertTrue (a, 'Assert should not throw an error when passed 1')
+
+a, b, c = pcall (ass, '')
+assertTrue (a, 'Assert should not throw an error when passed an empty string')
+
+a, b, c = pcall (ass, nil)
+assertTrue (not a, 'Assert should throw an error when passed nil')
+--assertTrue (b == 'error message', 'Assert should throw an error with the given message')
+
+a, b, c = pcall (ass, false)
+assertTrue (not a, 'Assert should throw an error when passed false')
+
+
 
 
 

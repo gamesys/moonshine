@@ -47,7 +47,7 @@ var luajs = luajs || {};
 	
 		
 		assert: function (v, m) {
-			if (!v) throw new luajs.Error (m || 'Assertion failed!');
+			if (v === false || v === undefined) throw new luajs.Error (m || 'Assertion failed!');
 			return [v, m];
 		},
 	
