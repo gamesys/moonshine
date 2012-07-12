@@ -655,7 +655,8 @@ luajs.Closure.prototype._getConstant = function (index) {
 		var args = [], 
 			i, l,
 			retvals,
-			funcToResume;
+			funcToResume,
+			f, o, mt;
 
 
 		if (luajs.debug.status == 'resuming') {
@@ -688,8 +689,18 @@ luajs.Closure.prototype._getConstant = function (index) {
 
 
 		if (!funcToResume) {
-			if (!this._register[a] || !this._register[a].apply) throw new luajs.Error ('Attempt to call non-function');
-			retvals = this._register[a].apply ({}, args);
+			o = this._register[a];
+
+			if (o && o.apply) {
+				retvals = o.apply ({}, args);
+
+			} else if (o && (o || {}) instanceof luajs.Table && (mt = o.__luajs.metatable) && (f = mt.getMember ('__call')) && f.apply) {
+				args.unshift (o);
+				retvals = f.apply ({}, args);
+
+			} else {
+	 			throw new luajs.Error ('Attempt to call non-function');
+			}
 		}
 		
 		if (!((retvals || {}) instanceof Array)) retvals = [retvals];

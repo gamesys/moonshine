@@ -1429,6 +1429,24 @@ assertTrue (x == 2, 'Less than operator should use __le metamethod, if provided 
 
 
 
+-- __call
+
+x = ''
+mt.__concat = nil
+
+mt.__call = function (p1, p2)
+	if p1 == o then 
+		x = 'Ron ' 
+	end
+	
+	x = x .. p2
+	return 'CEO'
+end
+
+y = o('Dennis')
+
+assertTrue (x == 'Ron Dennis', 'When executing a table, __call metamethod should be used, if provided')
+assertTrue (y == 'CEO', 'When executing a table with a __call metamethod, the return value(s) of __call function should be returned')
 
 
 
