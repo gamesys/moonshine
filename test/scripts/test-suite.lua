@@ -1265,6 +1265,7 @@ end
 
 local o = Obj.new (3);
 local p = Obj.new (5);
+local x = { value = 'moo' }
 
 
 -- __add
@@ -1273,7 +1274,9 @@ mt.__add = function (a, b)
 	return a.value..'(__add)'..b.value
 end
 
-assertTrue (o + p == '3(__add)5', 'Add operator should use __add metamethod, if provided')
+assertTrue (o + p == '3(__add)5', 'Add operator should use __add metamethod, if provided [1]')
+assertTrue (o + x == '3(__add)moo', 'Add operator should use __add metamethod, if provided [2]')
+assertTrue (x + p == 'moo(__add)5', 'Add operator should use __add metamethod, if provided [3]')
 
 
 
@@ -1283,8 +1286,9 @@ assertTrue (o + p == '3(__add)5', 'Add operator should use __add metamethod, if 
 mt.__concat = function (a, b)
 	return a.value..'(__concat)'..b.value
 end
-
-assertTrue (o..p == '3(__concat)5', 'Concatenation operator should use __concat metamethod, if provided')
+assertTrue (o..p == '3(__concat)5', 'Concatenation operator should use __concat metamethod, if provided [1]')
+assertTrue (o..x == '3(__concat)moo', 'Concatenation operator should use __concat metamethod, if provided [2]')
+assertTrue (x..p == 'moo(__concat)5', 'Concatenation operator should use __concat metamethod, if provided [3]')
 
 
 
@@ -1295,7 +1299,9 @@ mt.__div = function (a, b)
 	return a.value..'(__div)'..b.value
 end
 
-assertTrue (o / p == '3(__div)5', 'Divide operator should use __div metamethod, if provided')
+assertTrue (o / p == '3(__div)5', 'Divide operator should use __div metamethod, if provided [1]')
+assertTrue (o / x == '3(__div)moo', 'Divide operator should use __div metamethod, if provided [2]')
+assertTrue (x / p == 'moo(__div)5', 'Divide operator should use __div metamethod, if provided [3]')
 
 
 
@@ -1306,7 +1312,9 @@ mt.__mod = function (a, b)
 	return a.value..'(__mod)'..b.value
 end
 
-assertTrue (o % p == '3(__mod)5', 'Modulo operator should use __mod metamethod, if provided')
+assertTrue (o % p == '3(__mod)5', 'Modulo operator should use __mod metamethod, if provided [1]')
+assertTrue (o % x == '3(__mod)moo', 'Modulo operator should use __mod metamethod, if provided [2]')
+assertTrue (x % p == 'moo(__mod)5', 'Modulo operator should use __mod metamethod, if provided [3]')
 
 
 
@@ -1317,7 +1325,9 @@ mt.__mul = function (a, b)
 	return a.value..'(__mul)'..b.value
 end
 
-assertTrue (o * p == '3(__mul)5', 'Muliplication operator should use __mul metamethod, if provided')
+assertTrue (o * p == '3(__mul)5', 'Muliplication operator should use __mul metamethod, if provided [1]')
+assertTrue (o * x == '3(__mul)moo', 'Muliplication operator should use __mul metamethod, if provided [2]')
+assertTrue (x * p == 'moo(__mul)5', 'Muliplication operator should use __mul metamethod, if provided [3]')
 
 
 
@@ -1328,7 +1338,9 @@ mt.__pow = function (a, b)
 	return a.value..'(__pow)'..b.value
 end
 
-assertTrue (o ^ p == '3(__pow)5', 'Exponentiation operator should use __pow metamethod, if provided')
+assertTrue (o ^ p == '3(__pow)5', 'Exponentiation operator should use __pow metamethod, if provided [1]')
+assertTrue (o ^ x == '3(__pow)moo', 'Exponentiation operator should use __pow metamethod, if provided [2]')
+assertTrue (x ^ p == 'moo(__pow)5', 'Exponentiation operator should use __pow metamethod, if provided [3]')
 
 
 
@@ -1339,7 +1351,9 @@ mt.__sub = function (a, b)
 	return a.value..'(__sub)'..b.value
 end
 
-assertTrue (o - p == '3(__sub)5', 'Subtraction operator should use __sub metamethod, if provided')
+assertTrue (o - p == '3(__sub)5', 'Subtraction operator should use __sub metamethod, if provided [1]')
+assertTrue (o - x == '3(__sub)moo', 'Subtraction operator should use __sub metamethod, if provided [2]')
+assertTrue (x - p == 'moo(__sub)5', 'Subtraction operator should use __sub metamethod, if provided [3]')
 
 
 
