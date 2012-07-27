@@ -7,8 +7,6 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
 		<script src="/frameworks/jquery/jquery.min.js"></script>
 		
-		<!-- script src="../vm/luajs.js"></script -->
-
 		<script src="../vm/src/EventEmitter.js"></script>
 		<script src="../vm/src/VM.js"></script>
 		<script src="../vm/src/Closure.js"></script>
@@ -21,54 +19,9 @@
 		<script src="../vm/src/utils.js"></script>
 		<script src="../vm/src/output.js"></script>
 		
-		<script src="../debug/debug.luajs.js"></script>
+		<!-- script src="../debug/debug.luajs.js"></script -->
+		<script src="http://paulcuth.me.uk/lichen/lichen.js.php?accept=$,jQuery,luajs"></script>
 
-
-		<script>
-		
-			var debugText = '';
-			window.setInterval (function () { $('#debug').text (debugText); }, 500);
-
-			luajs.stdout.write = function (message) {
-				$('#output').append (message + '\n');
-				//if (console && console.log) console.log (message);
-			};
-			
-
-			luajs.stddebug.write = function (message) {
-				debugText += message + '\n';
-			};
-			
-
-			function loadImage () {
-				var promise;
-				
-				window.setTimeout (function () {
-					luajs.stdout.write ('loaded');
-					promise.resume();
-				}, 2000);
-
-				promise = luajs.lib.coroutine.yield();
-			}
-
-			$(function () {
-				vm = new luajs.VM ({ loadImage: loadImage });
-/*				
-				var loaded = 0;
-				vm.bind ('loaded-file', function () {
-					if (++loaded == 2) vm.execute ();
-				});
-				
-				vm.load ('./scripts/test-suite.json', false);
-*/				vm.load ('./scripts/yield-from-js.json', true, {});
-			
-				$(document).keypress (function () {
-					$('#debug').empty ();
-				});
-			});
-			
-		</script>
-		
 		<style>
 			#debug,
 			#output {
@@ -99,5 +52,38 @@
 	<body>
 		<pre id="output"></pre>
 		<pre id="debug"></pre>
+
+		<script>
+			(function () {
+				
+				var debugText = '',
+					elOutput = document.getElementById ('output'),
+					elDebug = document.getElementById ('debug');
+				
+				function escapeHTML(text) {
+				    return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+				}	
+
+				luajs.stdout.write = function (message) {
+					elOutput.innerHTML += escapeHTML (message) + '\n';
+				};
+					
+				luajs.stddebug.write = function (message) {
+					debugText += escapeHTML (message) + '\n';
+				};
+				
+
+				window.setInterval (function () { 
+					elDebug.innerHTML = debugText;
+				}, 500);
+
+	
+				var vm = new luajs.VM ();
+				
+				vm.load ('./scripts/test-suite.json', true);
+				vm.load ('./scripts/coroutine.json', true);
+			
+			})();
+		</script>
 	</body>
 </html>
