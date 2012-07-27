@@ -1856,7 +1856,7 @@ var luajs = luajs || {};
 	
 	
 		rawequal: function (v1, v2) {
-			return (v1 == v2);
+			return (v1 === v2);
 		},
 	
 	
@@ -2285,12 +2285,17 @@ var luajs = luajs || {};
 		
 		
 		sub: function (s, i, j) {
+			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'sub' (string expected, got " + typeof s + ")");
+			s = '' + s;
+			i = i || 1;
+			j = j || s.length;
+			
 			if (i > 0) {
 				i = i - 1;
 			} else if (i < 0) {
 				i = s.length + i;
 			}
-	
+			
 			if (j < 0) j = s.length + j + 1;
 			
 			return s.substring (i, j);
