@@ -6,7 +6,7 @@ var luajs = luajs || {};
 (function () {
 
 	var rosettaStone = {
-		'([^a-zA-Z0-9])-': '$1*?',
+		'([^a-zA-Z0-9%])-': '$1*?',
 		'.-([^a-zA-Z0-9])': '*?$1',
 		'(.)-$': '$1*?',
 		'%a': '[a-zA-Z]',
@@ -485,7 +485,7 @@ var luajs = luajs || {};
 					if (arguments.length < 1) { return null; }
 					if (typeof arguments[0] != "string") { return null; }
 					if (typeof RegExp == "undefined") { return null; }
-			 
+
 					var string = arguments[0];
 					var exp = new RegExp(/(%([%]|(\-)?(\+|\x20)?(0)?(\d+)?(\.(\d)?)?([bcdfosxX])))/g);
 					var matches = new Array();
@@ -1340,7 +1340,7 @@ var luajs = luajs || {};
 			// Not implemented
 		}
 	
-	
+			
 	};
 	
 	
