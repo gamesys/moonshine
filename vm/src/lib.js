@@ -645,14 +645,16 @@ var luajs = luajs || {};
 		
 		
 		len: function (s) {
-			return s.length;
+			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'len' (string expected, got " + typeof s + ")");
+			return ('' + s).length;
 		},
 		
 		
 		
 		
 		lower: function (s) {
-			return s.toLowerCase ();
+			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'lower' (string expected, got " + typeof s + ")");
+			return ('' + s).toLowerCase ();
 		},
 		
 		
