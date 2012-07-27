@@ -580,8 +580,8 @@ luajs.Closure.prototype._getConstant = function (index) {
 
 		var mt, f, result;
 
-		if (b !== c && typeof (b) === typeof (c) && (b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__eq'))) {
-			result = !!f.apply ([b, c])[0];
+		if (b !== c && (b || {}) instanceof luajs.Table && (c || {}) instanceof luajs.Table && (mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__eq'))) {
+			result = !!f.apply ([b, c])[0];			
 		} else {
 			result = (b === c);
 		}
@@ -712,11 +712,11 @@ luajs.Closure.prototype._getConstant = function (index) {
 			o = this._register[a];
 
 			if (o && o.apply) {
-				retvals = o.apply ({}, args);
+				retvals = o.apply ({}, args, true);
 
 			} else if (o && (o || {}) instanceof luajs.Table && (mt = o.__luajs.metatable) && (f = mt.getMember ('__call')) && f.apply) {
 				args.unshift (o);
-				retvals = f.apply ({}, args);
+				retvals = f.apply ({}, args, true);
 
 			} else {
 	 			throw new luajs.Error ('Attempt to call non-function');
@@ -785,7 +785,8 @@ luajs.Closure.prototype._getConstant = function (index) {
 			l--;
 			delete this._register[local.registerIndex];
 		}
-
+		
+		this.dead = true;
 		return retvals;
 	}
 

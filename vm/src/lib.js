@@ -1288,7 +1288,7 @@ var luajs = luajs || {};
 		resume: function (thread) {
 			var args = [];
 			for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);	
-	
+
 			return thread.resume.apply (thread, args);
 		},
 		
@@ -1333,24 +1333,32 @@ var luajs = luajs || {};
 		yield: function () {
 			// If running in main thread, throw error.
 			if (!luajs.Coroutine._running) throw new luajs.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
-	
+			if (luajs.Coroutine._running.status != 'running') throw new luajs.Error ('attempt to yield non-running coroutine in host');
+
 			var args = [],
 				running = luajs.Coroutine._running;
-				
+
 			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 	
 			running._yieldVars = args;
 			running.status = 'suspending';
-	
+
 			return {
 				resume: function () {
-//					var args = [running],
-//						i, 
-//						l = arguments.length;
-//						
-//					for (i = 0; i < l; i++) args.push (arguments[i]);
-//					luajs.lib.coroutine.resume.apply (undefined, args);
-					luajs.lib.coroutine.resume (running);
+					var args = [running],
+						i, 
+						l = arguments.length,
+						f = function () { 
+							luajs.lib.coroutine.resume.apply (undefined, args); 
+						};
+
+					for (i = 0; i < l; i++) args.push (arguments[i]);
+
+					if (running.status == 'suspending') {
+						window.setTimeout (f, 1);
+					} else {
+						f ();
+					}
 				}
 			}
 		}
