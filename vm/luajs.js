@@ -767,7 +767,7 @@ luajs.Closure.prototype._getConstant = function (index) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
 		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
 
-		var mt, f, result;
+		var mtb, mtc, f, result;
 
 		if (b !== c && (b || {}) instanceof luajs.Table && (c || {}) instanceof luajs.Table && (mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__eq'))) {
 			result = !!f.apply ([b, c])[0];			
@@ -900,8 +900,11 @@ luajs.Closure.prototype._getConstant = function (index) {
 		if (!funcToResume) {
 			o = this._register[a];
 
-			if (o && o.apply) {
+			if ((o || {}) instanceof luajs.Function) {
 				retvals = o.apply ({}, args, true);
+
+			} else if (o && o.apply) {
+				retvals = o.apply ({}, args);
 
 			} else if (o && (o || {}) instanceof luajs.Table && (mt = o.__luajs.metatable) && (f = mt.getMember ('__call')) && f.apply) {
 				args.unshift (o);
