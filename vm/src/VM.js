@@ -45,9 +45,9 @@ luajs.VM.prototype._resetGlobals = function () {
  * Loads a file containing compiled Luac code, decompiled to JSON.
  * @param {string} url The url of the file to load.
  * @param {boolean} [execute = true] Whether or not to execute the file once loaded.
- * @param {boolean} [asCoroutine] Whether or not to run the file as a coroutine. Only applicable if execute == true.
+ * @param {object} [coConfig] Coroutine configuration. Only applicable if execute == true.
  */
-luajs.VM.prototype.load = function (url, execute, asCoroutine) {
+luajs.VM.prototype.load = function (url, execute, coConfig) {
 	var me = this,
 		file = new luajs.File (url);
 	
@@ -55,7 +55,7 @@ luajs.VM.prototype.load = function (url, execute, asCoroutine) {
 
 	file.bind ('loaded', function (data) {
 		me._trigger ('loaded-file', file);
-		if (execute || execute === undefined) me.execute (asCoroutine, file);
+		if (execute || execute === undefined) me.execute (coConfig, file);
 	});
 
 	this._trigger ('loading-file', file);
@@ -67,11 +67,12 @@ luajs.VM.prototype.load = function (url, execute, asCoroutine) {
 
 /**
  * Executes the loaded Luac data.
- * @param {boolean} [asCoroutine] Whether or not to run as a coroutine.
+ * @param {object} [coConfig] Coroutine configuration.
  * @param {luajs.File} [file] A specific file to execute. If not present, executes all files in the order loaded.
  */
-luajs.VM.prototype.execute = function (asCoroutine, file) {
-	var files = file? [file] : this._files,
+luajs.VM.prototype.execute = function (coConfig, file) {
+	var me = this,
+		files = file? [file] : this._files,
 		index,
 		file;
 		
@@ -83,17 +84,17 @@ luajs.VM.prototype.execute = function (asCoroutine, file) {
 	
 	
 		this._thread = new luajs.Function (this, file, file.data, this._globals);	
-		this._trigger ('executing', [this._thread, asCoroutine]);
+		this._trigger ('executing', [this._thread, coConfig]);
 		
 		try {
-			if (!asCoroutine) {
+			if (!coConfig) {
 				this._thread.call ();
 				
 			} else {
 				var co = luajs.lib.coroutine.wrap (this._thread),
 					resume = function () {
 						co ();
-						if (co._coroutine.status != 'dead') window.setTimeout (resume, 1);
+						if (coConfig.uiOnly && co._coroutine.status != 'dead') window.setTimeout (resume, 1);
 					};
 	
 				resume ();

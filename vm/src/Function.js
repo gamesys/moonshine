@@ -75,14 +75,17 @@ luajs.Function.prototype.call = function () {
  * @param {Array} args Array containing arguments to use.
  * @returns {Array} Array of the return values from the call.
  */
-luajs.Function.prototype.apply = function (obj, args) {
+luajs.Function.prototype.apply = function (obj, args, internal) {
 	if ((obj || {}) instanceof Array && !args) {
 		args = obj;
 		obj = undefined;
 	}
 
+	var func = internal? this.getInstance () : luajs.lib.coroutine.wrap (this);
+	
 	try {
-		return this.getInstance ().apply (obj, args);
+		return func.apply (obj, args);
+//		return this.getInstance ().apply (obj, args);
 
 	} catch (e) {
 		luajs.Error.catchExecutionError (e);

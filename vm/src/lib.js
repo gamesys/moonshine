@@ -5,37 +5,59 @@ var luajs = luajs || {};
 
 (function () {
 
+	var rosettaStone = {
+		'([^a-zA-Z0-9%])-': '$1*?',
+		'.-([^a-zA-Z0-9])': '*?$1',
+		'(.)-$': '$1*?',
+		'%a': '[a-zA-Z]',
+		'%A': '[^a-zA-Z]',
+		'%c': '[\x00-\x1f]',
+		'%C': '[^\x00-\x1f]',
+		'%d': '\\d',
+		'%D': '[^\d]',
+		'%l': '[a-z]',
+		'%L': '[^a-z]',
+		'%p': '[\.\,\"\'\?\!\;\:\#\$\%\&\(\)\*\+\-\/\<\>\=\@\[\]\\\^\_\{\}\|\~]',
+		'%P': '[^\.\,\"\'\?\!\;\:\#\$\%\&\(\)\*\+\-\/\<\>\=\@\[\]\\\^\_\{\}\|\~]',
+		'%s': '[ \\t\\n\\f\\v\\r]',
+		'%S': '[^ \t\n\f\v\r]',
+		'%u': '[A-Z]',
+		'%U': '[^A-Z]',
+		'%w': '[a-zA-Z0-9]',
+		'%W': '[^a-zA-Z0-9]',
+		'%x': '[a-fA-F0-9]',
+		'%X': '[^a-fA-F0-9]',
+		'%([^a-zA-Z])': '\\$1'
+	};
+
+
 	function translatePattern (pattern) {
-		// TODO Only the real basics covered here. Plus pattern can currently only be a string. Needs a lot more work.
-
-		pattern = pattern.replace (/%a/g, '[a-zA-Z]');
-		pattern = pattern.replace (/%A/g, '[^a-zA-Z]');
+		// TODO Add support for balanced character matching (not sure this is easily achieveable).
 		
-		pattern = pattern.replace (/%c/g, '\\[nrt]');
-		// pattern = pattern.replace (/%C/g, '');
+		var n = 0,
+			i, l, char, addSlash;
 		
-		pattern = pattern.replace (/%d/g, '\d');
-		pattern = pattern.replace (/%D/g, '[^\d]');
-		
-		pattern = pattern.replace (/%l/g, '[a-z]');
-		pattern = pattern.replace (/%L/g, '[^a-z]');
+		for (i in rosettaStone) pattern = pattern.replace (new RegExp(i, 'g'), rosettaStone[i]);
+		l = pattern.length;
 
-		//? pattern = pattern.replace (/%p/g, '');
+		for (i = 0; i < l; i++) {
+			char = pattern.substr (i, 1);
+			addSlash = false;
 
-		pattern = pattern.replace (/%s/g, '\s');
-		pattern = pattern.replace (/%S/g, '[^\s]');
+			if (char == '[') {
+				if (n) addSlash = true;
+				n++;
 
-		pattern = pattern.replace (/%u/g, '[A-Z]');
-		pattern = pattern.replace (/%U/g, '[^A-Z]');
+			} else if (char == ']') {
+				n--;
+				if (n) addSlash = true;
+			}
 
-		pattern = pattern.replace (/%w/g, '[a-zA-Z0-9]');
-		pattern = pattern.replace (/%W/g, '[^a-zA-Z0-9]');
-
-		pattern = pattern.replace (/%x/g, '[0-9a-fA-F]');
-		pattern = pattern.replace (/%X/g, '[^0-9a-fA-F]');
-
-		pattern = pattern.replace (/%([\^\$\(\)\%\.\[\]\*\+\-\?])/g, '\\$1');
-
+			if (addSlash) {
+				pattern = pattern.substr (0, i) + '\\' + pattern.substr (i++);
+				l++;
+			}
+		}			
 
 		return pattern;	
 	};
@@ -47,7 +69,7 @@ var luajs = luajs || {};
 	
 		
 		assert: function (v, m) {
-			if (!v) throw new luajs.Error (m || 'Assertion failed!');
+			if (v === false || v === undefined) throw new luajs.Error (m || 'Assertion failed!');
 			return [v, m];
 		},
 	
@@ -230,7 +252,7 @@ var luajs = luajs || {};
 				} else {
 					output.push (item);
 				}
-	//console.log ('print>>', item);
+//	console.log ('print>>', item);
 			}
 	
 			return luajs.stdout.write (output.join ('\t'));
@@ -293,6 +315,7 @@ var luajs = luajs || {};
 			if (!(metatable === undefined || (metatable || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #2 in setmetatable(). Nil or table expected');	
 			
 			table.__luajs.metatable = metatable;
+			return table;
 		},
 		
 	
@@ -411,17 +434,32 @@ var luajs = luajs || {};
 		
 		
 		dump: function (func) {
-			// Not implemented
+			console.log (func);
+			return JSON.stringify(func);
 		},
 		
 		
 		
 		
 		find: function (s, pattern, init, plain) {
-			// TODO Add pattern matching (currently only plain)
 			init = init || 1;
+
+			var index, reg, match;
+
+			// Regex
+			if (plain === undefined || !plain) {
+				pattern = translatePattern (pattern);
+				reg = new RegExp (pattern);
+				index = s.substr(init - 1).search (reg);
+				
+				if (index < 0) return;
+				
+				match = s.substr(init - 1).match (reg);
+				return [index + init, index + init + match[0].length - 1, match[1]];
+			}
 			
-			var index = s.indexOf (pattern, init - 1);
+			// Plain
+			index = s.indexOf (pattern, init - 1);
 			return (index === -1)? undefined : [index + 1, index + pattern.length];
 		},
 		
@@ -447,7 +485,7 @@ var luajs = luajs || {};
 					if (arguments.length < 1) { return null; }
 					if (typeof arguments[0] != "string") { return null; }
 					if (typeof RegExp == "undefined") { return null; }
-			 
+
 					var string = arguments[0];
 					var exp = new RegExp(/(%([%]|(\-)?(\+|\x20)?(0)?(\d+)?(\.(\d)?)?([bcdfosxX])))/g);
 					var matches = new Array();
@@ -571,7 +609,15 @@ var luajs = luajs || {};
 		
 		
 		gmatch: function (s, pattern) {
-			// TODO
+			pattern = translatePattern (pattern);
+
+			var reg = new RegExp (pattern, 'g'),
+				results = s.match (reg),
+				counter = 0;
+				
+			return function () {
+				return results[counter++];
+			};			
 		},
 		
 		
@@ -600,14 +646,16 @@ var luajs = luajs || {};
 		
 		
 		len: function (s) {
-			return s.length;
+			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'len' (string expected, got " + typeof s + ")");
+			return ('' + s).length;
 		},
 		
 		
 		
 		
 		lower: function (s) {
-			return s.toLowerCase ();
+			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'lower' (string expected, got " + typeof s + ")");
+			return ('' + s).toLowerCase ();
 		},
 		
 		
@@ -1082,6 +1130,27 @@ var luajs = luajs || {};
 	
 	
 	
+	luajs.lib.io = {
+		
+		
+		write: function () {
+			var i, arg, output = '';
+			
+			for (var i in arguments) {
+				var arg = arguments[i];
+				if (['string', 'number'].indexOf (typeof arg) == -1) throw new luajs.Error ('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
+				output += arg;
+			}
+			
+			luajs.stdout.write (output);
+		}
+		
+		
+	}
+	
+	
+	
+		
 	luajs.lib.os = {
 	
 	
@@ -1271,7 +1340,7 @@ var luajs = luajs || {};
 			// Not implemented
 		}
 	
-	
+			
 	};
 	
 	
@@ -1288,7 +1357,7 @@ var luajs = luajs || {};
 		resume: function (thread) {
 			var args = [];
 			for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);	
-	
+
 			return thread.resume.apply (thread, args);
 		},
 		
@@ -1333,14 +1402,34 @@ var luajs = luajs || {};
 		yield: function () {
 			// If running in main thread, throw error.
 			if (!luajs.Coroutine._running) throw new luajs.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
-	
-			var args = [];
+			if (luajs.Coroutine._running.status != 'running') throw new luajs.Error ('attempt to yield non-running coroutine in host');
+
+			var args = [],
+				running = luajs.Coroutine._running;
+
 			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 	
-			luajs.Coroutine._running._yieldVars = args;
-			luajs.Coroutine._running.status = 'suspending';
-	
-			return;
+			running._yieldVars = args;
+			running.status = 'suspending';
+
+			return {
+				resume: function () {
+					var args = [running],
+						i, 
+						l = arguments.length,
+						f = function () { 
+							luajs.lib.coroutine.resume.apply (undefined, args); 
+						};
+
+					for (i = 0; i < l; i++) args.push (arguments[i]);
+
+					if (running.status == 'suspending') {
+						window.setTimeout (f, 1);
+					} else {
+						f ();
+					}
+				}
+			}
 		}
 	
 		

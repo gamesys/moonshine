@@ -65,6 +65,7 @@ luajs.Table.count = 0;
  * @returns {Object} The value of the member sought.
  */
 luajs.Table.prototype.getMember = function (key) {
+
 	if (typeof key === 'string' || typeof key === 'number') {
 		if (this[key] !== undefined) return this[key];
 	} else {
@@ -73,11 +74,12 @@ luajs.Table.prototype.getMember = function (key) {
 	}
 	
 	var mt = this.__luajs.metatable;
-	
+
 	if (mt && mt.__index) {
 		switch (mt.__index.constructor) {
 			case luajs.Table: return mt.__index.getMember (key);
 			case Function: return mt.__index (this, key);
+			case luajs.Function: return mt.__index.apply (this, [this, key])[0];
 		}
 	}		
 };
@@ -102,10 +104,6 @@ luajs.Table.prototype.setMember = function (key, value) {
 		}
 	}
 
-//	if (value === undefined) {
-//		delete this[key];
-
-//	} else 
 	if (typeof key === 'string' || typeof key === 'number') {
 		this[key] = value;
 
@@ -130,8 +128,12 @@ luajs.Table.prototype.setMember = function (key, value) {
  * @returns {string} Description.
  */
 luajs.Table.prototype.toString = function () {
+	var mt;
+	
 	if (this.constructor != luajs.Table) return 'userdata';
-	return 'table: 0x' + this.__luajs.index.toString (6);
+	if (this.__luajs && (mt = this.__luajs.metatable) && mt.__tostring) return mt.__tostring.call (undefined, this);
+
+	return 'table: 0x' + this.__luajs.index.toString (16);
 };
 
 

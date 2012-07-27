@@ -75,6 +75,16 @@ assertTrue (b >= a, 'Greater than or equal to should return true if first operan
 assertTrue (a >= a, 'Greater than or equal to should return true if first operand is equal to second')
 assertTrue (not (a >= b), 'Greater than or equal to should return false if first operand is less than second')
 
+assertTrue (true, 'True should be true')
+assertTrue (0, '0 should coerce to true')
+assertTrue (1, '1 should coerce to true')
+assertTrue ('moo', 'A string should coerce to true')
+assertTrue ('', 'An empty string should coerce to true')
+assertTrue ({}, 'An empty table should coerce to true')
+
+assertTrue (not false, 'False should coerce to false')
+assertTrue (not nil, 'nil should coerce to false')
+
 
 function addOne ()
 	assertTrue (b == 20, 'Functions should be able to access locals of parent closures [1]')
@@ -401,11 +411,32 @@ assertTrue (t[3] == 9, 'Table should be able to be instantiated by the result of
 
 
 -- assert
+local ass = function (test)
+	return assert (test, 'error message')
+end
 
-local t, m = assert (true, 'Assert should not error when passed a true value')	-- Can't test any further as we can't catch errors
+a, b, c = pcall (ass, true)
+assertTrue (a, 'Assert should not throw an error when passed true')
+assertTrue (b, 'Assert should return the value passed in the first return value')
+assertTrue (c == 'error message', 'Assert should return the message passed in the second return value')
 
-assertTrue (t, 'Assert should return the passed expression as the first value')
-assertTrue (m == 'Assert should not error when passed a true value', 'Assert should return the passed message as the second value')
+a, b, c = pcall (ass, 0)
+assertTrue (a, 'Assert should not throw an error when passed 0')
+
+a, b, c = pcall (ass, 1)
+assertTrue (a, 'Assert should not throw an error when passed 1')
+
+a, b, c = pcall (ass, '')
+assertTrue (a, 'Assert should not throw an error when passed an empty string')
+
+a, b, c = pcall (ass, nil)
+assertTrue (not a, 'Assert should throw an error when passed nil')
+--assertTrue (b == 'error message', 'Assert should throw an error with the given message')
+
+a, b, c = pcall (ass, false)
+assertTrue (not a, 'Assert should throw an error when passed false')
+
+
 
 
 
@@ -1234,6 +1265,7 @@ end
 
 local o = Obj.new (3);
 local p = Obj.new (5);
+local x = { value = 'moo' }
 
 
 -- __add
@@ -1242,7 +1274,9 @@ mt.__add = function (a, b)
 	return a.value..'(__add)'..b.value
 end
 
-assertTrue (o + p == '3(__add)5', 'Add operator should use __add metamethod, if provided')
+assertTrue (o + p == '3(__add)5', 'Add operator should use __add metamethod, if provided [1]')
+assertTrue (o + x == '3(__add)moo', 'Add operator should use __add metamethod, if provided [2]')
+assertTrue (x + p == 'moo(__add)5', 'Add operator should use __add metamethod, if provided [3]')
 
 
 
@@ -1252,8 +1286,9 @@ assertTrue (o + p == '3(__add)5', 'Add operator should use __add metamethod, if 
 mt.__concat = function (a, b)
 	return a.value..'(__concat)'..b.value
 end
-
-assertTrue (o..p == '3(__concat)5', 'Concatenation operator should use __concat metamethod, if provided')
+assertTrue (o..p == '3(__concat)5', 'Concatenation operator should use __concat metamethod, if provided [1]')
+assertTrue (o..x == '3(__concat)moo', 'Concatenation operator should use __concat metamethod, if provided [2]')
+assertTrue (x..p == 'moo(__concat)5', 'Concatenation operator should use __concat metamethod, if provided [3]')
 
 
 
@@ -1264,7 +1299,9 @@ mt.__div = function (a, b)
 	return a.value..'(__div)'..b.value
 end
 
-assertTrue (o / p == '3(__div)5', 'Divide operator should use __div metamethod, if provided')
+assertTrue (o / p == '3(__div)5', 'Divide operator should use __div metamethod, if provided [1]')
+assertTrue (o / x == '3(__div)moo', 'Divide operator should use __div metamethod, if provided [2]')
+assertTrue (x / p == 'moo(__div)5', 'Divide operator should use __div metamethod, if provided [3]')
 
 
 
@@ -1275,7 +1312,9 @@ mt.__mod = function (a, b)
 	return a.value..'(__mod)'..b.value
 end
 
-assertTrue (o % p == '3(__mod)5', 'Modulo operator should use __mod metamethod, if provided')
+assertTrue (o % p == '3(__mod)5', 'Modulo operator should use __mod metamethod, if provided [1]')
+assertTrue (o % x == '3(__mod)moo', 'Modulo operator should use __mod metamethod, if provided [2]')
+assertTrue (x % p == 'moo(__mod)5', 'Modulo operator should use __mod metamethod, if provided [3]')
 
 
 
@@ -1286,7 +1325,9 @@ mt.__mul = function (a, b)
 	return a.value..'(__mul)'..b.value
 end
 
-assertTrue (o * p == '3(__mul)5', 'Muliplication operator should use __mul metamethod, if provided')
+assertTrue (o * p == '3(__mul)5', 'Muliplication operator should use __mul metamethod, if provided [1]')
+assertTrue (o * x == '3(__mul)moo', 'Muliplication operator should use __mul metamethod, if provided [2]')
+assertTrue (x * p == 'moo(__mul)5', 'Muliplication operator should use __mul metamethod, if provided [3]')
 
 
 
@@ -1297,7 +1338,9 @@ mt.__pow = function (a, b)
 	return a.value..'(__pow)'..b.value
 end
 
-assertTrue (o ^ p == '3(__pow)5', 'Exponentiation operator should use __pow metamethod, if provided')
+assertTrue (o ^ p == '3(__pow)5', 'Exponentiation operator should use __pow metamethod, if provided [1]')
+assertTrue (o ^ x == '3(__pow)moo', 'Exponentiation operator should use __pow metamethod, if provided [2]')
+assertTrue (x ^ p == 'moo(__pow)5', 'Exponentiation operator should use __pow metamethod, if provided [3]')
 
 
 
@@ -1308,7 +1351,9 @@ mt.__sub = function (a, b)
 	return a.value..'(__sub)'..b.value
 end
 
-assertTrue (o - p == '3(__sub)5', 'Subtraction operator should use __sub metamethod, if provided')
+assertTrue (o - p == '3(__sub)5', 'Subtraction operator should use __sub metamethod, if provided [1]')
+assertTrue (o - x == '3(__sub)moo', 'Subtraction operator should use __sub metamethod, if provided [2]')
+assertTrue (x - p == 'moo(__sub)5', 'Subtraction operator should use __sub metamethod, if provided [3]')
 
 
 
@@ -1384,6 +1429,24 @@ assertTrue (x == 2, 'Less than operator should use __le metamethod, if provided 
 
 
 
+-- __call
+
+x = ''
+mt.__concat = nil
+
+mt.__call = function (p1, p2)
+	if p1 == o then 
+		x = 'Ron ' 
+	end
+	
+	x = x .. p2
+	return 'CEO'
+end
+
+y = o('Dennis')
+
+assertTrue (x == 'Ron Dennis', 'When executing a table, __call metamethod should be used, if provided')
+assertTrue (y == 'CEO', 'When executing a table with a __call metamethod, the return value(s) of __call function should be returned')
 
 
 
