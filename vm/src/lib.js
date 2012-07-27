@@ -1127,6 +1127,27 @@ var luajs = luajs || {};
 	
 	
 	
+	luajs.lib.io = {
+		
+		
+		write: function () {
+			var i, arg, output = '';
+			
+			for (var i in arguments) {
+				var arg = arguments[i];
+				if (['string', 'number'].indexOf (typeof arg) == -1) throw new luajs.Error ('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
+				output += arg;
+			}
+			
+			luajs.stdout.write (output);
+		}
+		
+		
+	}
+	
+	
+	
+		
 	luajs.lib.os = {
 	
 	
