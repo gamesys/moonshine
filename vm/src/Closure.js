@@ -711,8 +711,11 @@ luajs.Closure.prototype._getConstant = function (index) {
 		if (!funcToResume) {
 			o = this._register[a];
 
-			if (o && o.apply) {
+			if ((o || {}) instanceof luajs.Function) {
 				retvals = o.apply ({}, args, true);
+
+			} else if (o && o.apply) {
+				retvals = o.apply ({}, args);
 
 			} else if (o && (o || {}) instanceof luajs.Table && (mt = o.__luajs.metatable) && (f = mt.getMember ('__call')) && f.apply) {
 				args.unshift (o);
