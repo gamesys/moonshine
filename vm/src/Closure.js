@@ -596,10 +596,20 @@ luajs.Closure.prototype._getConstant = function (index) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
 		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
 
-		var mt, f, result;
+		var typeB = (typeof b != 'object' && typeof b) || ((b || {}) instanceof luajs.Table && 'table') || 'userdata',
+			typeC = (typeof c != 'object' && typeof b) || ((c || {}) instanceof luajs.Table && 'table') || 'userdata',
+			f, result, mtb, mtc;
 
-		if ((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__le'))) {
-			result = f.apply ([b, c])[0];
+		if (typeB !== typeC) {
+			throw new luajs.Error ('attempt to compare ' + typeB + ' with ' + typeC);
+			
+		} else if (typeB == 'table') {
+			if ((mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__lt'))) {
+				result = f.apply ([b, c])[0];
+			} else {
+				throw new luajs.Error ('attempt to compare two table values');
+			}
+
 		} else {
 			result = (b < c);
 		}
@@ -614,10 +624,20 @@ luajs.Closure.prototype._getConstant = function (index) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
 		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
 
-		var mt, f, result;
+		var typeB = (typeof b != 'object' && typeof b) || ((b || {}) instanceof luajs.Table && 'table') || 'userdata',
+			typeC = (typeof c != 'object' && typeof b) || ((c || {}) instanceof luajs.Table && 'table') || 'userdata',
+			f, result, mtb, mtc;
 
-		if (b !== c && typeof (b) === typeof (c) && (b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__le'))) {
-			result = f.apply ([b, c])[0];
+		if (typeB !== typeC) {
+			throw new luajs.Error ('attempt to compare ' + typeB + ' with ' + typeC);
+			
+		} else if (typeB == 'table') {
+			if ((mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__le'))) {
+				result = f.apply ([b, c])[0];
+			} else {
+				throw new luajs.Error ('attempt to compare two table values');
+			}
+
 		} else {
 			result = (b <= c);
 		}
