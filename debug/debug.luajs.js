@@ -341,7 +341,6 @@ luajs.debug._clearLineHighlight = function () {
 	var executeInstruction = luajs.Closure.prototype._executeInstruction;
 	
 	luajs.Closure.prototype._executeInstruction = function (instruction, lineNumber) {
-
 		if ((
 				(luajs.debug.stepping && (!luajs.debug.steppingTo || luajs.debug.steppingTo == this)) || 				// Only break if stepping in, out or over  
 				(luajs.debug.stopAtBreakpoints && luajs.debug.breakpoints[lineNumber - 1])								// or we've hit a breakpoint.
@@ -349,7 +348,7 @@ luajs.debug._clearLineHighlight = function () {
 			!luajs.debug.resumeStack.length && 																			// Don't break if we're in the middle of resuming from the previous debug step.
 			lineNumber != luajs.debug.currentLine && 																	// Don't step more than once per line.
 			[35, 36].indexOf (instruction.op) < 0 && 																	// Don't break on closure declarations.
-			!(luajs.VM.Coroutine._running && luajs.VM.Coroutine._running.status == 'resuming')) {						// Don't break while a coroutine is resuming.
+			!(luajs.Coroutine._running && luajs.Coroutine._running.status == 'resuming')) {						// Don't break while a coroutine is resuming.
 
 				// Break execution
 
@@ -464,7 +463,7 @@ luajs.debug._resumeThread = function () {
 
 	if (f) {
 		try {
-			if (f instanceof luajs.VM.Coroutine) {
+			if (f instanceof luajs.Coroutine) {
 				f.resume ();
 			} else {
 				f._run ();
