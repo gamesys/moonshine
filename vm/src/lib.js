@@ -315,6 +315,7 @@ var luajs = luajs || {};
 			if (!(metatable === undefined || (metatable || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #2 in setmetatable(). Nil or table expected');	
 			
 			table.__luajs.metatable = metatable;
+			return table;
 		},
 		
 	
