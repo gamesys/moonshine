@@ -662,7 +662,19 @@ var luajs = luajs || {};
 		
 		
 		match: function (s, pattern, init) {
-			// TODO
+			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'match' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'match' (string expected, got " + typeof s + ")");
+
+			init = init? init - 1 : 0;
+			s = ('' + s).substr (init);
+		
+			var matches = s.match(new RegExp (translatePattern (pattern)));
+			
+			if (!matches) return;
+			if (!matches[1]) return matches[0];
+
+			matches.shift ();
+			return matches;
 		},
 		
 		
