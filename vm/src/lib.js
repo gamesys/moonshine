@@ -35,20 +35,20 @@ var luajs = luajs || {};
 		// TODO Add support for balanced character matching (not sure this is easily achieveable).
 		
 		var n = 0,
-			i, l, char, addSlash;
+			i, l, character, addSlash;
 		
 		for (i in rosettaStone) pattern = pattern.replace (new RegExp(i, 'g'), rosettaStone[i]);
 		l = pattern.length;
 
 		for (i = 0; i < l; i++) {
-			char = pattern.substr (i, 1);
+			character = pattern.substr (i, 1);
 			addSlash = false;
 
-			if (char == '[') {
+			if (character == '[') {
 				if (n) addSlash = true;
 				n++;
 
-			} else if (char == ']') {
+			} else if (character == ']') {
 				n--;
 				if (n) addSlash = true;
 			}

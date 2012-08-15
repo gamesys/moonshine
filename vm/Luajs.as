@@ -1629,20 +1629,20 @@ var luajs = luajs || {};
 		// TODO Add support for balanced character matching (not sure this is easily achieveable).
 		
 		var n = 0,
-			i, l, char, addSlash;
+			i, l, character, addSlash;
 		
 		for (i in rosettaStone) pattern = pattern.replace (new RegExp(i, 'g'), rosettaStone[i]);
 		l = pattern.length;
 
 		for (i = 0; i < l; i++) {
-			char = pattern.substr (i, 1);
+			character = pattern.substr (i, 1);
 			addSlash = false;
 
-			if (char == '[') {
+			if (character == '[') {
 				if (n) addSlash = true;
 				n++;
 
-			} else if (char == ']') {
+			} else if (character == ']') {
 				n--;
 				if (n) addSlash = true;
 			}
@@ -2256,7 +2256,19 @@ var luajs = luajs || {};
 		
 		
 		match: function (s, pattern, init) {
-			// TODO
+			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'match' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'match' (string expected, got " + typeof s + ")");
+
+			init = init? init - 1 : 0;
+			s = ('' + s).substr (init);
+		
+			var matches = s.match(new RegExp (translatePattern (pattern)));
+			
+			if (!matches) return;
+			if (!matches[1]) return matches[0];
+
+			matches.shift ();
+			return matches;
 		},
 		
 		
