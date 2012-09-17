@@ -627,6 +627,16 @@ assertTrue (g == nil, 'tonumber() should not convert hexadecimal strings of floa
 assertTrue (h == nil, 'tonumber() should not convert hexadecimal strings of exponential numbers at base 16')
 
 
+local a = tonumber ('')
+local b = tonumber ('', 2)
+local c = tonumber ('', 10)
+local d = tonumber ('', 16)
+assertTrue (a == nil, 'tonumber() should return nil with passed an empty string')
+assertTrue (b == nil, 'tonumber() should return nil with passed an empty string with base 2')
+assertTrue (c == nil, 'tonumber() should return nil with passed an empty string with base 10')
+assertTrue (d == nil, 'tonumber() should return nil with passed an empty string with base 16')
+
+
 
 
 -- tostring

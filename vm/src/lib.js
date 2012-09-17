@@ -323,7 +323,8 @@ var luajs = luajs || {};
 		
 		tonumber: function (e, base) {
 			// TODO: Needs a more generic algorithm to check what is valid. Lua supports all bases from 2 to 36 inclusive.
-	
+			if (e == '') return;
+			
 			e = ('' + e).replace (/^\s+|\s+$/g, '');	// Trim
 			base = base || 10;
 	
