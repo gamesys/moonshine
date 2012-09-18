@@ -1249,14 +1249,31 @@ local e = math.ceil (0.6)
 local f = math.ceil (-0.6)
 local g = math.ceil (-122.4)
 
-assertTrue (a == 14, 'math.ceil() should round up to the next integer')
-assertTrue (b == 15, 'math.ceil() should round up to the next integer')
-assertTrue (c == 15, 'math.ceil() should round up to the next integer')
-assertTrue (d == 1, 'math.ceil() should round up to the next integer')
-assertTrue (e == 1, 'math.ceil() should round up to the next integer')
-assertTrue (f == 0, 'math.ceil() should round up to the next integer')
-assertTrue (g == -122, 'math.ceil() should round up to the next integer')
+assertTrue (a == 14, 'math.ceil() should round up to the next integer [1]')
+assertTrue (b == 15, 'math.ceil() should round up to the next integer [2]')
+assertTrue (c == 15, 'math.ceil() should round up to the next integer [3]')
+assertTrue (d == 1, 'math.ceil() should round up to the next integer [4]')
+assertTrue (e == 1, 'math.ceil() should round up to the next integer [5]')
+assertTrue (f == 0, 'math.ceil() should round up to the next integer [6]')
+assertTrue (g == -122, 'math.ceil() should round up to the next integer [7]')
 
+
+
+-- math.rad
+
+a = math.rad (0)
+b = math.rad (180)
+c = math.rad (270)
+d = math.rad (360)
+e = math.rad (450)
+f = math.rad (-180)
+
+assertTrue (a == 0, 'math.rad() should return 0 when passed zero')
+assertTrue (b == math.pi, 'math.rad() should return Pi when passed 180')
+assertTrue (c == 1.5 * math.pi, 'math.rad() should return 1.5*Pi when passed 270')
+assertTrue (d == 2 * math.pi, 'math.rad() should return 2*Pi when passed 360')
+assertTrue (e == 2.5 * math.pi, 'math.rad() should return 2.5*Pi when passed 450')
+assertTrue (f == -math.pi, 'math.rad() should return -Pi when passed -180')
 
 
 

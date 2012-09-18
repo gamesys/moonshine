@@ -1066,6 +1066,8 @@ var luajs = luajs || {};
 		
 		
 		pow: function (x, y) {
+			if ((x = luajs.utils.toFloat (x)) === undefined) throw new luajs.Error ("bad argument #1 to 'pow' (number expected)");
+			if ((y = luajs.utils.toFloat (y)) === undefined) throw new luajs.Error ("bad argument #2 to 'pow' (number expected)");
 			return Math.pow (x, y);
 		},
 		
@@ -1073,7 +1075,8 @@ var luajs = luajs || {};
 		
 		
 		rad: function (x) {
-			// Not implemented
+			if ((x = luajs.utils.toFloat (x)) === undefined) throw new luajs.Error ("bad argument #1 to 'rad' (number expected)");
+			return (Math.PI / 180) * x;
 		},
 	
 	
