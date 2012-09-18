@@ -43,6 +43,15 @@ luajs.utils = {
 		};
 
 		return convertToTable (JSON.parse (json));
+	},
+	
+	
+
+
+	toFloat: function (x) {
+		var FLOATING_POINT_PATTERN = /^[-+]?[0-9]*\.?([0-9]+([eE][-+]?[0-9]+)?)?$/;
+		if (!('' + x).match (FLOATING_POINT_PATTERN)) return;
+		return parseFloat (x);
 	}
 	
 
