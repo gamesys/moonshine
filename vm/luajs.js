@@ -187,6 +187,20 @@ luajs.VM.prototype.setGlobal = function (name, value) {
 
 
 
+
+/**
+ * Dumps memory associated with the VM.
+ */
+luajs.VM.prototype.dispose = function () {
+	for (var i in this._files) this._files[i].dispose ();
+	this._thread.dispose ();
+
+	delete this._files;
+	delete this._thread;
+	delete this._globals;
+	delete this._env;
+	delete this._coroutineStack;
+};
 /**
  * @fileOverview Closure class.
  * @author <a href="http://paulcuth.me.uk">Paul Cuthbertson</a>
@@ -206,6 +220,8 @@ var luajs = luajs || {};
  * @param {object} [upvalues] The upvalues passed from the parent closure.
  */
 luajs.Closure = function (vm, file, data, globals, upvalues) {
+	var me = this;
+	
 	luajs.EventEmitter.call (this);
 
 	this._vm = vm;
@@ -221,6 +237,7 @@ luajs.Closure = function (vm, file, data, globals, upvalues) {
 	this._register = [];
 	this._pc = 0;
 	this._localsUsedAsUpvalues = [];
+	this._funcInstances = [];
 
 	
 	var me = this,
@@ -230,7 +247,12 @@ luajs.Closure = function (vm, file, data, globals, upvalues) {
 			return me.execute (args);
 		};
 		
-	result._instance = this;	
+	result._instance = this;
+	result.dispose = function () {
+		me.dispose ();
+		delete this.dispose;
+	};
+	
 	return result;
 };
 
@@ -424,6 +446,34 @@ luajs.Closure.prototype._executeInstruction = function (instruction, line) {
 luajs.Closure.prototype._getConstant = function (index) {
 	if (this._constants[index] === null) return;
 	return this._constants[index];
+};
+	
+
+
+
+/**
+ * Dump memory associtated with closure.
+ */
+luajs.Closure.prototype.dispose = function () {
+	for (var i in this._funcInstances) this._funcInstances[i].dispose ();
+	
+	delete this._vm;
+	delete this._globals;
+	delete this._file;
+	delete this._data;
+
+	delete this._upvalues;
+	delete this._constants;
+	delete this._functions;
+	delete this._instructions;
+
+	delete this._register;
+	delete this._pc;
+	delete this._localsUsedAsUpvalues;
+	delete this._funcInstances;
+
+	delete this._listeners;
+	delete this._params;
 };
 
 
@@ -1124,7 +1174,9 @@ luajs.Closure.prototype._getConstant = function (index) {
 			this._pc++;
 		}
 
-		this._register[a] = new luajs.Function (this._vm, this._file, this._functions[bx], this._globals, upvalues);
+		var func = new luajs.Function (this._vm, this._file, this._functions[bx], this._globals, upvalues);
+		this._funcInstances.push (func);
+		this._register[a] = func;
 	}
 
 
@@ -1180,6 +1232,7 @@ luajs.Function = function (vm, file, data, globals, upvalues) {
 	this._globals = globals;
 	this._upvalues = upvalues || {};
 	this._index = luajs.Function._index++;
+	this._instances = [];
 };
 
 
@@ -1202,7 +1255,10 @@ luajs.Function._index = 0;
  * @returns {luajs.Closure} An instance of the function definition.
  */
 luajs.Function.prototype.getInstance = function () {
-	return new luajs.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
+	var instance = new luajs.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
+	this._instances.push (instance);
+
+	return instance;
 };
 
 
@@ -1257,6 +1313,27 @@ luajs.Function.prototype.apply = function (obj, args, internal) {
 luajs.Function.prototype.toString = function () {
 	return 'function: 0x' + this._index.toString (16);
 };
+
+
+
+
+/**
+ * Dump memory associated with function.
+ * @returns {string} Description.
+ */
+luajs.Function.prototype.dispose = function () {
+	for (var i in this._instances) this._instances[i].dispose ();
+	
+	delete this._vm;
+	delete this._file;
+	delete this._data;
+	delete this._globals;
+	delete this._upvalues;
+	delete this._listeners;
+	delete this._instances;	
+};
+
+
 
 /**
  * @fileOverview Coroutine class.
@@ -1627,6 +1704,17 @@ luajs.File.prototype.loadLua = function () {
 };
 
 
+
+
+/**
+ * Dump memory associated with file.
+ */
+luajs.File.prototype.dispose = function () {
+	delete this._url;
+	delete this.data;
+};
+
+
 var luajs = luajs || {};
 
 
@@ -1951,7 +2039,7 @@ var luajs = luajs || {};
 		
 		tonumber: function (e, base) {
 			// TODO: Needs a more generic algorithm to check what is valid. Lua supports all bases from 2 to 36 inclusive.
-			if (e == '') return;
+			if (e === '') return;
 			
 			e = ('' + e).replace (/^\s+|\s+$/g, '');	// Trim
 			base = base || 10;
