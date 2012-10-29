@@ -50,3 +50,14 @@ luajs.File.prototype.load = function () {
 luajs.File.prototype.loadLua = function () {
 };
 
+
+
+
+/**
+ * Dump memory associated with file.
+ */
+luajs.File.prototype.dispose = function () {
+	delete this._url;
+	delete this.data;
+};
+

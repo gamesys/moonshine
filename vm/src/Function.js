@@ -25,6 +25,7 @@ luajs.Function = function (vm, file, data, globals, upvalues) {
 	this._globals = globals;
 	this._upvalues = upvalues || {};
 	this._index = luajs.Function._index++;
+	this._instances = [];
 };
 
 
@@ -47,7 +48,10 @@ luajs.Function._index = 0;
  * @returns {luajs.Closure} An instance of the function definition.
  */
 luajs.Function.prototype.getInstance = function () {
-	return new luajs.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
+	var instance = new luajs.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
+	this._instances.push (instance);
+
+	return instance;
 };
 
 
@@ -102,4 +106,25 @@ luajs.Function.prototype.apply = function (obj, args, internal) {
 luajs.Function.prototype.toString = function () {
 	return 'function: 0x' + this._index.toString (16);
 };
+
+
+
+
+/**
+ * Dump memory associated with function.
+ * @returns {string} Description.
+ */
+luajs.Function.prototype.dispose = function () {
+	for (var i in this._instances) this._instances[i].dispose ();
+	
+	delete this._vm;
+	delete this._file;
+	delete this._data;
+	delete this._globals;
+	delete this._upvalues;
+	delete this._listeners;
+	delete this._instances;	
+};
+
+
 

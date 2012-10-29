@@ -120,3 +120,17 @@ luajs.VM.prototype.setGlobal = function (name, value) {
 
 
 
+
+/**
+ * Dumps memory associated with the VM.
+ */
+luajs.VM.prototype.dispose = function () {
+	for (var i in this._files) this._files[i].dispose ();
+	this._thread.dispose ();
+
+	delete this._files;
+	delete this._thread;
+	delete this._globals;
+	delete this._env;
+	delete this._coroutineStack;
+};

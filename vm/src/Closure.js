@@ -17,6 +17,8 @@ var luajs = luajs || {};
  * @param {object} [upvalues] The upvalues passed from the parent closure.
  */
 luajs.Closure = function (vm, file, data, globals, upvalues) {
+	var me = this;
+	
 	luajs.EventEmitter.call (this);
 
 	this._vm = vm;
@@ -32,6 +34,7 @@ luajs.Closure = function (vm, file, data, globals, upvalues) {
 	this._register = [];
 	this._pc = 0;
 	this._localsUsedAsUpvalues = [];
+	this._funcInstances = [];
 
 	
 	var me = this,
@@ -41,7 +44,12 @@ luajs.Closure = function (vm, file, data, globals, upvalues) {
 			return me.execute (args);
 		};
 		
-	result._instance = this;	
+	result._instance = this;
+	result.dispose = function () {
+		me.dispose ();
+		delete this.dispose;
+	};
+	
 	return result;
 };
 
@@ -235,6 +243,34 @@ luajs.Closure.prototype._executeInstruction = function (instruction, line) {
 luajs.Closure.prototype._getConstant = function (index) {
 	if (this._constants[index] === null) return;
 	return this._constants[index];
+};
+	
+
+
+
+/**
+ * Dump memory associtated with closure.
+ */
+luajs.Closure.prototype.dispose = function () {
+	for (var i in this._funcInstances) this._funcInstances[i].dispose ();
+	
+	delete this._vm;
+	delete this._globals;
+	delete this._file;
+	delete this._data;
+
+	delete this._upvalues;
+	delete this._constants;
+	delete this._functions;
+	delete this._instructions;
+
+	delete this._register;
+	delete this._pc;
+	delete this._localsUsedAsUpvalues;
+	delete this._funcInstances;
+
+	delete this._listeners;
+	delete this._params;
 };
 
 
@@ -935,7 +971,9 @@ luajs.Closure.prototype._getConstant = function (index) {
 			this._pc++;
 		}
 
-		this._register[a] = new luajs.Function (this._vm, this._file, this._functions[bx], this._globals, upvalues);
+		var func = new luajs.Function (this._vm, this._file, this._functions[bx], this._globals, upvalues);
+		this._funcInstances.push (func);
+		this._register[a] = func;
 	}
 
 
