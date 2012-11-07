@@ -1369,7 +1369,8 @@ var luajs = luajs || {};
 	luajs.lib.coroutine = {
 		
 		create: function (closure) {
-			return new luajs.Coroutine (closure);
+			//return new luajs.Coroutine (closure);
+			return luajs.Coroutine.create (closure);
 		},
 		
 		

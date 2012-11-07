@@ -25,7 +25,8 @@ luajs.Function = function (vm, file, data, globals, upvalues) {
 	this._globals = globals;
 	this._upvalues = upvalues || {};
 	this._index = luajs.Function._index++;
-	this._instances = [];
+	this.instances = [];
+	this._retainCount = 0;
 };
 
 
@@ -48,10 +49,7 @@ luajs.Function._index = 0;
  * @returns {luajs.Closure} An instance of the function definition.
  */
 luajs.Function.prototype.getInstance = function () {
-	var instance = new luajs.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
-	this._instances.push (instance);
-
-	return instance;
+	return luajs.Closure.create (this._vm, this._file, this._data, this._globals, this._upvalues); //new luajs.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
 };
 
 
@@ -111,20 +109,53 @@ luajs.Function.prototype.toString = function () {
 
 
 /**
+ * Saves this function from disposal.
+ */
+luajs.Function.prototype.retain = function () {
+	this._retainCount++;
+};
+
+
+
+
+/**
+ * Releases this function to be disposed.
+ */
+luajs.Function.prototype.release = function () {
+	if (!--this._retainCount) this.dispose();
+};
+
+
+
+
+/**
+ * Test if the function has been marked as retained.
+ * @returns {boolean} Whether or not the function is marked as retained.
+ */
+luajs.Function.prototype.isRetained = function () {
+	return !!this._retainCount;
+};
+
+
+
+
+/**
  * Dump memory associated with function.
- * @returns {string} Description.
  */
 luajs.Function.prototype.dispose = function () {
-	for (var i in this._instances) this._instances[i].dispose ();
-	
+	if (this._retainCount) return false;
+
 	delete this._vm;
 	delete this._file;
 	delete this._data;
 	delete this._globals;
 	delete this._upvalues;
 	delete this._listeners;
-	delete this._instances;	
+	delete this.instances;	
+
+	return true;
 };
+
 
 
 

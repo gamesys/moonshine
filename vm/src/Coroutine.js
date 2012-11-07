@@ -33,6 +33,21 @@ luajs.Coroutine.prototype.constructor = luajs.Function;
 
 luajs.Coroutine._index = 0;
 luajs.Coroutine._stack = [];
+luajs.Coroutine._graveyard = [];
+
+
+luajs.Coroutine.create = function (closure) {
+	var instance = luajs.Coroutine._graveyard.pop();
+	//console.log (instance? 'reusing' : 'creating');
+	
+	if (instance) {
+		luajs.Coroutine.apply(instance, arguments);
+		return instance;
+		
+	} else {
+		return new luajs.Coroutine(closure);
+	}
+};
 
 
 
@@ -114,7 +129,10 @@ luajs.Coroutine.prototype.resume = function () {
 		this.status = 'dead';
 	}
 
-	if (this.status == 'dead') luajs.stddebug.write ('[coroutine terminated]\n');
+	if (this.status == 'dead') {
+		luajs.stddebug.write ('[coroutine terminated]\n');
+		this._dispose();
+	}
 
 	return retval;
 };
@@ -128,6 +146,25 @@ luajs.Coroutine.prototype.resume = function () {
  */
 luajs.Coroutine.prototype.toString = function () {
 	return 'thread: 0x' + this._index.toString (16);
+};
+
+
+
+/**
+ * Dumps memory used by the coroutine.
+ */
+luajs.Coroutine.prototype._dispose = function () {
+
+	// delete this._func;
+	// delete this._index;
+	// delete this._listeners;
+	// delete this._resumeStack;
+	// delete this._started;
+	// delete this._yieldVars
+	// delete this.status
+
+
+	luajs.Coroutine._graveyard.push(this);
 };
 
 

@@ -49,13 +49,27 @@ luajs.Closure = function (vm, file, data, globals, upvalues) {
 		me.dispose ();
 		delete this.dispose;
 	};
-	
+
 	return result;
 };
 
 
 luajs.Closure.prototype = new luajs.EventEmitter ();
 luajs.Closure.prototype.constructor = luajs.Closure;
+
+luajs.Closure._graveyard = [];
+
+
+luajs.Closure.create = function (vm, file, data, globals, upvalues) {
+	var instance = luajs.Closure._graveyard.pop();
+	//console.log (instance? 'reusing' : 'creating');
+	
+	if (instance) {
+		return luajs.Closure.apply(instance, arguments);
+	} else {
+		return new luajs.Closure(vm, file, data, globals, upvalues);
+	}
+};
 
 
 
@@ -201,12 +215,18 @@ luajs.Closure.prototype._run = function () {
 		
 		if (retval !== undefined) {
 			this.terminated = true;
+			this.dispose();
+			
 			return retval;
 		}
 	}
 	
 	this.terminated = true;
+	this.dispose();
 };
+
+
+
 
 
 
@@ -252,25 +272,36 @@ luajs.Closure.prototype._getConstant = function (index) {
  * Dump memory associtated with closure.
  */
 luajs.Closure.prototype.dispose = function () {
-	for (var i in this._funcInstances) this._funcInstances[i].dispose ();
+	var retainScope = (this._localsUsedAsUpvalues.length > 0);
+
+	for (var i in this._funcInstances) {
+		if (this._funcInstances[i].isRetained ()) retainScope = true;
+	}
 	
 	delete this._vm;
 	delete this._globals;
 	delete this._file;
 	delete this._data;
 
-	delete this._upvalues;
-	delete this._constants;
 	delete this._functions;
 	delete this._instructions;
 
 	delete this._register;
 	delete this._pc;
-	delete this._localsUsedAsUpvalues;
 	delete this._funcInstances;
 
 	delete this._listeners;
 	delete this._params;
+
+	if (!retainScope) {
+		delete this._constants;
+		delete this._localsUsedAsUpvalues;
+		delete this._upvalues;
+
+		luajs.Closure._graveyard.push(this);
+	//	console.log ('graveyard');
+	}
+	
 };
 
 
