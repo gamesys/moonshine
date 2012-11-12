@@ -49,7 +49,7 @@ luajs.Function._index = 0;
  */
 luajs.Function.prototype.getInstance = function () {
 	var instance = new luajs.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
-	this._instances.push (instance);
+	//this._instances.push (instance);
 
 	return instance;
 };
