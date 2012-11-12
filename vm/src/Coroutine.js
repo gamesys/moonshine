@@ -150,6 +150,7 @@ luajs.Coroutine.prototype.toString = function () {
 
 
 
+
 /**
  * Dumps memory used by the coroutine.
  */
@@ -163,6 +164,7 @@ luajs.Coroutine.prototype._dispose = function () {
 	// delete this._yieldVars
 	// delete this.status
 
+	this._resumeStack.splice(0, this._resumeStack.length);
 
 	luajs.Coroutine._graveyard.push(this);
 };

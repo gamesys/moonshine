@@ -264,7 +264,26 @@ luajs.Closure.prototype._getConstant = function (index) {
 	if (this._constants[index] === null) return;
 	return this._constants[index];
 };
+
+
 	
+
+
+/**
+ * Returns whether or not the closure has retained child scopes.
+ * @returns {boolean} Has retained child scopes.
+ */
+luajs.Closure.prototype.hasRetainedScope = function () {
+	if (this._localsUsedAsUpvalues.length > 0) return true;
+
+	for (var i in this._funcInstances) {
+		if (this._funcInstances[i].isRetained ()) return true;
+	}
+
+	return false;
+};
+
+
 
 
 
@@ -272,28 +291,23 @@ luajs.Closure.prototype._getConstant = function (index) {
  * Dump memory associtated with closure.
  */
 luajs.Closure.prototype.dispose = function () {
-	var retainScope = (this._localsUsedAsUpvalues.length > 0);
 
-	for (var i in this._funcInstances) {
-		if (this._funcInstances[i].isRetained ()) retainScope = true;
-	}
+	if (!this.hasRetainedScope ()) {
+		delete this._vm;
+		delete this._globals;
+		delete this._file;
+		delete this._data;
 	
-	delete this._vm;
-	delete this._globals;
-	delete this._file;
-	delete this._data;
-
-	delete this._functions;
-	delete this._instructions;
-
-	delete this._register;
-	delete this._pc;
-	delete this._funcInstances;
-
-	delete this._listeners;
-	delete this._params;
-
-	if (!retainScope) {
+		delete this._functions;
+		delete this._instructions;
+	
+		delete this._register;
+		delete this._pc;
+		delete this._funcInstances;
+	
+		delete this._listeners;
+		delete this._params;
+	
 		delete this._constants;
 		delete this._localsUsedAsUpvalues;
 		delete this._upvalues;

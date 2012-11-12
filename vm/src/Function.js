@@ -122,7 +122,7 @@ luajs.Function.prototype.retain = function () {
  * Releases this function to be disposed.
  */
 luajs.Function.prototype.release = function () {
-	if (!--this._retainCount) this.dispose();
+	if (!--this._retainCount && this._readyToDispose) this.dispose();
 };
 
 
@@ -133,7 +133,13 @@ luajs.Function.prototype.release = function () {
  * @returns {boolean} Whether or not the function is marked as retained.
  */
 luajs.Function.prototype.isRetained = function () {
-	return !!this._retainCount;
+	if (this._retainCount) return true;
+	
+	for (var i in this.instances) {
+		if (this.instances[i].hasRetainedScope()) return true;
+	}
+	
+	return false;
 };
 
 
@@ -143,7 +149,9 @@ luajs.Function.prototype.isRetained = function () {
  * Dump memory associated with function.
  */
 luajs.Function.prototype.dispose = function () {
-	if (this._retainCount) return false;
+	this._readyToDispose = true;
+	
+	if (this.isRetained()) return false;
 
 	delete this._vm;
 	delete this._file;
@@ -152,7 +160,8 @@ luajs.Function.prototype.dispose = function () {
 	delete this._upvalues;
 	delete this._listeners;
 	delete this.instances;	
-
+	delete this._readyToDispose;
+	
 	return true;
 };
 
