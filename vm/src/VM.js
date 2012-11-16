@@ -126,8 +126,9 @@ luajs.VM.prototype.setGlobal = function (name, value) {
  */
 luajs.VM.prototype.dispose = function () {
 	var thread;
-	
+
 	for (var i in this._files) this._files[i].dispose ();
+
 	if (thread = this._thread) thread.dispose ();
 
 	delete this._files;
@@ -135,4 +136,11 @@ luajs.VM.prototype.dispose = function () {
 	delete this._globals;
 	delete this._env;
 	delete this._coroutineStack;
+
+
+	// Clear static stacks -- Very dangerous for environments that contain multiple VMs!
+	while (luajs.Function._instances.length) luajs.Function._instances.pop().dispose(true);
+	luajs.Closure._graveyard.splice(0, luajs.Closure._graveyard.length);
+	luajs.Coroutine._graveyard.splice(0, luajs.Coroutine._graveyard.length);
+
 };

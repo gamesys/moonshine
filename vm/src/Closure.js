@@ -290,9 +290,9 @@ luajs.Closure.prototype.hasRetainedScope = function () {
 /**
  * Dump memory associtated with closure.
  */
-luajs.Closure.prototype.dispose = function () {
+luajs.Closure.prototype.dispose = function (force) {
 
-	if (!this.hasRetainedScope ()) {
+	if (force || !this.hasRetainedScope ()) {
 		delete this._vm;
 		delete this._globals;
 		delete this._file;

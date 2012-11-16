@@ -5,8 +5,6 @@
 
 var luajs = luajs || {};
 
-
-
 /**
  * Represents a function definition.
  * @constructor
@@ -27,6 +25,8 @@ luajs.Function = function (vm, file, data, globals, upvalues) {
 	this._index = luajs.Function._index++;
 	this.instances = [];
 	this._retainCount = 0;
+
+	this.constructor._instances.push(this);
 };
 
 
@@ -40,6 +40,16 @@ luajs.Function.prototype.constructor = luajs.Function;
  * @static
  */
 luajs.Function._index = 0;
+
+
+
+
+/**
+ * Keeps track of active functions in order to clean up on dispose.
+ * @type Array
+ * @static
+ */
+luajs.Function._instances = [];
 
 
 
@@ -148,10 +158,15 @@ luajs.Function.prototype.isRetained = function () {
 /**
  * Dump memory associated with function.
  */
-luajs.Function.prototype.dispose = function () {
+luajs.Function.prototype.dispose = function (force) {
 	this._readyToDispose = true;
 	
-	if (this.isRetained()) return false;
+	if (force) {
+		for (var i in this.instances) this.instances[i].dispose(true);
+		
+	} else if (this.isRetained()) {
+		return false;
+	}
 
 	delete this._vm;
 	delete this._file;
@@ -161,6 +176,8 @@ luajs.Function.prototype.dispose = function () {
 	delete this._listeners;
 	delete this.instances;	
 	delete this._readyToDispose;
+	
+	//this.constructor._instances.splice (this.constructor._instances.indexOf(this), 1);
 	
 	return true;
 };
