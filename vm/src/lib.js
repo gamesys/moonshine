@@ -630,16 +630,32 @@ var luajs = luajs || {};
 			var reg = new RegExp (pattern),
 				count = 0,
 				result = '',
-				data;
-	
-			while ((n === undefined || count < n) && s.match (pattern)) {
-				s = s.replace (reg, '{:gsub-sep:}');
-				s = s.split ('{:gsub-sep:}');
-				result += s[0] + repl;
-				s = s[1];
+				str,
+				prefix,
+				match;
+
+			while ((n === undefined || count < n) && s && (match = s.match (pattern))) {
+
+				if (typeof repl == 'function' || (repl || {}) instanceof luajs.Function) {
+					str = repl.call ({}, match[0]);
+
+				} else if ((repl || {}) instanceof luajs.Table) {
+					str = repl.getMember (match[0]);
+					
+				} else if (typeof repl == 'object') {
+					str = repl[match];
+					
+				} else {
+					str = repl.replace(/%([0-9])/g, function (m, i) { return match[i]; });
+				}
+				
+				prefix = s.split (match[0], 1)[0];
+				result += prefix + str;
+				s = s.substr((prefix + match[0]).length);
+
 				count++;
 			}
-			
+
 			return [result + s, count];
 		},
 		
