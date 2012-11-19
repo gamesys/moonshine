@@ -972,7 +972,7 @@ luajs.Closure.prototype.dispose = function () {
 		}
 
 		var func = new luajs.Function (this._vm, this._file, this._functions[bx], this._globals, upvalues);
-		this._funcInstances.push (func);
+		//this._funcInstances.push (func);
 		this._register[a] = func;
 	}
 
