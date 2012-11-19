@@ -625,7 +625,14 @@ var luajs = luajs || {};
 		
 		
 		gsub: function (s, pattern, repl, n) {
-			pattern = translatePattern (pattern);
+			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'gsub' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'gsub' (string expected, got " + typeof pattern + ")");
+			if (typeof repl != 'string' && typeof repl != 'number') throw new luajs.Error ("bad argument #3 to 'gsub' (string expected, got " + typeof repl + ")");
+			if (n !== undefined && (n = luajs.utils.toFloat (n)) === undefined) throw new luajs.Error ("bad argument #4 to 'gsub' (number expected, got " + typeof n + ")");
+
+			s = '' + s;
+			pattern = translatePattern ('' + pattern);
+			repl = '' + repl;
 				
 			var reg = new RegExp (pattern),
 				count = 0,
@@ -680,7 +687,7 @@ var luajs = luajs || {};
 		
 		match: function (s, pattern, init) {
 			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'match' (string expected, got " + typeof s + ")");
-			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'match' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'match' (string expected, got " + typeof pattern + ")");
 
 			init = init? init - 1 : 0;
 			s = ('' + s).substr (init);
