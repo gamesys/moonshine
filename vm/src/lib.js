@@ -631,7 +631,6 @@ var luajs = luajs || {};
 
 			s = '' + s;
 			pattern = translatePattern ('' + pattern);
-			repl = '' + repl;
 
 			var reg = new RegExp (pattern),
 				count = 0,

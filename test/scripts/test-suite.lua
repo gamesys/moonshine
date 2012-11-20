@@ -854,6 +854,16 @@ c = string.gsub (b, a, 'world')
 assertTrue (c == 'Hello world', 'string.gsub() should replace the matched part of the string[2]')
 
 
+a = '%d'
+b = 'ab5kfd8scf4lll'
+c = function (x) return '('..x..')' end
+
+d = string.gsub (b, a, c, 2)
+print (d)
+assertTrue (d == 'ab(5)kfd(8)scf4lll', 'string.gsub() should replace the matched part of the string with the value returned from the given map function')
+
+
+
 
 -- len
 
