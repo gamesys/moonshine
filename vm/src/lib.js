@@ -651,7 +651,7 @@ var luajs = luajs || {};
 					str = repl[match];
 					
 				} else {
-					str = repl.replace(/%([0-9])/g, function (m, i) { return match[i]; });
+					str = ('' + repl).replace(/%([0-9])/g, function (m, i) { return match[i]; });
 				}
 				
 				prefix = s.split (match[0], 1)[0];
