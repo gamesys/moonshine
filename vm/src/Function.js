@@ -5,8 +5,6 @@
 
 var luajs = luajs || {};
 
-
-
 /**
  * Represents a function definition.
  * @constructor
@@ -25,7 +23,10 @@ luajs.Function = function (vm, file, data, globals, upvalues) {
 	this._globals = globals;
 	this._upvalues = upvalues || {};
 	this._index = luajs.Function._index++;
-	this._instances = [];
+	this.instances = [];
+	this._retainCount = 0;
+
+	this.constructor._instances.push(this);
 };
 
 
@@ -44,14 +45,21 @@ luajs.Function._index = 0;
 
 
 /**
+ * Keeps track of active functions in order to clean up on dispose.
+ * @type Array
+ * @static
+ */
+luajs.Function._instances = [];
+
+
+
+
+/**
  * Creates a new function instance from the definition.
  * @returns {luajs.Closure} An instance of the function definition.
  */
 luajs.Function.prototype.getInstance = function () {
-	var instance = new luajs.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
-	//this._instances.push (instance);
-
-	return instance;
+	return luajs.Closure.create (this._vm, this._file, this._data, this._globals, this._upvalues); //new luajs.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
 };
 
 
@@ -111,20 +119,69 @@ luajs.Function.prototype.toString = function () {
 
 
 /**
- * Dump memory associated with function.
- * @returns {string} Description.
+ * Saves this function from disposal.
  */
-luajs.Function.prototype.dispose = function () {
-	for (var i in this._instances) this._instances[i].dispose ();
+luajs.Function.prototype.retain = function () {
+	this._retainCount++;
+};
+
+
+
+
+/**
+ * Releases this function to be disposed.
+ */
+luajs.Function.prototype.release = function () {
+	if (!--this._retainCount && this._readyToDispose) this.dispose();
+};
+
+
+
+
+/**
+ * Test if the function has been marked as retained.
+ * @returns {boolean} Whether or not the function is marked as retained.
+ */
+luajs.Function.prototype.isRetained = function () {
+	if (this._retainCount) return true;
 	
+	for (var i in this.instances) {
+		if (this.instances[i].hasRetainedScope()) return true;
+	}
+	
+	return false;
+};
+
+
+
+
+/**
+ * Dump memory associated with function.
+ */
+luajs.Function.prototype.dispose = function (force) {
+	this._readyToDispose = true;
+	
+	if (force) {
+		for (var i in this.instances) this.instances[i].dispose(true);
+		
+	} else if (this.isRetained()) {
+		return false;
+	}
+
 	delete this._vm;
 	delete this._file;
 	delete this._data;
 	delete this._globals;
 	delete this._upvalues;
 	delete this._listeners;
-	delete this._instances;	
+	delete this.instances;	
+	delete this._readyToDispose;
+	
+	//this.constructor._instances.splice (this.constructor._instances.indexOf(this), 1);
+	
+	return true;
 };
+
 
 
 
