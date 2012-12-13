@@ -274,9 +274,14 @@ luajs.Closure.prototype._getConstant = function (index) {
  * @returns {boolean} Has retained child scopes.
  */
 luajs.Closure.prototype.hasRetainedScope = function () {
-	if (this._localsUsedAsUpvalues.length > 0) return true;
 
-	for (var i in this._funcInstances) {
+	if (this._localsUsedAsUpvalues.length > 0 ) return true;
+
+	for (var i in this._upvalues) {
+		if (this._upvalues[i].open) return true;
+	}
+
+	for (i in this._funcInstances) {
 		if (this._funcInstances[i].isRetained ()) return true;
 	}
 
