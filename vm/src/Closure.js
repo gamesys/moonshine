@@ -275,11 +275,12 @@ luajs.Closure.prototype._getConstant = function (index) {
  */
 luajs.Closure.prototype.hasRetainedScope = function () {
 
-	if (this._localsUsedAsUpvalues.length > 0 ) return true;
+	if (this._localsUsedAsUpvalues.length) return true;
+	if (this._upvalues.length) return true;
 
-	for (var i in this._upvalues) {
-		if (this._upvalues[i].open) return true;
-	}
+	// for (var i in this._upvalues) {
+	// 	if (this._upvalues[i].open) return true;
+	// }
 
 	for (i in this._funcInstances) {
 		if (this._funcInstances[i].isRetained ()) return true;
