@@ -6,8 +6,8 @@ var luajs = luajs || {};
 (function () {
 
 	var rosettaStone = {
-		'([^a-zA-Z0-9%])-': '$1*?',
-		'.-([^a-zA-Z0-9])': '*?$1',
+		'([^a-zA-Z0-9%(])-': '$1*?',
+		'.-([^a-zA-Z0-9?])': '*?$1',
 		'(.)-$': '$1*?',
 		'%a': '[a-zA-Z]',
 		'%A': '[^a-zA-Z]',
@@ -33,10 +33,11 @@ var luajs = luajs || {};
 
 	function translatePattern (pattern) {
 		// TODO Add support for balanced character matching (not sure this is easily achieveable).
+		pattern = '' + pattern;
 		
 		var n = 0,
 			i, l, character, addSlash;
-		
+					
 		for (i in rosettaStone) pattern = pattern.replace (new RegExp(i, 'g'), rosettaStone[i]);
 		l = pattern.length;
 
@@ -1353,10 +1354,10 @@ var luajs = luajs || {};
 		 * @param {object} table The table that will receive the metatable.
 		 */
 		time: function (table) {
-			var date;
+			var time;
 			
 			if (!table) {
-				date = new Date ();
+				time = Date.now ();
 				
 			} else {	
 				var day, month, year, hour, min, sec;
@@ -1369,10 +1370,10 @@ var luajs = luajs || {};
 				sec = table.getMember ('sec') || 0;
 				
 				if (table.getMember ('isdst')) hour--;
-				date = new Date (year, month - 1, day, hour, min, sec);
+				time = new Date (year, month - 1, day, hour, min, sec).getTime ();
 			}
 			
-			return Math.floor (date.getTime () / 1000);
+			return Math.floor (time / 1000);
 		},
 	
 	
