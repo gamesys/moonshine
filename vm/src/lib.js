@@ -1357,7 +1357,7 @@ var luajs = luajs || {};
 			var time;
 			
 			if (!table) {
-				time = Date.now ();
+				time = Date['now']? Date['now'] () : new Date ().getTime ();
 				
 			} else {	
 				var day, month, year, hour, min, sec;
