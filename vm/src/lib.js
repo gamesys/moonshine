@@ -444,6 +444,10 @@ var luajs = luajs || {};
 		
 		
 		find: function (s, pattern, init, plain) {
+			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'find' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'find' (string expected, got " + typeof pattern + ")");
+
+			s = '' + s;
 			init = init || 1;
 
 			var index, reg, match;
