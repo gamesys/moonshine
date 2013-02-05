@@ -49,17 +49,38 @@ luajs.VM.prototype._resetGlobals = function () {
  */
 luajs.VM.prototype.load = function (url, execute, coConfig) {
 	var me = this,
-		file = new luajs.File (url);
-	
-	this._files.push (file);
+		file;
 
-	file.bind ('loaded', function (data) {
-		me._trigger ('loaded-file', file);
-		if (execute || execute === undefined) me.execute (coConfig, file);
-	});
+	switch (typeof url) {
 
-	this._trigger ('loading-file', file);
-	file.load ();	
+		case 'string':
+			file = new luajs.File (url);
+			
+			this._files.push (file);
+
+			file.bind ('loaded', function (data) {
+				me._trigger ('loaded-file', file);
+				if (execute || execute === undefined) me.execute (coConfig, file);
+			});
+
+			this._trigger ('loading-file', file);
+			file.load ();
+
+			break;
+
+
+		case 'object':
+			file = new luajs.File ();
+			file.data = url;
+			if (execute || execute === undefined) me.execute (coConfig, file);
+
+			break
+
+
+		default: 
+			console.warn('Object of unknown type passed to luajs.VM.load()');
+	}
+
 };
 
 
