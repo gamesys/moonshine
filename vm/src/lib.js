@@ -1,3 +1,7 @@
+/**
+ * @fileOverview The Lua standard library.
+ * @author <a href="http://paulcuth.me.uk">Paul Cuthbertson</a>
+ */
 
 var luajs = luajs || {};
 
@@ -271,7 +275,7 @@ var luajs = luajs || {};
 	
 		rawget: function (table, index) {
 			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in rawget(). Table expected');
-			return table.index;
+			return table[index];
 		},
 	
 	
