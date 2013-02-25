@@ -32,12 +32,18 @@ luajs.File.prototype.constructor = luajs.File;
  */
 luajs.File.prototype.load = function () {
 	var me = this;
+
+	function success (data) {
+		me.data = JSON.parse(data);
+		me._trigger ('loaded', me.data);
+	}
+
+	function error (code) {
+		//throw new luajs.Error('Unable to load file: ' + me._url + ' (' + code + ')');
+		me._trigger ('error', code);
+	}
 	
-	// TODO: Remove dependency on jQuery here!
-	jQuery.getJSON (this._url, function (data) { 
-		me.data = data;
-		me._trigger ('loaded', data);
-	});
+	luajs.utils.get(this._url, success, error);
 };
 
 
