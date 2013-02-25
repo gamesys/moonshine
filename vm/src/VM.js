@@ -33,9 +33,38 @@ luajs.VM.prototype.constructor = luajs.VM;
  * Resets all global variables to their original values.
  */
 luajs.VM.prototype._resetGlobals = function () {
-	this._globals = {};
-	for (var i in luajs.lib) this._globals[i] = luajs.lib[i];
+	this._globals = this._bindLib(luajs.lib);
+
+	// Load standard lib into package.loaded:
+	for (var i in this._globals) if (this._globals[i] instanceof luajs.Table) this._globals.package.loaded[i] = this._globals[i];
+	this._globals.package.loaded._G = this._globals;
+
+	// Load environment vars
 	for (var i in this._env) this._globals[i] = this._env[i];
+};
+
+
+
+
+/**
+ * Returns a copy of an object, with all functions bound to the VM. (recursive)
+ */
+luajs.VM.prototype._bindLib = function (lib) {
+	var result = {};
+
+	for (var i in lib) {
+		if (lib[i] && lib[i].constructor === Object) {
+			result[i] = this._bindLib(lib[i]);
+
+		} else if (typeof lib[i] == 'function') {
+			result[i] = lib[i].bind(this);
+
+		} else {
+			result[i] = lib[i];
+		}
+	}
+
+	return new luajs.Table(result);
 };
 
 
@@ -96,7 +125,8 @@ luajs.VM.prototype.execute = function (coConfig, file) {
 		files = file? [file] : this._files,
 		index,
 		file;
-		
+
+
 	if (!files.length) throw new Error ('No files loaded.'); 
 	
 	for (index in files) {
