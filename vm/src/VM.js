@@ -36,8 +36,8 @@ luajs.VM.prototype._resetGlobals = function () {
 	this._globals = this._bindLib(luajs.lib);
 
 	// Load standard lib into package.loaded:
-	for (var i in this._globals) if (this._globals[i] instanceof luajs.Table) this._globals.package.loaded[i] = this._globals[i];
-	this._globals.package.loaded._G = this._globals;
+	for (var i in this._globals) if (this._globals[i] instanceof luajs.Table) this._globals['package'].loaded[i] = this._globals[i];
+	this._globals['package'].loaded._G = this._globals;
 
 	// Load environment vars
 	for (var i in this._env) this._globals[i] = this._env[i];

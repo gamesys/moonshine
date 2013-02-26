@@ -333,7 +333,7 @@ var luajs = luajs || {};
 
 		require: function (modname) {
 			var thread,
-				package = luajs.lib.package,
+				packageLib = luajs.lib['package'],
 				vm = this,
 				module,
 				preload,
@@ -341,17 +341,17 @@ var luajs = luajs || {};
 				path;
 
 			function load (preloadFunc) {
-				package.loaded[modname] = true;
+				packageLib.loaded[modname] = true;
 				module = preloadFunc.call({}, modname);
 
-				if (module !== undefined) package.loaded[modname] = module;
-				return package.loaded[modname];
+				if (module !== undefined) packageLib.loaded[modname] = module;
+				return packageLib.loaded[modname];
 			}
 
-			if (module = package.loaded[modname]) return module;
-			if (preload = package.preload[modname]) return load(preload);
+			if (module = packageLib.loaded[modname]) return module;
+			if (preload = packageLib.preload[modname]) return load(preload);
 
-			paths = luajs.lib.package.path.replace(/;;/g, ';').split(';');
+			paths = packageLib.path.replace(/;;/g, ';').split(';');
 			thread = luajs.lib.coroutine.yield();
 
 
@@ -925,7 +925,7 @@ var luajs = luajs || {};
 
 
 
-	luajs.lib.package = {
+	luajs.lib['package'] = {
 
 		cpath: undefined,
 		loaded: new luajs.Table(),
