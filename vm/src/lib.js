@@ -965,7 +965,7 @@ var luajs = luajs || {};
 		
 		
 		
-		atan2: function (x, y) {
+		atan2: function (y, x) {
 			return Math.atan2 (y, x);
 		},
 		
