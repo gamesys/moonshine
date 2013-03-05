@@ -620,13 +620,16 @@ var luajs = luajs || {};
 		
 		gmatch: function (s, pattern) {
 			pattern = translatePattern (pattern);
-
-			var reg = new RegExp (pattern, 'g'),
-				results = s.match (reg),
-				counter = 0;
+			var reg = new RegExp (pattern, 'g');
 				
 			return function () {
-				return results[counter++];
+				var result = reg.exec(s),
+					item;
+
+				if (!result) return;
+
+				item = result? result.shift() : undefined;
+				return result.length? result : item;
 			};			
 		},
 		
