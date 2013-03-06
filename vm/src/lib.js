@@ -360,6 +360,7 @@ var luajs = luajs || {};
 				case 'number': 
 				case 'string': 
 				case 'boolean': 
+				case 'function': 
 					return t;
 				 
 				case 'object': 
