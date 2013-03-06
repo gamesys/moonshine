@@ -76,12 +76,12 @@ var luajs = luajs || {};
 			pathData;
 
 		if (filename.substr(0, 1) != '/') {
-			pathData = this._thread._file._url.match(/^(.*\/).*?$/);
-			pathData = (pathData && pathData[1]) || './';
+			pathData = (this._thread._file._url || '').match(/^(.*\/).*?$/);
+			pathData = (pathData && pathData[1]) || '';
 			filename = pathData + filename;
 		}
 
-		file = new luajs.File (filename.replace(/\.lua$/, '.json'));
+		file = new luajs.File (filename);
 
 		file.bind ('loaded', function (data) {
 			var func = new luajs.Function (vm, file, file.data, vm._globals);
@@ -342,7 +342,7 @@ var luajs = luajs || {};
 
 			function load (preloadFunc) {
 				packageLib.loaded[modname] = true;
-				module = preloadFunc.call({}, modname);
+				module = preloadFunc.call({}, modname)[0];
 
 				if (module !== undefined) packageLib.loaded[modname] = module;
 				return packageLib.loaded[modname];
@@ -376,7 +376,6 @@ var luajs = luajs || {};
 
 			loadNextPath();
 		},	
-
 	
 
 	
