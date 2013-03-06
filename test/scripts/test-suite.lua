@@ -835,6 +835,37 @@ assertTrue (f == nil, 'string.find() should return nil if the second argument is
 assertTrue (g == 17, 'string.find() should return the location of the second argument if it is contained within the first after the index specified by the third argument')
 
 
+-- gmatch
+
+local s = "from=world, to=Lua"
+local x = string.gmatch(s, "(%w+)=(%w+)")
+
+assertTrue (type(x) == 'function', 'string.gmatch() should return an iterator function')
+
+local a, b, c = x()
+assertTrue (a == 'from', 'string.gmatch() iterator should return the first group matched in the string [1]')
+assertTrue (b == 'world', 'string.gmatch() iterator should return the second group matched in the string [1]')
+assertTrue (c == nil, 'string.gmatch() iterator should return nil after all groups are matched [1]')
+
+local a, b, c = x()
+assertTrue (a == 'to', 'string.gmatch() iterator should return the first group matched in the string [2]')
+assertTrue (b == 'Lua', 'string.gmatch() iterator should return the second group matched in the string [2]')
+assertTrue (c == nil, 'string.gmatch() iterator should return nil after all groups are matched [2]')
+
+local a = x()
+assertTrue (a == nil, 'string.gmatch() iterator should return nil after all matches have ben returned')
+
+
+local x = string.gmatch(s, "%w+=%w+")
+local a, b = x()
+assertTrue (a == 'from=world', 'string.gmatch() iterator should return the first match when no groups are specified')
+assertTrue (b == nil, 'string.gmatch() iterator should return nil as second return value when no groups are specified [1]')
+
+local a, b = x()
+assertTrue (a == 'to=Lua', 'string.gmatch() iterator should return the second match when no groups are specified')
+assertTrue (b == nil, 'string.gmatch() iterator should return nil as second return value when no groups are specified [2]')
+
+
 
 
 -- gsub
