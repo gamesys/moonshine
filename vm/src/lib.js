@@ -656,6 +656,8 @@ var luajs = luajs || {};
 
 				if (typeof repl == 'function' || (repl || {}) instanceof luajs.Function) {
 					str = repl.call ({}, match[0]);
+					if (str instanceof Array) str = str[0];
+					if (str === undefined) str = match[0];
 
 				} else if ((repl || {}) instanceof luajs.Table) {
 					str = repl.getMember (match[0]);
