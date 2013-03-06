@@ -893,6 +893,21 @@ d = string.gsub (b, a, c, 2)
 assertTrue (d == 'ab(5)kfd(8)scf4lll', 'string.gsub() should replace the matched part of the string with the value returned from the given map function')
 
 
+a = "[^:]+"
+b = ":aa:bbb:cccc:ddddd:eee:"
+c = function (subStr) end
+
+d = string.gsub (b, a, c)
+assertTrue (d == ':aa:bbb:cccc:ddddd:eee:', 'string.gsub() should not replace the matched part of the string if the value returned from the map function is nil')
+
+c = function (subStr) return 'X' end
+
+d = string.gsub (b, a, c)
+assertTrue (d == ':X:X:X:X:X:', 'string.gsub() should replace the matched part of the string if the value returned from the map function is not nil')
+
+
+
+
 
 -- len
 
@@ -1740,7 +1755,6 @@ order = order..'sixteen'
 
 assertTrue (order == 'onetwothreefourfivesixseveneightnineteneleventwelvethirteenfourteenfifteensixteen', 'Coroutines should execute in the correct order')
 assertTrue (arguments == 'OaMaIaIIaanilnillooptrueIIaanilIb123nilnilMbObMaIaIIaanilnillooptrueIIaanilIb123nilnilMbOblooptruenilnil', 'Coroutines should pass the correct values to and from yields and resumes')
-
 
 
 
