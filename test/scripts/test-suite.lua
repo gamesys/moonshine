@@ -1,3 +1,5 @@
+-- Lua VM test suite.
+-- (c) Gamesys Limited 2013
 
 
 do
