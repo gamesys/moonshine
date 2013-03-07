@@ -835,6 +835,37 @@ assertTrue (f == nil, 'string.find() should return nil if the second argument is
 assertTrue (g == 17, 'string.find() should return the location of the second argument if it is contained within the first after the index specified by the third argument')
 
 
+-- gmatch
+
+local s = "from=world, to=Lua"
+local x = string.gmatch(s, "(%w+)=(%w+)")
+
+assertTrue (type(x) == 'function', 'string.gmatch() should return an iterator function')
+
+local a, b, c = x()
+assertTrue (a == 'from', 'string.gmatch() iterator should return the first group matched in the string [1]')
+assertTrue (b == 'world', 'string.gmatch() iterator should return the second group matched in the string [1]')
+assertTrue (c == nil, 'string.gmatch() iterator should return nil after all groups are matched [1]')
+
+local a, b, c = x()
+assertTrue (a == 'to', 'string.gmatch() iterator should return the first group matched in the string [2]')
+assertTrue (b == 'Lua', 'string.gmatch() iterator should return the second group matched in the string [2]')
+assertTrue (c == nil, 'string.gmatch() iterator should return nil after all groups are matched [2]')
+
+local a = x()
+assertTrue (a == nil, 'string.gmatch() iterator should return nil after all matches have ben returned')
+
+
+local x = string.gmatch(s, "%w+=%w+")
+local a, b = x()
+assertTrue (a == 'from=world', 'string.gmatch() iterator should return the first match when no groups are specified')
+assertTrue (b == nil, 'string.gmatch() iterator should return nil as second return value when no groups are specified [1]')
+
+local a, b = x()
+assertTrue (a == 'to=Lua', 'string.gmatch() iterator should return the second match when no groups are specified')
+assertTrue (b == nil, 'string.gmatch() iterator should return nil as second return value when no groups are specified [2]')
+
+
 
 
 -- gsub
@@ -860,6 +891,21 @@ c = function (x) return '('..x..')' end
 
 d = string.gsub (b, a, c, 2)
 assertTrue (d == 'ab(5)kfd(8)scf4lll', 'string.gsub() should replace the matched part of the string with the value returned from the given map function')
+
+
+a = "[^:]+"
+b = ":aa:bbb:cccc:ddddd:eee:"
+c = function (subStr) end
+
+d = string.gsub (b, a, c)
+assertTrue (d == ':aa:bbb:cccc:ddddd:eee:', 'string.gsub() should not replace the matched part of the string if the value returned from the map function is nil')
+
+c = function (subStr) return 'X' end
+
+d = string.gsub (b, a, c)
+assertTrue (d == ':X:X:X:X:X:', 'string.gsub() should replace the matched part of the string if the value returned from the map function is not nil')
+
+
 
 
 
@@ -1645,6 +1691,72 @@ c = pcall (neg, {})
 assertTrue (not (a), 'Negation operator should error when passed a string')
 assertTrue (b, 'Negation operator should not error when passed a number')
 assertTrue (not (c), 'Negation operator should error when passed a table')
+
+
+
+-- coroutines
+
+local innerOrder = {'Y','twelve','ten','six','four'}
+local midOrder = {'Z','thirteen','nine','seven','three'}
+local outerOrder = {'two','eight','fourteen','A'}
+local loopOrder = {'five','eleven','fifteen','B'}
+local order = ''
+local arguments = ''
+
+
+function innerFunc (...)
+	order = order..table.remove(innerOrder)
+
+	local a, b, c = ...
+	arguments = arguments..'Ia'..tostring(a)..tostring(b)..tostring(c)
+
+	a, b, c = coroutine.yield (...)
+
+	order = order..table.remove(innerOrder)
+	arguments = arguments..'Ib'..tostring(a)..tostring(b)..tostring(c)
+end
+
+
+function midFunc ()
+	order = order..table.remove(midOrder)
+	arguments = arguments..'Ma'
+
+	innerFunc ('IIaa')
+
+	order = order..table.remove(midOrder)
+	arguments = arguments..'Mb'
+end
+
+
+function outerFunc ()
+	order = order..outerOrder[1]
+	arguments = arguments..'Oa'
+
+	for i = 2,3 do
+		midFunc ()
+
+		arguments = arguments..'Ob'
+		order = order..outerOrder[i]
+	end
+end
+
+
+order = order..'one'
+
+co = coroutine.create (outerFunc)
+for f = 1, 3 do
+	local x, y, z = coroutine.resume (co, 123)
+	order = order..loopOrder[f]
+	arguments = arguments..'loop'..tostring(x)..tostring(y)..tostring(z)
+end
+
+order = order..'sixteen'
+
+
+assertTrue (order == 'onetwothreefourfivesixseveneightnineteneleventwelvethirteenfourteenfifteensixteen', 'Coroutines should execute in the correct order')
+assertTrue (arguments == 'OaMaIaIIaanilnillooptrueIIaanilIb123nilnilMbObMaIaIIaanilnillooptrueIIaanilIb123nilnilMbOblooptruenilnil', 'Coroutines should pass the correct values to and from yields and resumes')
+
+
 
 
 

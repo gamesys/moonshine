@@ -447,6 +447,7 @@ var luajs = luajs || {};
 				case 'number': 
 				case 'string': 
 				case 'boolean': 
+				case 'function': 
 					return t;
 				 
 				case 'object': 
@@ -706,13 +707,16 @@ var luajs = luajs || {};
 		
 		gmatch: function (s, pattern) {
 			pattern = translatePattern (pattern);
-
-			var reg = new RegExp (pattern, 'g'),
-				results = s.match (reg),
-				counter = 0;
+			var reg = new RegExp (pattern, 'g');
 				
 			return function () {
-				return results[counter++];
+				var result = reg.exec(s),
+					item;
+
+				if (!result) return;
+
+				item = result? result.shift() : undefined;
+				return result.length? result : item;
 			};			
 		},
 		
@@ -738,6 +742,8 @@ var luajs = luajs || {};
 
 				if (typeof repl == 'function' || (repl || {}) instanceof luajs.Function) {
 					str = repl.call ({}, match[0]);
+					if (str instanceof Array) str = str[0];
+					if (str === undefined) str = match[0];
 
 				} else if ((repl || {}) instanceof luajs.Table) {
 					str = repl.getMember (match[0]);
@@ -1363,7 +1369,7 @@ var luajs = luajs || {};
 		
 		
 		
-		atan2: function (x, y) {
+		atan2: function (y, x) {
 			return Math.atan2 (y, x);
 		},
 		
