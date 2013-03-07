@@ -1,3 +1,8 @@
+/**
+ * @fileOverview Output streams.
+ * @author <a href="http://paulcuth.me.uk">Paul Cuthbertson</a>
+ * @copyright Gamesys Limited 2013
+ */
 
 var luajs = luajs || {};
 
