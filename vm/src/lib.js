@@ -1001,7 +1001,7 @@ var luajs = luajs || {};
 		
 		
 		deg: function (x) {
-			// Not implemented
+			return x * 180 / Math.PI;
 		},
 		
 		
