@@ -31,7 +31,7 @@ luajs.Table = function (obj) {
 			iterate = ((getQualifiedClassName(value) == "Object") && (!(value instanceof luajs.Table)) && (!(value instanceof luajs.Coroutine)) && (!(value instanceof luajs.Function)) && (!(value instanceof luajs.Closure) )) || (getQualifiedClassName(value) == "Array");
 		} else {
 			// JavaScript
-			iterate = (typeof value == 'object' && value.constructor === Object);
+			iterate = (typeof value == 'object' && value.constructor === Object) || value instanceof Array;
 		}
 		
 		if (iterate) {
