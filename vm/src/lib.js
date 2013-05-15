@@ -345,7 +345,13 @@ var luajs = luajs || {};
 		
 		
 		tostring: function (e) {
-			return e === undefined? 'nil' : e.toString ();
+			switch(true) {
+				case e === undefined: return 'nil';
+				case e === Infinity: return 'inf';
+				case e === -Infinity: return '-inf';
+				case typeof e == 'number' && window.isNaN(e): return 'nan';
+				default: return e.toString ();
+			}
 		},
 		
 		

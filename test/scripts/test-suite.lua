@@ -644,12 +644,23 @@ assertTrue (d == nil, 'tonumber() should return nil with passed an empty string 
 -- tostring
 -- TODO Check for use of __tostring metamethod
 
-local a = tostring (123)
---local b = tostring ({})
---local c = tostring ({1, 2, 3})
---local d = tostring (function () return true end)
+a = tostring (123)
+b = tostring ({})
+c = tostring ({1, 2, 3})
+d = tostring (function () return true end)
+e = tostring(math.huge)
+f = tostring(-math.huge)
+g = tostring(0/0)
+ 
+assertTrue (a == '123', 'tostring() should convert a number to a string')
+assertTrue (string.sub(b, 1, 9) == 'table: 0x', 'tostring() should convert an empty table to a string')
+assertTrue (string.sub(c, 1, 9) == 'table: 0x', 'tostring() should convert a table to a string')
+assertTrue (string.sub(d, 1, 12) == 'function: 0x', 'tostring() should convert a number to a string')
+assertTrue (e == 'inf', 'tostring() should convert infinity to "inf"')
+assertTrue (f == '-inf', 'tostring() should convert negative infinity to "-inf"')
+assertTrue (g == 'nan', 'tostring() should convert not-a-number to "nan"')
 
-assertTrue (a == "123", 'tostring() should convert a number to a string')
+
 
 
 
@@ -1331,6 +1342,15 @@ assertTrue (d == 2 * math.pi, 'math.rad() should return 2*Pi when passed 360')
 assertTrue (e == 2.5 * math.pi, 'math.rad() should return 2.5*Pi when passed 450')
 assertTrue (f == -math.pi, 'math.rad() should return -Pi when passed -180')
 
+
+
+--math.huge
+
+a = math.huge + 1
+b = -math.huge - 1
+
+assertTrue (a == math.huge, 'math.huge should not change value with addition.')
+assertTrue (b == -math.huge, 'Negative math.huge should not change value with subtraction.')
 
 
 
