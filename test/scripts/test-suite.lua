@@ -1343,6 +1343,44 @@ assertTrue (e == 2.5 * math.pi, 'math.rad() should return 2.5*Pi when passed 450
 assertTrue (f == -math.pi, 'math.rad() should return -Pi when passed -180')
 
 
+-- math.random
+
+a = math.random()
+b = math.random()
+
+assertTrue (a == 16807 / 2147483647, 'math.random() should initialise with a value of 1')
+assertTrue (b == ((16807 * a * 2147483647) % 2147483647) / 2147483647, 'math.random() should follow the right sequence [1]')
+
+
+
+-- math.randomseed
+
+math.randomseed(123)
+
+c = math.random()
+d = math.random()
+
+assertTrue (c == ((16807 * 123) % 2147483647) / 2147483647, 'math.random() should follow the right sequence [2]')
+assertTrue (d == ((16807 * c * 2147483647) % 2147483647) / 2147483647, 'math.random() should follow the right sequence [3]')
+
+
+
+
+
+
+-- math.deg
+
+a = math.deg (0)
+b = math.deg (math.pi)
+c = math.deg (math.pi * 2)
+d = math.deg (math.pi / 2)
+
+assertTrue (a == 0, 'math.deg() should return 0 when passed zero')
+assertTrue (b == 180, 'math.deg() should return 180 when passed Pi')
+assertTrue (c == 360, 'math.deg() should return 360 when passed 2Pi')
+assertTrue (d == 90, 'math.deg() should return 90 when passed Pi/2')
+
+
 
 --math.huge
 

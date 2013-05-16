@@ -10,30 +10,45 @@ var luajs = luajs || {};
 
 (function () {
 
-	var rosettaStone = {
-		'([^a-zA-Z0-9%(])-': '$1*?',
-        '(.)-([^a-zA-Z0-9?])': '$1*?$2',
-		'(.)-$': '$1*?',
-		'%a': '[a-zA-Z]',
-		'%A': '[^a-zA-Z]',
-		'%c': '[\x00-\x1f]',
-		'%C': '[^\x00-\x1f]',
-		'%d': '\\d',
-		'%D': '[^\d]',
-		'%l': '[a-z]',
-		'%L': '[^a-z]',
-		'%p': '[\.\,\"\'\?\!\;\:\#\$\%\&\(\)\*\+\-\/\<\>\=\@\[\]\\\^\_\{\}\|\~]',
-		'%P': '[^\.\,\"\'\?\!\;\:\#\$\%\&\(\)\*\+\-\/\<\>\=\@\[\]\\\^\_\{\}\|\~]',
-		'%s': '[ \\t\\n\\f\\v\\r]',
-		'%S': '[^ \t\n\f\v\r]',
-		'%u': '[A-Z]',
-		'%U': '[^A-Z]',
-		'%w': '[a-zA-Z0-9]',
-		'%W': '[^a-zA-Z0-9]',
-		'%x': '[a-fA-F0-9]',
-		'%X': '[^a-fA-F0-9]',
-		'%([^a-zA-Z])': '\\$1'
-	};
+	var RANDOM_MULTIPLIER = 16807,
+		RANDOM_MODULUS = 2147483647,
+
+		ROSETTA_STONE = {
+			'([^a-zA-Z0-9%(])-': '$1*?',
+	        '(.)-([^a-zA-Z0-9?])': '$1*?$2',
+			'(.)-$': '$1*?',
+			'%a': '[a-zA-Z]',
+			'%A': '[^a-zA-Z]',
+			'%c': '[\x00-\x1f]',
+			'%C': '[^\x00-\x1f]',
+			'%d': '\\d',
+			'%D': '[^\d]',
+			'%l': '[a-z]',
+			'%L': '[^a-z]',
+			'%p': '[\.\,\"\'\?\!\;\:\#\$\%\&\(\)\*\+\-\/\<\>\=\@\[\]\\\^\_\{\}\|\~]',
+			'%P': '[^\.\,\"\'\?\!\;\:\#\$\%\&\(\)\*\+\-\/\<\>\=\@\[\]\\\^\_\{\}\|\~]',
+			'%s': '[ \\t\\n\\f\\v\\r]',
+			'%S': '[^ \t\n\f\v\r]',
+			'%u': '[A-Z]',
+			'%U': '[^A-Z]',
+			'%w': '[a-zA-Z0-9]',
+			'%W': '[^a-zA-Z0-9]',
+			'%x': '[a-fA-F0-9]',
+			'%X': '[^a-fA-F0-9]',
+			'%([^a-zA-Z])': '\\$1'
+		},
+
+		randomSeed = 1;
+
+
+
+
+	function getRandom () {
+		randomSeed = (RANDOM_MULTIPLIER * randomSeed) % RANDOM_MODULUS;
+		return randomSeed / RANDOM_MODULUS;
+	}
+
+
 
 
 	function translatePattern (pattern) {
@@ -43,7 +58,7 @@ var luajs = luajs || {};
 		var n = 0,
 			i, l, character, addSlash;
 					
-		for (i in rosettaStone) pattern = pattern.replace (new RegExp(i, 'g'), rosettaStone[i]);
+		for (i in ROSETTA_STONE) pattern = pattern.replace (new RegExp(i, 'g'), ROSETTA_STONE[i]);
 		l = pattern.length;
 
 		for (i = 0; i < l; i++) {
@@ -371,7 +386,7 @@ var luajs = luajs || {};
 					return t;
 				 
 				case 'object': 
-					if ((v || {}) instanceof luajs.Table) return 'table';
+					if (v.constructor === luajs.Table) return 'table';
 					if ((v || {}) instanceof luajs.Function) return 'function';
 				
 					return 'userdata';
@@ -1129,7 +1144,7 @@ var luajs = luajs || {};
 		 * Implementation of Lua's math.random function.
 		 */
 		random: function (min, max) {
-			if (min === undefined && max === undefined) return Math.random ();
+			if (min === undefined && max === undefined) return getRandom();
 	
 	
 			if (typeof min !== 'number') throw new luajs.Error ("bad argument #1 to 'random' (number expected)");
@@ -1143,14 +1158,15 @@ var luajs = luajs || {};
 			}
 	
 			if (min > max) throw new luajs.Error ("bad argument #2 to 'random' (interval is empty)");
-			return Math.floor (Math.random () * (max - min + 1) + min);
+			return Math.floor (getRandom() * (max - min + 1) + min);
 		},
 	
 	
 	
 	
-		randomseed: function () {
-			// Not implemented
+		randomseed: function (x) {
+			if (typeof x !== 'number') throw new luajs.Error ("bad argument #1 to 'randomseed' (number expected)");
+			randomSeed = x;
 		},
 	
 	
