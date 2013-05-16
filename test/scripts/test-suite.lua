@@ -402,6 +402,14 @@ assertTrue (t[3] == 9, 'Table should be able to be instantiated by the result of
 
 
 
+t = {}
+t[1] = 'number'
+t['1'] = 'string'
+
+assertTrue (t[1] == 'number', 'A numerical table index should return a different value than when using the same index as a sting. [1]')
+assertTrue (t['1'] == 'string', 'A numerical table index should return a different value than when using the same index as a sting. [2]')
+
+
 
 
 -------------
@@ -507,7 +515,6 @@ a, b, c = pcall (badfunc, 6)
 assertTrue (a == false, 'pcall() should return false in the first item when the function errors during execution')
 assertTrue (not (b == nil), 'pcall() should return an error message in the second item when the function error during execution')
 assertTrue (c == nil, 'pcall() should only return 2 items when the function error during execution')
-
 
 
 

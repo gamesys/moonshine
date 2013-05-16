@@ -141,9 +141,12 @@ var luajs = luajs || {};
 			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in ipairs(). Table expected');
 			
 			var iterator = function (table, index) {
-				if (index === undefined) throw new luajs.Error ('Bad argument #2 to ipairs() iterator'); 
-				if (!table.hasOwnProperty (index + 1)) return undefined;
-				return [index + 1, table[index + 1]];
+				if (index === undefined) throw new luajs.Error ('Bad argument #2 to ipairs() iterator');
+
+				var nextIndex = index + 1;
+
+				if (!table.__luajs.numValues.hasOwnProperty (nextIndex)) return undefined;
+				return [nextIndex, table.__luajs.numValues[nextIndex]];
 			};
 	
 			return [iterator, table, 0];
@@ -800,11 +803,8 @@ var luajs = luajs || {};
 			sep = sep || '';
 			i = i || 1;
 			j = j || luajs.lib.table.maxn (table);
-			
-			var result = [],
-				index;
-			
-			for (index = i; index <= j; index++) result.push (table[index]);
+
+			var result = [].concat(table.__luajs.numValues).splice (i, j - i + 1);
 			return result.join (sep);
 		},
 		
@@ -813,33 +813,33 @@ var luajs = luajs || {};
 	
 		getn: function (table) {
 			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.getn(). Table expected');
-	
-			var keys = [], 
-				index,
+
+			var vals = table.__luajs.numValues, 
+				keys = [],
 				i, 
 				j = 0;
-				
-			for (i in table) if ((index = 0 + parseInt (i, 10)) == i) keys[index] = true;
+
+			for (i in vals) keys[i] = true;
 			while (keys[j + 1]) j++;
 	
 			// Following translated from ltable.c (http://www.lua.org/source/5.1/ltable.c.html)
-			if (j > 0 && table[j] === undefined) {
+			if (j > 0 && vals[j] === undefined) {
 				/* there is a boundary in the array part: (binary) search for it */
 				var i = 0;
 	
 				while (j - i > 1) {
 					var m = Math.floor ((i + j) / 2);
 	
-					if (table[m] === undefined) {
+					if (vals[m] === undefined) {
 						j = m;
 					} else {
 						i = m;
 					}
 				}
-			
+
 				return i;
 			}
-	
+
 			return j;
 		},
 		
@@ -857,8 +857,9 @@ var luajs = luajs || {};
 	
 			if (obj == undefined) {
 				obj = index;
-				index = 1;
-				while (table.getMember(index) !== undefined) index++;
+				// index = 1;
+				// while (table.getMember(index) !== undefined) index++;
+				index = table.__luajs.numValues.length;
 			}
 	
 			var oldValue = table.getMember(index);
@@ -875,17 +876,19 @@ var luajs = luajs || {};
 			
 			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.maxn(). Table expected');
 	
-			// length = 0;
-			// while (table[length + 1] != undefined) length++;
-			// 
-			// return length;
+			// // length = 0;
+			// // while (table[length + 1] != undefined) length++;
+			// // 
+			// // return length;
 	
-			var result = 0,
-				index,
-				i;
+			// var result = 0,
+			// 	index,
+			// 	i;
 				
-			for (i in table) if ((index = 0 + parseInt (i, 10)) == i && table[i] !== null && index > result) result = index;
-			return result; 
+			// for (i in table) if ((index = 0 + parseInt (i, 10)) == i && table[i] !== null && index > result) result = index;
+			// return result; 
+
+			return table.__luajs.numValues.length - 1;
 		},
 		
 		
@@ -915,18 +918,19 @@ var luajs = luajs || {};
 		remove: function (table, index) {
 			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.remove(). Table expected');
 	
-			if (index == undefined) {
-				index = 1;
-				while (table[index + 1] !== undefined) index++;
-			}
-	
-			if (index > luajs.lib.table.getn (table)) return;
+			var max = luajs.lib.table.getn(table),
+				vals = table.__luajs.numValues,
+				result;
+
+			if (index > max) return;
+			if (index == undefined) index = max;
 				
-			var result = table[index];
-			table[index] = table[index + 1];	
+			result = vals.splice(index, 1);
+			while (index < max && vals[index] === undefined) delete vals[index++];
+			// table[index] = table[index + 1];	
 			
-			luajs.lib.table.remove (table, index + 1);
-			if (table[index] === undefined) delete table[index];
+			// luajs.lib.table.remove (table, index + 1);
+			// if (table[index] === undefined) delete table[index];
 	
 			return result;
 		},
