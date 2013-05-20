@@ -482,13 +482,14 @@ assertTrue (b == '[1=2][2=4][3=8]', 'ipairs() should iterate over table items [1
 -- pairs
 
 local a, b = "", {foo=1}
-b["bar"] = "Hello"
+b["bar"] = "Hello",
+table.insert(b, 123)
 
 for i, v in pairs(b) do
 	a = a..i..':'..v..';'
 end
 
-assertTrue (#a == #'bar:Hello;foo:1;', 'pairs() should iterate over table items [2]')	-- Have to compare lengths because order is arbitrary
+assertTrue (#a == #'1:123;bar:Hello;foo:1;', 'pairs() should iterate over table items [2]')	-- Have to compare lengths because order is arbitrary
 
 
 

@@ -184,8 +184,18 @@ var luajs = luajs || {};
 		next: function (table, index) {	
 			// SLOOOOOOOW...
 			var found = (index == undefined),
+				numValues = table.__luajs.numValues,
 				i;
-		
+
+			for (i in numValues) {	
+				if (!found) {
+					if (i === '' + index) found = true;
+	
+				} else if (numValues.hasOwnProperty (i) && numValues[i] !== undefined) {
+					return [i, numValues[i]];
+				}
+			}
+
 			for (i in table) {
 				if (table.hasOwnProperty (i) && !(i in luajs.Table.prototype) && i !== '__luajs') {
 					if (!found) {
