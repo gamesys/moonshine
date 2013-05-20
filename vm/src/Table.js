@@ -20,6 +20,14 @@ luajs.Table = function (obj) {
 		value,
 		i;
 
+	this.__luajs = { 
+		type: 'table',
+		index: ++luajs.Table.count,
+		keys: [],
+		values: [],
+		numValues: [undefined]
+	};
+
 	for (i in obj || {}) {
 		var iterate;
 
@@ -34,20 +42,9 @@ luajs.Table = function (obj) {
 			iterate = (typeof value == 'object' && value.constructor === Object) || value instanceof Array;
 		}
 		
-		if (iterate) {
-			this[key] = new luajs.Table (value);
-		} else {
-			this[key] = value;
-		}
+		this.setMember(key, iterate? new luajs.Table (value) : value);
 	}
 	
-	this.__luajs = { 
-		type: 'table',
-		index: ++luajs.Table.count,
-		keys: [],
-		values: [],
-		numValues: [undefined]
-	};
 };
 
 
