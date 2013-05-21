@@ -4,6 +4,7 @@ cat ../src/as/header.as >> ../Luajs.as
 
 cat ../src/EventEmitter.js >> ../Luajs.as
 cat ../src/VM.js >> ../Luajs.as
+cat ../src/InstructionSet.js >> ../Luajs.as
 cat ../src/Closure.js >> ../Luajs.as
 cat ../src/Function.js >> ../Luajs.as
 cat ../src/Coroutine.js >> ../Luajs.as

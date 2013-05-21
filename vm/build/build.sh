@@ -2,6 +2,7 @@ echo > ../luajs.js
 
 cat ../src/EventEmitter.js >> ../luajs.js
 cat ../src/VM.js >> ../luajs.js
+cat ../src/InstructionSet.js >> ../luajs.js
 cat ../src/Closure.js >> ../luajs.js
 cat ../src/Function.js >> ../luajs.js
 cat ../src/Coroutine.js >> ../luajs.js
