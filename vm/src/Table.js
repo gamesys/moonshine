@@ -102,6 +102,7 @@ luajs.Table.prototype.setMember = function (key, value) {
 		switch (mt.__newindex.constructor) {
 			case luajs.Table: return mt.__newindex.setMember (key, value);
 			case Function: return mt.__newindex (this, key, value);
+			case luajs.Function: return mt.__newindex.apply (this, [this, key, value])[0];
 		}
 	}
 
