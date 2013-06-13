@@ -20,6 +20,6 @@ package {
 			window.setTimeout = setTimeout;
 			window.isNaN = isNaN;
 
-			var JSON:Object;
-			
-			
+			var JSON : Object;
+			var ArrayBuffer : Object;
+			var Int32Array : Object;

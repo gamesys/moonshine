@@ -8,7 +8,7 @@
 	/////////////////////////////////
 
 
-	function ArrayInstructionSet (data) {
+	var ArrayInstructionSet = function (data) {
 		this._data = data;
 	}
 
@@ -28,7 +28,7 @@
 	/////////////////////////////////
 
 
-	function ArrayBufferInstructionSet (data) {
+	var ArrayBufferInstructionSet = function (data) {
 		this._buffer = new ArrayBuffer(data.length * 4 * 4);
 		this._view = new Int32Array(this._buffer);
 
