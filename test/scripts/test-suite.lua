@@ -402,6 +402,14 @@ assertTrue (t[3] == 9, 'Table should be able to be instantiated by the result of
 
 
 
+t = {}
+t[1] = 'number'
+t['1'] = 'string'
+
+assertTrue (t[1] == 'number', 'A numerical table index should return a different value than when using the same index as a sting. [1]')
+assertTrue (t['1'] == 'string', 'A numerical table index should return a different value than when using the same index as a sting. [2]')
+
+
 
 
 -------------
@@ -474,13 +482,14 @@ assertTrue (b == '[1=2][2=4][3=8]', 'ipairs() should iterate over table items [1
 -- pairs
 
 local a, b = "", {foo=1}
-b["bar"] = "Hello"
+b["bar"] = "Hello",
+table.insert(b, 123)
 
 for i, v in pairs(b) do
 	a = a..i..':'..v..';'
 end
 
-assertTrue (#a == #'bar:Hello;foo:1;', 'pairs() should iterate over table items [2]')	-- Have to compare lengths because order is arbitrary
+assertTrue (#a == #'1:123;bar:Hello;foo:1;', 'pairs() should iterate over table items [2]')	-- Have to compare lengths because order is arbitrary
 
 
 
@@ -507,7 +516,6 @@ a, b, c = pcall (badfunc, 6)
 assertTrue (a == false, 'pcall() should return false in the first item when the function errors during execution')
 assertTrue (not (b == nil), 'pcall() should return an error message in the second item when the function error during execution')
 assertTrue (c == nil, 'pcall() should only return 2 items when the function error during execution')
-
 
 
 
@@ -644,12 +652,23 @@ assertTrue (d == nil, 'tonumber() should return nil with passed an empty string 
 -- tostring
 -- TODO Check for use of __tostring metamethod
 
-local a = tostring (123)
---local b = tostring ({})
---local c = tostring ({1, 2, 3})
---local d = tostring (function () return true end)
+a = tostring (123)
+b = tostring ({})
+c = tostring ({1, 2, 3})
+d = tostring (function () return true end)
+e = tostring(math.huge)
+f = tostring(-math.huge)
+g = tostring(0/0)
+ 
+assertTrue (a == '123', 'tostring() should convert a number to a string')
+assertTrue (string.sub(b, 1, 9) == 'table: 0x', 'tostring() should convert an empty table to a string')
+assertTrue (string.sub(c, 1, 9) == 'table: 0x', 'tostring() should convert a table to a string')
+assertTrue (string.sub(d, 1, 12) == 'function: 0x', 'tostring() should convert a number to a string')
+assertTrue (e == 'inf', 'tostring() should convert infinity to "inf"')
+assertTrue (f == '-inf', 'tostring() should convert negative infinity to "-inf"')
+assertTrue (g == 'nan', 'tostring() should convert not-a-number to "nan"')
 
-assertTrue (a == "123", 'tostring() should convert a number to a string')
+
 
 
 
@@ -1331,6 +1350,53 @@ assertTrue (d == 2 * math.pi, 'math.rad() should return 2*Pi when passed 360')
 assertTrue (e == 2.5 * math.pi, 'math.rad() should return 2.5*Pi when passed 450')
 assertTrue (f == -math.pi, 'math.rad() should return -Pi when passed -180')
 
+
+-- math.random
+
+a = math.random()
+b = math.random()
+
+assertTrue (a == 16807 / 2147483647, 'math.random() should initialise with a value of 1')
+assertTrue (b == ((16807 * a * 2147483647) % 2147483647) / 2147483647, 'math.random() should follow the right sequence [1]')
+
+
+
+-- math.randomseed
+
+math.randomseed(123)
+
+c = math.random()
+d = math.random()
+
+assertTrue (c == ((16807 * 123) % 2147483647) / 2147483647, 'math.random() should follow the right sequence [2]')
+assertTrue (d == ((16807 * c * 2147483647) % 2147483647) / 2147483647, 'math.random() should follow the right sequence [3]')
+
+
+
+
+
+
+-- math.deg
+
+a = math.deg (0)
+b = math.deg (math.pi)
+c = math.deg (math.pi * 2)
+d = math.deg (math.pi / 2)
+
+assertTrue (a == 0, 'math.deg() should return 0 when passed zero')
+assertTrue (b == 180, 'math.deg() should return 180 when passed Pi')
+assertTrue (c == 360, 'math.deg() should return 360 when passed 2Pi')
+assertTrue (d == 90, 'math.deg() should return 90 when passed Pi/2')
+
+
+
+--math.huge
+
+a = math.huge + 1
+b = -math.huge - 1
+
+assertTrue (a == math.huge, 'math.huge should not change value with addition.')
+assertTrue (b == -math.huge, 'Negative math.huge should not change value with subtraction.')
 
 
 

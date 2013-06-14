@@ -1,6 +1,7 @@
 /**
  * @fileOverview Closure class.
  * @author <a href="http://paulcuth.me.uk">Paul Cuthbertson</a>
+ * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
  * @copyright Gamesys Limited 2013
  */
 
@@ -30,7 +31,7 @@ luajs.Closure = function (vm, file, data, globals, upvalues) {
 	this._upvalues = upvalues || {};
 	this._constants = data.constants;
 	this._functions = data.functions;
-	this._instructions = data.instructions;
+	this._instructions = new luajs.InstructionSet(data.instructions);
 
 	this._register = [];
 	this._pc = 0;
@@ -83,8 +84,8 @@ luajs.Closure.create = function (vm, file, data, globals, upvalues) {
 luajs.Closure.prototype.execute = function (args) {
 	this._pc = 0;
 
-	if (this._data && this._data.sourceName) luajs.stddebug.write ('Executing ' + this._data.sourceName + '...'); //? ' ' + this._data.sourceName : ' function') + '...<br><br>');
-	luajs.stddebug.write ('\n');
+	//if (this._data && this._data.sourceName) luajs.stddebug.write ('Executing ' + this._data.sourceName + '...'); //? ' ' + this._data.sourceName : ' function') + '...<br><br>');
+	//luajs.stddebug.write ('\n');
 
 	// ASSUMPTION: Parameter values are automatically copied to R(0) onwards of the function on initialisation. This is based on observation and is neither confirmed nor denied in any documentation. (Different rules apply to v5.0-style VARARG functions)
 	this._params = [].concat (args);
@@ -149,7 +150,7 @@ luajs.Closure.prototype._run = function () {
 			
 		} else {
 			luajs.Coroutine._running.status = 'running';
-			luajs.stddebug.write ('[coroutine resumed]\n');
+			//luajs.stddebug.write ('[coroutine resumed]\n');
 	
 			yieldVars = luajs.Coroutine._running._yieldVars;
 		}
@@ -157,13 +158,13 @@ luajs.Closure.prototype._run = function () {
 	
 
 	if (yieldVars) {
-		instruction = this._instructions[this._pc - 1];
+		// instruction = this._instructions[this._pc - 1];
 
-		var a = instruction.A,
-			b = instruction.B,
-			c = instruction.C,
+		var a = this._instructions.get(this._pc - 1, 'A'),
+			b = this._instructions.get(this._pc - 1, 'B'),
+			c = this._instructions.get(this._pc - 1, 'C'),
 			retvals = [];
-	
+
 		for (var i = 0, l = yieldVars.length; i < l; i++) retvals.push (yieldVars[i]);
 
 		if (c === 0) {
@@ -183,13 +184,10 @@ luajs.Closure.prototype._run = function () {
 	}
 
 
-	
-		
-	while (instruction = this._instructions[this._pc]) {
+	while (this._instructions.get(this._pc, 'op') !== undefined) {
 		line = this._data.linePositions[this._pc];
 
-		this._pc++;
-		retval = this._executeInstruction (instruction, line);
+		retval = this._executeInstruction (this._pc++, line);
 
 		if (luajs.Coroutine._running && luajs.Coroutine._running.status == 'suspending') {
 			luajs.Coroutine._running._resumeStack.push (this);
@@ -200,7 +198,7 @@ luajs.Closure.prototype._run = function () {
 				luajs.Coroutine._running.status = 'suspended';
 				luajs.Coroutine._remove ();
 
-				luajs.stddebug.write ('[coroutine suspended]\n');
+				//luajs.stddebug.write ('[coroutine suspended]\n');
 				
 				return retval;
 			}
@@ -229,28 +227,30 @@ luajs.Closure.prototype._run = function () {
 
 
 
-
-
-
 /**
  * Executes a single instruction.
  * @param {object} instruction Information about the instruction.
  * @param {number} line The line number on which to find the instruction (for debugging).
  * @returns {Array} Array of the values that make be returned from executing the instruction.
  */
-luajs.Closure.prototype._executeInstruction = function (instruction, line) {
-	var op = this.constructor.OPERATIONS[instruction.op];
-	if (!op) throw new Error ('Operation not implemented! (' + instruction.op + ')');
+luajs.Closure.prototype._executeInstruction = function (pc, line) {
+	var opcode = this._instructions.get(pc, 'op'),
+		op = this.constructor.OPERATIONS[opcode],
+		A = this._instructions.get(pc, 'A'),
+		B = this._instructions.get(pc, 'B'),
+		C = this._instructions.get(pc, 'C');
 
-	if (luajs.debug.status != 'resuming') {
-		var tab = '',
-			opName = this.constructor.OPERATION_NAMES[instruction.op];
+	if (!op) throw new Error ('Operation not implemented! (' + opcode + ')');
+
+	// if (luajs.debug.status != 'resuming') {
+	// 	var tab = '',
+	// 		opName = this.constructor.OPERATION_NAMES[opcode];
 			
-		for (var i = 0; i < this._index; i++) tab += '\t';
-		luajs.stddebug.write (tab + '[' + this._pc + ']\t' + line + '\t' + opName + '\t' + instruction.A + '\t' + instruction.B + (instruction.C !== undefined? '\t' + instruction.C : ''));
-	}
+	// 	for (var i = 0; i < this._index; i++) tab += '\t';
+	// 	luajs.stddebug.write (tab + '[' + this._pc + ']\t' + line + '\t' + opName + '\t' + A + '\t' + B + (C !== undefined? '\t' + C : ''));
+	// }
 
-	return op.call (this, instruction.A, instruction.B, instruction.C);
+	return op.call (this, A, B, C);
 };
 	
 
@@ -963,21 +963,25 @@ luajs.Closure.prototype.dispose = function (force) {
 	function closure (a, bx) {
 		var me = this,
 			upvalues = [],
-			instruction;
-		
-		while ((instruction = this._instructions[this._pc]) && (instruction.op === 0 || instruction.op === 4) && instruction.A === 0) {	// move, getupval
+			opcode;
+
+		while ((opcode = this._instructions.get(this._pc, 'op')) !== undefined && (opcode === 0 || opcode === 4) && this._instructions.get(this._pc, 'A') === 0) {	// move, getupval
 
 			(function () {
-				var i = instruction,
+				var op = opcode,
+					pc = me._pc,
+					A = me._instructions.get(pc, 'A'),
+					B = me._instructions.get(pc, 'B'),
+					C = me._instructions.get(pc, 'C'),
 					upvalue;
 
-				luajs.stddebug.write ('-> ' + me.constructor.OPERATION_NAMES[i.op] + '\t' + i.A + '\t' + i.B + '\t' + i.C);
+				// luajs.stddebug.write ('-> ' + me.constructor.OPERATION_NAMES[op] + '\t' + A + '\t' + B + '\t' + C);
 
 				
-				if (i.op === 0) {	// move
+				if (op === 0) {	// move
 					for (var j = 0, l = me._localsUsedAsUpvalues.length; j < l; j++) {
 						var up = me._localsUsedAsUpvalues[j];
-						if (up.registerIndex === i.B) {
+						if (up.registerIndex === B) {
 							upvalue = up.upvalue;
 							break;
 						}
@@ -987,16 +991,16 @@ luajs.Closure.prototype.dispose = function (force) {
 						upvalue = {
 							open: true,
 							getValue: function () {
-								return this.open? me._register[i.B] : this.value;
+								return this.open? me._register[B] : this.value;
 							},
 							setValue: function (val) {
-								this.open? me._register[i.B] = val : this.value = val;
+								this.open? me._register[B] = val : this.value = val;
 							},
 							name: me._functions[bx].upvalues[upvalues.length]
 						};
 
 						me._localsUsedAsUpvalues.push ({
-							registerIndex: i.B,
+							registerIndex: B,
 							upvalue: upvalue
 						});
 					}
@@ -1009,12 +1013,12 @@ luajs.Closure.prototype.dispose = function (force) {
 					
 					upvalues.push ({
 						getValue: function () {
-							return me._upvalues[i.B].getValue ();
+							return me._upvalues[B].getValue ();
 						},
 						setValue: function (val) {
-							me._upvalues[i.B].setValue (val);
+							me._upvalues[B].setValue (val);
 						},
-						name: me._upvalues[i.B].name
+						name: me._upvalues[B].name
 					});
 				}
 				

@@ -18,7 +18,8 @@ package {
 
 			var window : Object = {};
 			window.setTimeout = setTimeout;
-			
-			var JSON:Object;
-			
-			
+			window.isNaN = isNaN;
+
+			var JSON : Object;
+			var ArrayBuffer : Object;
+			var Int32Array : Object;

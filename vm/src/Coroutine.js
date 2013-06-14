@@ -1,6 +1,10 @@
 /**
  * @fileOverview Coroutine class.
+<<<<<<< HEAD
  * @author <a href="http://paulcuth.me.uk">Paul Cuthbertson</a>
+=======
+ * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
+>>>>>>> master
  * @copyright Gamesys Limited 2013
  */
 

@@ -1,6 +1,6 @@
 /**
  * @fileOverview Table class.
- * @author <a href="http://paulcuth.me.uk">Paul Cuthbertson</a>
+ * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
  * @copyright Gamesys Limited 2013
  */
 
@@ -20,6 +20,14 @@ luajs.Table = function (obj) {
 		value,
 		i;
 
+	this.__luajs = { 
+		type: 'table',
+		index: ++luajs.Table.count,
+		keys: [],
+		values: [],
+		numValues: [undefined]
+	};
+
 	for (i in obj || {}) {
 		var iterate;
 
@@ -31,22 +39,12 @@ luajs.Table = function (obj) {
 			iterate = ((getQualifiedClassName(value) == "Object") && (!(value instanceof luajs.Table)) && (!(value instanceof luajs.Coroutine)) && (!(value instanceof luajs.Function)) && (!(value instanceof luajs.Closure) )) || (getQualifiedClassName(value) == "Array");
 		} else {
 			// JavaScript
-			iterate = (typeof value == 'object' && value.constructor === Object);
+			iterate = (typeof value == 'object' && value.constructor === Object) || value instanceof Array;
 		}
 		
-		if (iterate) {
-			this[key] = new luajs.Table (value);
-		} else {
-			this[key] = value;
-		}
+		this.setMember(key, iterate? new luajs.Table (value) : value);
 	}
 	
-	this.__luajs = { 
-		type: 'table',
-		index: ++luajs.Table.count,
-		keys: [],
-		values: []
-	};
 };
 
 
@@ -66,12 +64,21 @@ luajs.Table.count = 0;
  * @returns {Object} The value of the member sought.
  */
 luajs.Table.prototype.getMember = function (key) {
+	var index,
+		value;
 
-	if (typeof key === 'string' || typeof key === 'number') {
-		if (this[key] !== undefined) return this[key];
-	} else {
-		var index = this.__luajs.keys.indexOf (key);
-		if (index >= 0) return this.__luajs.values[index];
+	switch (typeof key) {
+		case 'string':
+			if (this[key] !== undefined) return this[key];
+			break;
+
+		case 'number':
+			value = this.__luajs.numValues[key];
+			if (value !== undefined) return value;
+
+		default:
+			index = this.__luajs.keys.indexOf (key);
+			if (index >= 0) return this.__luajs.values[index];
 	}
 	
 	var mt = this.__luajs.metatable;
@@ -102,22 +109,31 @@ luajs.Table.prototype.setMember = function (key, value) {
 		switch (mt.__newindex.constructor) {
 			case luajs.Table: return mt.__newindex.setMember (key, value);
 			case Function: return mt.__newindex (this, key, value);
+			case luajs.Function: return mt.__newindex.apply (this, [this, key, value])[0];
 		}
 	}
 
-	if (typeof key === 'string' || typeof key === 'number') {
-		this[key] = value;
+	switch (typeof key) {
+		case 'string':
+			this[key] = value;
+			break;
 
-	} else {
-		keys = this.__luajs.keys;
-		index = keys.indexOf(key);
-		
-		if (index < 0) {
-			index = keys.length;
-			keys[index] = key;
-		}
-		
-		this.__luajs.values[index] = value;
+
+		case 'number':
+			this.__luajs.numValues[key] = value;
+			break;
+
+
+		default:
+			keys = this.__luajs.keys;
+			index = keys.indexOf(key);
+			
+			if (index < 0) {
+				index = keys.length;
+				keys[index] = key;
+			}
+			
+			this.__luajs.values[index] = value;
 	}
 };
 

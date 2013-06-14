@@ -1,6 +1,6 @@
 /**
  * @fileOverview Debug engine.
- * @author <a href="http://paulcuth.me.uk">Paul Cuthbertson</a>
+ * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
  * @copyright Gamesys Limited 2013
  * @todo Refactor the entirety of this.
  */
