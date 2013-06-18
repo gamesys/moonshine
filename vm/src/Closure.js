@@ -365,6 +365,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function getupval (a, b) {
+		if (this._upvalues[b] === undefined) return;
 		this._register[a] = this._upvalues[b].getValue ();
 	}
 

@@ -188,15 +188,21 @@ var luajs = luajs || {};
 	
 		
 		load: function (func, chunkname) {
-			return [undefined, 'Unimplemented'];
+			var file = new luajs.File,
+				chunk = '', piece, lastPiece;
+
+			while ((piece = func()) && piece != lastPiece) {
+				chunk += (lastPiece = piece);
+			}
+
+			file._data = JSON.parse(chunk);
+			return new luajs.Function(this, file, file._data, this._globals, []);
 		},
 	
 	
 	
 		
 		loadfile: function (filename) {
-//			return [undefined, 'Unimplemented'];
-
 			var thread = luajs.lib.coroutine.yield(),
 				callback = function (result) {
 					thread.resume(result);
@@ -208,8 +214,9 @@ var luajs = luajs || {};
 	
 	
 		
-		loadstring: function (func, chunkname) {
-			return [undefined, 'Unimplemented'];
+		loadstring: function (string, chunkname) {
+			var f = function () { return string; };
+			return luajs.lib.load.call(this, f, chunkname);
 		},
 	
 	
@@ -566,7 +573,7 @@ var luajs = luajs || {};
 		
 		
 		dump: function (func) {
-			return JSON.stringify(func);
+			return JSON.stringify(func._data);
 		},
 		
 		
