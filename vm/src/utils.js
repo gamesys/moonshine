@@ -42,7 +42,7 @@ luajs.debug = {};
 		toObject: function (table) {
 			var isArr = luajs.lib.table.getn (table) > 0,
 				result = isArr? [] : {},
-				numValues = table__luajs.numValues,
+				numValues = table.__luajs.numValues,
 				i,
 				l = numValues.length;
 
