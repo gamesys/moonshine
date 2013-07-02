@@ -39,6 +39,8 @@ luajs.debug = {};
 		},
 
 
+
+
 		toObject: function (table) {
 			var isArr = luajs.lib.table.getn (table) > 0,
 				result = isArr? [] : {},
@@ -47,7 +49,7 @@ luajs.debug = {};
 				l = numValues.length;
 
 			for (i = 1; i < l; i++) {
-				result[i] = ((numValues || {}) instanceof luajs.Table)? luajs.utils.toObject(numValues[i]) : numValues[i];
+				result[i - 1] = ((numValues[i] || {}) instanceof luajs.Table)? luajs.utils.toObject(numValues[i]) : numValues[i];
 			}
 
 			for (i in table) {
