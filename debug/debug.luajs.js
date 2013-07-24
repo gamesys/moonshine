@@ -78,7 +78,7 @@ luajs.debug._init = function () {
 	
 
 luajs.debug.loadScript = function (jsonUrl, callback) {
-	var url = jsonUrl.replace (/.json$/, '.lua');
+	var url = jsonUrl.replace (/(.lua)?.json$/, '.lua');
 	
 	jQuery.ajax ({
 		url: url, 
