@@ -52,14 +52,14 @@
 	
 	<body>
 		<pre id="output"></pre>
-		<pre id="debug"></pre>
+		<!-- pre id="debug"></pre -->
 
 		<script>
 			(function () {
 				
 				var debugText = '',
-					elOutput = document.getElementById ('output'),
-					elDebug = document.getElementById ('debug');
+					elOutput = document.getElementById ('output');
+					// elDebug = document.getElementById ('debug');
 				
 				function escapeHTML(text) {
 				    return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -69,14 +69,14 @@
 					elOutput.innerHTML += escapeHTML (message) + '\n';
 				};
 					
-				luajs.stddebug.write = function (message) {
-					debugText += escapeHTML (message) + '\n';
-				};
+				// luajs.stddebug.write = function (message) {
+				// 	debugText += escapeHTML (message) + '\n';
+				// };
 				
 
-				window.setInterval (function () { 
-					elDebug.innerHTML = debugText;
-				}, 500);
+				// window.setInterval (function () { 
+				// 	elDebug.innerHTML = debugText;
+				// }, 500);
 
 	
 				var vm = new luajs.VM ();
