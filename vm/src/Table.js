@@ -20,6 +20,8 @@ luajs.Table = function (obj) {
 		value,
 		i;
 
+	obj = obj || {};
+
 	this.__luajs = { 
 		type: 'table',
 		index: ++luajs.Table.count,
@@ -28,21 +30,23 @@ luajs.Table = function (obj) {
 		numValues: [undefined]
 	};
 
-	for (i in obj || {}) {
-		var iterate;
+	for (i in obj) {
+		if (obj.hasOwnProperty(i)) {
+			var iterate;
 
-		key = isArr? parseInt (i, 10) + 1: i;
-		value = obj[i];
+			key = isArr? parseInt (i, 10) + 1: i;
+			value = obj[i];
 
-		if (typeof getQualifiedClassName !== 'undefined') {
-			// ActionScript
-			iterate = ((getQualifiedClassName(value) == "Object") && (!(value instanceof luajs.Table)) && (!(value instanceof luajs.Coroutine)) && (!(value instanceof luajs.Function)) && (!(value instanceof luajs.Closure) )) || (getQualifiedClassName(value) == "Array");
-		} else {
-			// JavaScript
-			iterate = (typeof value == 'object' && value.constructor === Object) || value instanceof Array;
+			if (typeof getQualifiedClassName !== 'undefined') {
+				// ActionScript
+				iterate = ((getQualifiedClassName(value) == "Object") && (!(value instanceof luajs.Table)) && (!(value instanceof luajs.Coroutine)) && (!(value instanceof luajs.Function)) && (!(value instanceof luajs.Closure) )) || (getQualifiedClassName(value) == "Array");
+			} else {
+				// JavaScript
+				iterate = (typeof value == 'object' && value.constructor === Object) || value instanceof Array;
+			}
+			
+			this.setMember(key, iterate? new luajs.Table (value) : value);
 		}
-		
-		this.setMember(key, iterate? new luajs.Table (value) : value);
 	}
 	
 };

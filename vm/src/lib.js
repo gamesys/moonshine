@@ -58,7 +58,7 @@ var luajs = luajs || {};
 		var n = 0,
 			i, l, character, addSlash;
 					
-		for (i in ROSETTA_STONE) pattern = pattern.replace (new RegExp(i, 'g'), ROSETTA_STONE[i]);
+		for (i in ROSETTA_STONE) if (ROSETTA_STONE.hasOwnProperty(i)) pattern = pattern.replace (new RegExp(i, 'g'), ROSETTA_STONE[i]);
 		l = pattern.length;
 
 		for (i = 0; i < l; i++) {
@@ -211,13 +211,15 @@ var luajs = luajs || {};
 			}
 	
 			for (i in table.__luajs.keys) {
-				var key = table.__luajs.keys[i];
+				if (table.__luajs.keys.hasOwnProperty(i)) {
+					var key = table.__luajs.keys[i];
 	
-				if (!found) {
-					if (key === index) found = true;
-	
-				} else if (table.__luajs.values[i] !== undefined) {
-					return [key, table.__luajs.values[i]];
+					if (!found) {
+						if (key === index) found = true;
+		
+					} else if (table.__luajs.values[i] !== undefined) {
+						return [key, table.__luajs.values[i]];
+					}
 				}
 			}
 		
@@ -832,7 +834,7 @@ var luajs = luajs || {};
 				i, 
 				j = 0;
 
-			for (i in vals) keys[i] = true;
+			for (i in vals) if (vals.hasOwnProperty(i)) keys[i] = true;
 			while (keys[j + 1]) j++;
 	
 			// Following translated from ltable.c (http://www.lua.org/source/5.1/ltable.c.html)
@@ -1233,9 +1235,11 @@ var luajs = luajs || {};
 			var i, arg, output = '';
 			
 			for (var i in arguments) {
-				var arg = arguments[i];
-				if (['string', 'number'].indexOf (typeof arg) == -1) throw new luajs.Error ('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
-				output += arg;
+				if (arguments.hasOwnProperty(i)) {
+					var arg = arguments[i];
+					if (['string', 'number'].indexOf (typeof arg) == -1) throw new luajs.Error ('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
+					output += arg;
+				}
 			}
 			
 			luajs.stdout.write (output);
@@ -1343,7 +1347,7 @@ var luajs = luajs || {};
 	
 	
 			for (var i in handlers) {
-				if (format.indexOf (i) >= 0) format = format.replace (i, handlers[i](date));
+				if (handlers.hasOwnProperty(i) && format.indexOf (i) >= 0) format = format.replace (i, handlers[i](date));
 			}
 			
 			return format;

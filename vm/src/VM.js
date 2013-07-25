@@ -35,8 +35,8 @@ luajs.VM.prototype.constructor = luajs.VM;
  */
 luajs.VM.prototype._resetGlobals = function () {
 	this._globals = {};
-	for (var i in luajs.lib) this._globals[i] = luajs.lib[i];
-	for (var i in this._env) this._globals[i] = this._env[i];
+	for (var i in luajs.lib) if (luajs.lib.hasOwnProperty(i)) this._globals[i] = luajs.lib[i];
+	for (var i in this._env) if (this._env.hasOwnProperty(i)) this._globals[i] = this._env[i];
 };
 
 
@@ -101,29 +101,31 @@ luajs.VM.prototype.execute = function (coConfig, file) {
 	if (!files.length) throw new Error ('No files loaded.'); 
 	
 	for (index in files) {
-		file = files[index];		
-		if (!file.data) throw new Error ('Tried to execute file before data loaded.');
-	
-	
-		this._thread = new luajs.Function (this, file, file.data, this._globals);	
-		this._trigger ('executing', [this._thread, coConfig]);
+		if (files.hasOwnProperty(index)) {
+			file = files[index];		
+			if (!file.data) throw new Error ('Tried to execute file before data loaded.');
 		
-		try {
-			if (!coConfig) {
-				this._thread.call ();
-				
-			} else {
-				var co = luajs.lib.coroutine.wrap (this._thread),
-					resume = function () {
-						co ();
-						if (coConfig.uiOnly && co._coroutine.status != 'dead') window.setTimeout (resume, 1);
-					};
-	
-				resume ();
-			}
+		
+			this._thread = new luajs.Function (this, file, file.data, this._globals);	
+			this._trigger ('executing', [this._thread, coConfig]);
 			
-		} catch (e) {
-			luajs.Error.catchExecutionError (e);
+			try {
+				if (!coConfig) {
+					this._thread.call ();
+					
+				} else {
+					var co = luajs.lib.coroutine.wrap (this._thread),
+						resume = function () {
+							co ();
+							if (coConfig.uiOnly && co._coroutine.status != 'dead') window.setTimeout (resume, 1);
+						};
+		
+					resume ();
+				}
+				
+			} catch (e) {
+				luajs.Error.catchExecutionError (e);
+			}
 		}
 	}
 };
@@ -149,7 +151,7 @@ luajs.VM.prototype.setGlobal = function (name, value) {
 luajs.VM.prototype.dispose = function () {
 	var thread;
 
-	for (var i in this._files) this._files[i].dispose ();
+	for (var i in this._files) if (this._files.hasOwnProperty(i)) this._files[i].dispose ();
 
 	if (thread = this._thread) thread.dispose ();
 
