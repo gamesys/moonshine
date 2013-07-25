@@ -954,25 +954,24 @@ var luajs = luajs || {};
 		sort: function (table, comp) {
 			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ("Bad argument #1 to 'sort' (table expected)");
 	
-			var val,
-				arr = [],
-				sortFunc = function (a, b) {
-					return a < b? -1 : 1;
-				};
-	
-	
+			var sortFunc, 
+				arr = table.__luajs.numValues;
+		
 			if (comp) {
 				if (!((comp || {}) instanceof luajs.Function)) throw new luajs.Error ("Bad argument #2 to 'sort' (function expected)");
 	
 				sortFunc = function (a, b) {
 					return comp.call ({}, a, b)[0]? -1 : 1;
 				}
+			
+			} else {
+				sortFunc = function (a, b) {
+					return a < b? -1 : 1;
+				};
 			}
 	
-			for (var i = 1; (val = table.getMember (i)) !== undefined; i++) arr.push (val);
-			arr.sort (sortFunc);
-	
-			for (i in arr) table.setMember (parseInt (i, 10) + 1, arr[i]);
+			arr.shift();
+			arr.sort(sortFunc).unshift(undefined);
 		}
 	}
 	
