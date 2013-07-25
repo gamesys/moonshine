@@ -27,6 +27,9 @@ luajs.Function = function (vm, file, data, globals, upvalues) {
 	this.instances = [];
 	this._retainCount = 0;
 
+	// Convert instructions to byte array (where possible);
+ 	if (this._data.instructions instanceof Array) this._data.instructions = new luajs.InstructionSet(data.instructions);
+
 	this.constructor._instances.push(this);
 };
 
