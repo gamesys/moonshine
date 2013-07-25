@@ -178,7 +178,7 @@ luajs.Function.prototype.dispose = function (force) {
 	delete this.instances;	
 	delete this._readyToDispose;
 	
-	//this.constructor._instances.splice (this.constructor._instances.indexOf(this), 1);
+	this.constructor._instances.splice (this.constructor._instances.indexOf(this), 1);
 	
 	return true;
 };

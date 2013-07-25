@@ -161,7 +161,7 @@ luajs.VM.prototype.dispose = function () {
 
 
 	// Clear static stacks -- Very dangerous for environments that contain multiple VMs!
-	while (luajs.Function._instances.length) luajs.Function._instances.pop().dispose(true);
+	while (luajs.Function._instances.length) luajs.Function._instances.dispose(true);
 	luajs.Closure._graveyard.splice(0, luajs.Closure._graveyard.length);
 	luajs.Coroutine._graveyard.splice(0, luajs.Coroutine._graveyard.length);
 
