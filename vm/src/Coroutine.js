@@ -135,6 +135,7 @@ luajs.Coroutine.prototype.resume = function () {
 	}
 
 	if (this.status == 'dead') {
+		luajs.Coroutine._remove ();
 		luajs.stddebug.write ('[coroutine terminated]\n');
 		this._dispose();
 	}
