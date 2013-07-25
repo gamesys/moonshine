@@ -528,6 +528,21 @@ assertTrue (c == nil, 'pcall() should only return 2 items when the function erro
 
 
 
+-- require
+
+mainGlobal1 = 'mainGlbl'
+mainGlobal2 = 'mainGlbl'
+
+local mainLocal = 'mainLoc'
+
+-- local result = require 'test-req'
+-- print(result)
+
+
+
+
+
+
 -- select
 
 local a, b, c, d = select (3, 2, 4, 6, 8, 10)

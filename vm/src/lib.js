@@ -979,7 +979,7 @@ var luajs = luajs || {};
 
 		cpath: undefined,
 		loaded: new luajs.Table(),
-		path: '?.json;?.luac.json;./modules/?.json;./modules/?/?.json;./modules/?/index.json',
+		path: '?.json;?.lua.json;./modules/?.json;./modules/?/?.json;./modules/?/index.json',
 		preload: {},
 
 
