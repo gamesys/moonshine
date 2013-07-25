@@ -452,6 +452,567 @@ var luajs = luajs || {};
 	
 	
 	
+	luajs.lib.coroutine = {
+
+		
+		create: function (closure) {
+			//return new luajs.Coroutine (closure);
+			return luajs.Coroutine.create (closure);
+		},
+		
+		
+		
+		
+		resume: function (thread) {
+			var args = [];
+			for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);	
+
+			return thread.resume.apply (thread, args);
+		},
+		
+		
+		
+		
+		running: function () {
+			return luajs.Coroutine._running;
+		},
+		
+	
+		
+		
+		status: function (closure) {
+			return closure.status;
+		},
+		
+		
+		
+		
+		wrap: function (closure) {
+			var co = luajs.lib.coroutine.create (closure);
+			
+			var result = function () {			
+				var args = [co];
+				for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
+	
+				var retvals = luajs.lib.coroutine.resume.apply ({}, args),
+					success = retvals.shift ();
+					
+				if (success) return retvals;
+				throw retvals[0];
+			};
+			
+			result._coroutine = co;
+			return result;
+		},
+		
+	
+		
+		
+		yield: function () {
+			// If running in main thread, throw error.
+			if (!luajs.Coroutine._running) throw new luajs.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
+			if (luajs.Coroutine._running.status != 'running') throw new luajs.Error ('attempt to yield non-running coroutine in host');
+
+			var args = [],
+				running = luajs.Coroutine._running;
+
+			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
+	
+			running._yieldVars = args;
+			running.status = 'suspending';
+
+			return {
+				resume: function () {
+					var args = [running],
+						i, 
+						l = arguments.length,
+						f = function () { 
+							luajs.lib.coroutine.resume.apply (undefined, args); 
+						};
+
+					for (i = 0; i < l; i++) args.push (arguments[i]);
+
+					if (running.status == 'suspending') {
+						window.setTimeout (f, 1);
+					} else {
+						f ();
+					}
+				}
+			}
+		}
+	
+		
+	};
+
+
+
+
+	luajs.lib.io = {
+		
+		
+		write: function () {
+			var i, arg, output = '';
+			
+			for (var i in arguments) {
+				if (arguments.hasOwnProperty(i)) {
+					var arg = arguments[i];
+					if (['string', 'number'].indexOf (typeof arg) == -1) throw new luajs.Error ('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
+					output += arg;
+				}
+			}
+			
+			luajs.stdout.write (output);
+		}
+		
+		
+	};
+	
+	
+	
+		
+	luajs.lib.math = {
+	
+	
+		abs: function (x) {
+			return Math.abs (x);
+		},
+		
+		
+		
+		
+		acos: function (x) {
+			return Math.acos (x);
+		},
+		
+		
+		
+		
+		asin: function (x) {
+			return Math.asin (x);
+		},
+		
+		
+		
+		
+		atan: function (x) {
+			return Math.atan (x);
+		},
+		
+		
+		
+		
+		atan2: function (y, x) {
+			return Math.atan2 (y, x);
+		},
+		
+		
+		
+		
+		ceil: function (x) {
+			return Math.ceil (x);
+		},
+		
+		
+		
+		
+		cos: function (x) {
+			return Math.cos (x);
+		},
+		
+		
+		
+		
+		cosh: function (x) {
+			// Not implemented
+		},
+		
+		
+		
+		
+		deg: function (x) {
+			return x * 180 / Math.PI;
+		},
+		
+		
+		
+		
+		exp: function (x) {
+			return Math.exp (x);
+		},
+		
+		
+		
+		
+		floor: function (x) {
+			return Math.floor (x);
+		},
+		
+		
+		
+		
+		fmod: function (x, y) {
+			return x % y;
+		},
+		
+		
+		
+		
+		frexp: function (x, y) {
+			// TODO
+		},
+		
+		
+		
+		
+		huge: Infinity,
+		
+		
+		
+		
+		ldexp: function (m, e) {
+			return m * Math.pow (2, e);
+		},
+		
+		
+		
+		
+		log: function (x, base) {
+			var result = Math.log (x);
+			if (base !== undefined) return result / Math.log (base);
+			return result;
+		},
+		
+		
+		
+		
+		log10: function (x) {
+			// v5.2: luajs.warn ('math.log10 is deprecated. Use math.log with 10 as its second argument, instead.');
+			return Math.log (x) / Math.log (10);
+		},
+		
+		
+		
+		
+		max: function () {
+			var max = -Infinity,
+				length = arguments.length,
+				i;
+			
+			for (i = 0; i < length; i++) if (arguments[i] > max) max = arguments[i];
+			return max;
+		},
+		
+		
+		
+		
+		min: function () {
+			var min = Infinity,
+				length = arguments.length,
+				i;
+			
+			for (i = 0; i < length; i++) if (arguments[i] < min) min = arguments[i];
+			return min;
+		},
+		
+		
+		
+		
+		modf: function (x) {
+			var intValue = Math.floor (x),
+				mantissa = x - intValue;
+			return [intValue, mantissa];
+		},
+		
+		
+		
+		
+		pi: Math.PI,
+		
+		
+		
+		
+		pow: function (x, y) {
+			if ((x = luajs.utils.toFloat (x)) === undefined) throw new luajs.Error ("bad argument #1 to 'pow' (number expected)");
+			if ((y = luajs.utils.toFloat (y)) === undefined) throw new luajs.Error ("bad argument #2 to 'pow' (number expected)");
+			return Math.pow (x, y);
+		},
+		
+		
+		
+		
+		rad: function (x) {
+			if ((x = luajs.utils.toFloat (x)) === undefined) throw new luajs.Error ("bad argument #1 to 'rad' (number expected)");
+			return (Math.PI / 180) * x;
+		},
+	
+	
+	
+	
+		/**
+		 * Implementation of Lua's math.random function.
+		 */
+		random: function (min, max) {
+			if (min === undefined && max === undefined) return getRandom();
+	
+	
+			if (typeof min !== 'number') throw new luajs.Error ("bad argument #1 to 'random' (number expected)");
+	
+			if (max === undefined) {
+				max = min;
+				min = 1;
+	
+			} else if (typeof max !== 'number') {
+				throw new luajs.Error ("bad argument #2 to 'random' (number expected)");
+			}
+	
+			if (min > max) throw new luajs.Error ("bad argument #2 to 'random' (interval is empty)");
+			return Math.floor (getRandom() * (max - min + 1) + min);
+		},
+	
+	
+	
+	
+		randomseed: function (x) {
+			if (typeof x !== 'number') throw new luajs.Error ("bad argument #1 to 'randomseed' (number expected)");
+			randomSeed = x;
+		},
+	
+	
+	
+		
+		sin: function (x) {
+			return Math.sin (x);
+		},
+	
+	
+	
+		
+		sinh: function (x) {
+			// Not implemented
+		},
+	
+	
+	
+		
+		sqrt: function (x) {
+			return Math.sqrt (x);
+		},
+	
+	
+	
+		
+		tan: function (x) {
+			return Math.tan (x);
+		},
+	
+	
+	
+		
+		tanh: function (x) {
+			// Not implemented
+		}
+	
+		
+	};
+	
+	
+	
+	
+	luajs.lib.os = {
+	
+	
+		clock: function () {
+			// Not implemented
+		},
+	
+	
+	
+	
+		date: function (format, time) {
+			if (format === undefined) format = '%c';
+			
+	
+			var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+				months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+				daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
+				
+				getWeekOfYear = function (d, firstDay) { 
+					var dayOfYear = parseInt (handlers['%j'](d), 10),
+						jan1 = new Date (d.getFullYear (), 0, 1, 12),
+						offset = (8 - jan1['get' + utc + 'Day'] () + firstDay) % 7;
+	
+					return ('0' + (Math.floor ((dayOfYear - offset) / 7) + 1)).substr (-2);
+				},
+	
+				handlers = {
+					'%a': function (d) { return days[d['get' + utc + 'Day']()].substr (0, 3); },
+					'%A': function (d) { return days[d['get' + utc + 'Day']()]; },
+					'%b': function (d) { return months[d['get' + utc + 'Month']()].substr (0, 3); },
+					'%B': function (d) { return months[d['get' + utc + 'Month']()]; },
+					'%c': function (d) { return d['to' + utc + 'LocaleString'](); },
+					'%d': function (d) { return ('0' + d['get' + utc + 'Date']()).substr (-2); },
+					'%H': function (d) { return ('0' + d['get' + utc + 'Hours']()).substr (-2); },
+					'%I': function (d) { return ('0' + ((d['get' + utc + 'Hours']() + 11) % 12 + 1)).substr (-2); },
+					'%j': function (d) {
+						var result = d['get' + utc + 'Date'](),
+							m = d['get' + utc + 'Month']();
+							
+						for (var i = 0; i < m; i++) result += daysInMonth[i];
+						if (m > 1 && d['get' + utc + 'FullYear']() % 4 === 0) result +=1;
+	
+						return ('00' + result).substr (-3);
+					},
+					'%m': function (d) { return ('0' + (d['get' + utc + 'Month']() + 1)).substr (-2); },
+					'%M': function (d) { return ('0' + d['get' + utc + 'Minutes']()).substr (-2); },
+					'%p': function (d) { return (d['get' + utc + 'Hours']() < 12)? 'AM' : 'PM'; },
+					'%S': function (d) { return ('0' + d['get' + utc + 'Seconds']()).substr (-2); },
+					'%U': function (d) { return getWeekOfYear (d, 0); },
+					'%w': function (d) { return '' + (d['get' + utc + 'Day']()); },
+					'%W': function (d) { return getWeekOfYear (d, 1); },
+					'%x': function (d) { return handlers['%m'](d) + '/' + handlers['%d'](d) + '/' + handlers['%y'](d); },
+					'%X': function (d) { return handlers['%H'](d) + ':' + handlers['%M'](d) + ':' + handlers['%S'](d); },
+					'%y': function (d) { return handlers['%Y'](d).substr (-2); },
+					'%Y': function (d) { return '' + d['get' + utc + 'FullYear'](); },
+					'%Z': function (d) { return utc? 'UTC' : d.toString ().substr (-4, 3); },
+					'%%': function () { return '%' }
+				},
+	
+				utc = '',
+				date = new Date ();
+	
+			
+			if (time) date.setTime (time * 1000);
+			
+	
+			if (format.substr (0, 1) === '!') {
+				format = format.substr (1);
+				utc = 'UTC';
+			}
+	
+	
+			if (format === '*t') {
+				var isDST = function (d) {
+					var year = d.getFullYear (),
+						jan = new Date (year, 0);
+						
+					// ASSUMPTION: If the time offset of the date is the same as it would be in January of the same year, DST is not in effect.
+					return (d.getTimezoneOffset () !== jan.getTimezoneOffset ());
+				};
+				
+				return new luajs.Table ({
+					year: parseInt (handlers['%Y'](date), 10),
+					month: parseInt (handlers['%m'](date), 10),
+					day: parseInt (handlers['%d'](date), 10),
+					hour: parseInt (handlers['%H'](date), 10),
+					min: parseInt (handlers['%M'](date), 10),
+					sec: parseInt (handlers['%S'](date), 10),
+					wday: parseInt (handlers['%w'](date), 10) + 1,
+					yday: parseInt (handlers['%j'](date), 10),
+					isdst: isDST (date)
+				});	
+			}
+	
+	
+			for (var i in handlers) {
+				if (handlers.hasOwnProperty(i) && format.indexOf (i) >= 0) format = format.replace (i, handlers[i](date));
+			}
+			
+			return format;
+		},
+	
+	
+	
+	
+		difftime: function (t2, t1) {
+			return t2 - t1;
+		},
+	
+	
+	
+	
+		execute: function () {
+			if (arguments.length) throw new luajs.Error ('shell is not available. You should always check first by calling os.execute with no parameters');
+			return 0;
+		},
+	
+	
+	
+	
+		exit: function () {
+			throw 'Execution terminated.';
+		},
+	
+	
+	
+	
+		getenv: function () {
+			// Not implemented
+		},
+	
+	
+	
+	
+		remove: function () {
+			// Not implemented
+		},
+	
+	
+	
+	
+		rename: function () {
+			// Not implemented
+		},
+	
+	
+	
+	
+		setlocale: function () {
+			// Not implemented
+		},
+	
+	
+	
+	
+		/**
+		 * Implementation of Lua's os.time function.
+		 * @param {object} table The table that will receive the metatable.
+		 */
+		time: function (table) {
+			var time;
+			
+			if (!table) {
+				time = Date['now']? Date['now'] () : new Date ().getTime ();
+				
+			} else {	
+				var day, month, year, hour, min, sec;
+				
+				if (!(day = table.getMember ('day'))) throw new luajs.Error ("Field 'day' missing in date table");
+				if (!(month = table.getMember ('month'))) throw new luajs.Error ("Field 'month' missing in date table");
+				if (!(year = table.getMember ('year'))) throw new luajs.Error ("Field 'year' missing in date table");
+				hour = table.getMember ('hour') || 12;
+				min = table.getMember ('min') || 0;
+				sec = table.getMember ('sec') || 0;
+				
+				if (table.getMember ('isdst')) hour--;
+				time = new Date (year, month - 1, day, hour, min, sec).getTime ();
+			}
+			
+			return Math.floor (time / 1000);
+		},
+	
+	
+	
+	
+		tmpname: function () {
+			// Not implemented
+		}
+	
+			
+	};
+	
+	
+	
+
 	luajs.lib.string = {
 		
 		
@@ -909,22 +1470,6 @@ var luajs = luajs || {};
 		
 		
 		
-		unpack: function (table, i, j) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in unpack(). Table expected');	
-	
-			i = i || 1;
-			if (j === undefined) j = luajs.lib.table.getn (table);
-			
-			var vals = [],
-				index;
-	
-			for (index = i; index <= j; index++) vals.push (table.getMember (index));
-			return vals;
-		},
-	
-	
-	
-	
 		/**
 		 * Implementation of Lua's table.remove function.
 		 * @param {object} table The table from which to remove an element.
@@ -974,567 +1519,28 @@ var luajs = luajs || {};
 	
 			arr.shift();
 			arr.sort(sortFunc).unshift(undefined);
+		},
+
+
+
+
+		unpack: function (table, i, j) {
+			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in unpack(). Table expected');	
+	
+			i = i || 1;
+			if (j === undefined) j = luajs.lib.table.getn (table);
+			
+			var vals = [],
+				index;
+	
+			for (index = i; index <= j; index++) vals.push (table.getMember (index));
+			return vals;
 		}
+
+
 	}
-	
-	
-	
-	
-	luajs.lib.math = {
-	
-	
-		abs: function (x) {
-			return Math.abs (x);
-		},
-		
-		
-		
-		
-		acos: function (x) {
-			return Math.acos (x);
-		},
-		
-		
-		
-		
-		asin: function (x) {
-			return Math.asin (x);
-		},
-		
-		
-		
-		
-		atan: function (x) {
-			return Math.atan (x);
-		},
-		
-		
-		
-		
-		atan2: function (y, x) {
-			return Math.atan2 (y, x);
-		},
-		
-		
-		
-		
-		ceil: function (x) {
-			return Math.ceil (x);
-		},
-		
-		
-		
-		
-		cos: function (x) {
-			return Math.cos (x);
-		},
-		
-		
-		
-		
-		cosh: function (x) {
-			// Not implemented
-		},
-		
-		
-		
-		
-		deg: function (x) {
-			return x * 180 / Math.PI;
-		},
-		
-		
-		
-		
-		exp: function (x) {
-			return Math.exp (x);
-		},
-		
-		
-		
-		
-		floor: function (x) {
-			return Math.floor (x);
-		},
-		
-		
-		
-		
-		fmod: function (x, y) {
-			return x % y;
-		},
-		
-		
-		
-		
-		frexp: function (x, y) {
-			// TODO
-		},
-		
-		
-		
-		
-		huge: Infinity,
-		
-		
-		
-		
-		ldexp: function (m, e) {
-			return m * Math.pow (2, e);
-		},
-		
-		
-		
-		
-		log: function (x, base) {
-			var result = Math.log (x);
-			if (base !== undefined) return result / Math.log (base);
-			return result;
-		},
-		
-		
-		
-		
-		log10: function (x) {
-			// v5.2: luajs.warn ('math.log10 is deprecated. Use math.log with 10 as its second argument, instead.');
-			return Math.log (x) / Math.log (10);
-		},
-		
-		
-		
-		
-		max: function () {
-			var max = -Infinity,
-				length = arguments.length,
-				i;
-			
-			for (i = 0; i < length; i++) if (arguments[i] > max) max = arguments[i];
-			return max;
-		},
-		
-		
-		
-		
-		min: function () {
-			var min = Infinity,
-				length = arguments.length,
-				i;
-			
-			for (i = 0; i < length; i++) if (arguments[i] < min) min = arguments[i];
-			return min;
-		},
-		
-		
-		
-		
-		modf: function (x) {
-			var intValue = Math.floor (x),
-				mantissa = x - intValue;
-			return [intValue, mantissa];
-		},
-		
-		
-		
-		
-		pi: Math.PI,
-		
-		
-		
-		
-		pow: function (x, y) {
-			if ((x = luajs.utils.toFloat (x)) === undefined) throw new luajs.Error ("bad argument #1 to 'pow' (number expected)");
-			if ((y = luajs.utils.toFloat (y)) === undefined) throw new luajs.Error ("bad argument #2 to 'pow' (number expected)");
-			return Math.pow (x, y);
-		},
-		
-		
-		
-		
-		rad: function (x) {
-			if ((x = luajs.utils.toFloat (x)) === undefined) throw new luajs.Error ("bad argument #1 to 'rad' (number expected)");
-			return (Math.PI / 180) * x;
-		},
-	
-	
-	
-	
-		/**
-		 * Implementation of Lua's math.random function.
-		 */
-		random: function (min, max) {
-			if (min === undefined && max === undefined) return getRandom();
-	
-	
-			if (typeof min !== 'number') throw new luajs.Error ("bad argument #1 to 'random' (number expected)");
-	
-			if (max === undefined) {
-				max = min;
-				min = 1;
-	
-			} else if (typeof max !== 'number') {
-				throw new luajs.Error ("bad argument #2 to 'random' (number expected)");
-			}
-	
-			if (min > max) throw new luajs.Error ("bad argument #2 to 'random' (interval is empty)");
-			return Math.floor (getRandom() * (max - min + 1) + min);
-		},
-	
-	
-	
-	
-		randomseed: function (x) {
-			if (typeof x !== 'number') throw new luajs.Error ("bad argument #1 to 'randomseed' (number expected)");
-			randomSeed = x;
-		},
-	
-	
-	
-		
-		sin: function (x) {
-			return Math.sin (x);
-		},
-	
-	
-	
-		
-		sinh: function (x) {
-			// Not implemented
-		},
-	
-	
-	
-		
-		sqrt: function (x) {
-			return Math.sqrt (x);
-		},
-	
-	
-	
-		
-		tan: function (x) {
-			return Math.tan (x);
-		},
-	
-	
-	
-		
-		tanh: function (x) {
-			// Not implemented
-		}
-	
-		
-	};
-	
-	
-	
-	
-	luajs.lib.io = {
-		
-		
-		write: function () {
-			var i, arg, output = '';
-			
-			for (var i in arguments) {
-				if (arguments.hasOwnProperty(i)) {
-					var arg = arguments[i];
-					if (['string', 'number'].indexOf (typeof arg) == -1) throw new luajs.Error ('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
-					output += arg;
-				}
-			}
-			
-			luajs.stdout.write (output);
-		}
-		
-		
-	}
-	
-	
-	
-		
-	luajs.lib.os = {
-	
-	
-		clock: function () {
-			// Not implemented
-		},
-	
-	
-	
-	
-		date: function (format, time) {
-			if (format === undefined) format = '%c';
-			
-	
-			var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-				months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-				daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
-				
-				getWeekOfYear = function (d, firstDay) { 
-					var dayOfYear = parseInt (handlers['%j'](d), 10),
-						jan1 = new Date (d.getFullYear (), 0, 1, 12),
-						offset = (8 - jan1['get' + utc + 'Day'] () + firstDay) % 7;
-	
-					return ('0' + (Math.floor ((dayOfYear - offset) / 7) + 1)).substr (-2);
-				},
-	
-				handlers = {
-					'%a': function (d) { return days[d['get' + utc + 'Day']()].substr (0, 3); },
-					'%A': function (d) { return days[d['get' + utc + 'Day']()]; },
-					'%b': function (d) { return months[d['get' + utc + 'Month']()].substr (0, 3); },
-					'%B': function (d) { return months[d['get' + utc + 'Month']()]; },
-					'%c': function (d) { return d['to' + utc + 'LocaleString'](); },
-					'%d': function (d) { return ('0' + d['get' + utc + 'Date']()).substr (-2); },
-					'%H': function (d) { return ('0' + d['get' + utc + 'Hours']()).substr (-2); },
-					'%I': function (d) { return ('0' + ((d['get' + utc + 'Hours']() + 11) % 12 + 1)).substr (-2); },
-					'%j': function (d) {
-						var result = d['get' + utc + 'Date'](),
-							m = d['get' + utc + 'Month']();
-							
-						for (var i = 0; i < m; i++) result += daysInMonth[i];
-						if (m > 1 && d['get' + utc + 'FullYear']() % 4 === 0) result +=1;
-	
-						return ('00' + result).substr (-3);
-					},
-					'%m': function (d) { return ('0' + (d['get' + utc + 'Month']() + 1)).substr (-2); },
-					'%M': function (d) { return ('0' + d['get' + utc + 'Minutes']()).substr (-2); },
-					'%p': function (d) { return (d['get' + utc + 'Hours']() < 12)? 'AM' : 'PM'; },
-					'%S': function (d) { return ('0' + d['get' + utc + 'Seconds']()).substr (-2); },
-					'%U': function (d) { return getWeekOfYear (d, 0); },
-					'%w': function (d) { return '' + (d['get' + utc + 'Day']()); },
-					'%W': function (d) { return getWeekOfYear (d, 1); },
-					'%x': function (d) { return handlers['%m'](d) + '/' + handlers['%d'](d) + '/' + handlers['%y'](d); },
-					'%X': function (d) { return handlers['%H'](d) + ':' + handlers['%M'](d) + ':' + handlers['%S'](d); },
-					'%y': function (d) { return handlers['%Y'](d).substr (-2); },
-					'%Y': function (d) { return '' + d['get' + utc + 'FullYear'](); },
-					'%Z': function (d) { return utc? 'UTC' : d.toString ().substr (-4, 3); },
-					'%%': function () { return '%' }
-				},
-	
-				utc = '',
-				date = new Date ();
-	
-			
-			if (time) date.setTime (time * 1000);
-			
-	
-			if (format.substr (0, 1) === '!') {
-				format = format.substr (1);
-				utc = 'UTC';
-			}
-	
-	
-			if (format === '*t') {
-				var isDST = function (d) {
-					var year = d.getFullYear (),
-						jan = new Date (year, 0);
-						
-					// ASSUMPTION: If the time offset of the date is the same as it would be in January of the same year, DST is not in effect.
-					return (d.getTimezoneOffset () !== jan.getTimezoneOffset ());
-				};
-				
-				return new luajs.Table ({
-					year: parseInt (handlers['%Y'](date), 10),
-					month: parseInt (handlers['%m'](date), 10),
-					day: parseInt (handlers['%d'](date), 10),
-					hour: parseInt (handlers['%H'](date), 10),
-					min: parseInt (handlers['%M'](date), 10),
-					sec: parseInt (handlers['%S'](date), 10),
-					wday: parseInt (handlers['%w'](date), 10) + 1,
-					yday: parseInt (handlers['%j'](date), 10),
-					isdst: isDST (date)
-				});	
-			}
-	
-	
-			for (var i in handlers) {
-				if (handlers.hasOwnProperty(i) && format.indexOf (i) >= 0) format = format.replace (i, handlers[i](date));
-			}
-			
-			return format;
-		},
-	
-	
-	
-	
-		difftime: function (t2, t1) {
-			return t2 - t1;
-		},
-	
-	
-	
-	
-		execute: function () {
-			if (arguments.length) throw new luajs.Error ('shell is not available. You should always check first by calling os.execute with no parameters');
-			return 0;
-		},
-	
-	
-	
-	
-		exit: function () {
-			throw 'Execution terminated.';
-		},
-	
-	
-	
-	
-		getenv: function () {
-			// Not implemented
-		},
-	
-	
-	
-	
-		remove: function () {
-			// Not implemented
-		},
-	
-	
-	
-	
-		rename: function () {
-			// Not implemented
-		},
-	
-	
-	
-	
-		setlocale: function () {
-			// Not implemented
-		},
-	
-	
-	
-	
-		/**
-		 * Implementation of Lua's os.time function.
-		 * @param {object} table The table that will receive the metatable.
-		 */
-		time: function (table) {
-			var time;
-			
-			if (!table) {
-				time = Date['now']? Date['now'] () : new Date ().getTime ();
-				
-			} else {	
-				var day, month, year, hour, min, sec;
-				
-				if (!(day = table.getMember ('day'))) throw new luajs.Error ("Field 'day' missing in date table");
-				if (!(month = table.getMember ('month'))) throw new luajs.Error ("Field 'month' missing in date table");
-				if (!(year = table.getMember ('year'))) throw new luajs.Error ("Field 'year' missing in date table");
-				hour = table.getMember ('hour') || 12;
-				min = table.getMember ('min') || 0;
-				sec = table.getMember ('sec') || 0;
-				
-				if (table.getMember ('isdst')) hour--;
-				time = new Date (year, month - 1, day, hour, min, sec).getTime ();
-			}
-			
-			return Math.floor (time / 1000);
-		},
-	
-	
-	
-	
-		tmpname: function () {
-			// Not implemented
-		}
-	
-			
-	};
-	
-	
-	
-	luajs.lib.coroutine = {
-		
-		create: function (closure) {
-			//return new luajs.Coroutine (closure);
-			return luajs.Coroutine.create (closure);
-		},
-		
-		
-		
-		
-		resume: function (thread) {
-			var args = [];
-			for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 
-			return thread.resume.apply (thread, args);
-		},
-		
-		
-		
-		
-		running: function () {
-			return luajs.Coroutine._running;
-		},
-		
 	
-		
-		
-		status: function (closure) {
-			return closure.status;
-		},
-		
-		
-		
-		
-		wrap: function (closure) {
-			var co = luajs.lib.coroutine.create (closure);
-			
-			var result = function () {			
-				var args = [co];
-				for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
-	
-				var retvals = luajs.lib.coroutine.resume.apply ({}, args),
-					success = retvals.shift ();
-					
-				if (success) return retvals;
-				throw retvals[0];
-			};
-			
-			result._coroutine = co;
-			return result;
-		},
-		
-	
-		
-		
-		yield: function () {
-			// If running in main thread, throw error.
-			if (!luajs.Coroutine._running) throw new luajs.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
-			if (luajs.Coroutine._running.status != 'running') throw new luajs.Error ('attempt to yield non-running coroutine in host');
-
-			var args = [],
-				running = luajs.Coroutine._running;
-
-			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
-	
-			running._yieldVars = args;
-			running.status = 'suspending';
-
-			return {
-				resume: function () {
-					var args = [running],
-						i, 
-						l = arguments.length,
-						f = function () { 
-							luajs.lib.coroutine.resume.apply (undefined, args); 
-						};
-
-					for (i = 0; i < l; i++) args.push (arguments[i]);
-
-					if (running.status == 'suspending') {
-						window.setTimeout (f, 1);
-					} else {
-						f ();
-					}
-				}
-			}
-		}
-	
-		
-	};
 	
 	
 })();
