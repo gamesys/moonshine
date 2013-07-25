@@ -280,11 +280,11 @@ luajs.Closure.prototype.hasRetainedScope = function () {
 	if (this._upvalues.length) return true;
 
 	// for (var i in this._upvalues) {
-	// 	if (this._upvalues[i].open) return true;
+	// 	if (this._funcInstances.hasOwnProperty(i) && this._upvalues[i].open) return true;
 	// }
 
 	for (var i in this._funcInstances) {
-		if (this._funcInstances[i].isRetained ()) return true;
+		if (this._funcInstances.hasOwnProperty(i) && this._funcInstances[i].isRetained ()) return true;
 	}
 
 	return false;

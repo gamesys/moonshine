@@ -147,7 +147,7 @@ luajs.Function.prototype.isRetained = function () {
 	if (this._retainCount) return true;
 	
 	for (var i in this.instances) {
-		if (this.instances[i].hasRetainedScope()) return true;
+		if (this.instances.hasOwnProperty(i) && this.instances[i].hasRetainedScope()) return true;
 	}
 	
 	return false;
@@ -163,7 +163,9 @@ luajs.Function.prototype.dispose = function (force) {
 	this._readyToDispose = true;
 	
 	if (force) {
-		for (var i in this.instances) this.instances[i].dispose(true);
+		for (var i in this.instances) {
+			if (this.instances.hasOwnProperty(i)) this.instances[i].dispose(true);
+		}
 		
 	} else if (this.isRetained()) {
 		return false;

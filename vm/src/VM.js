@@ -37,11 +37,11 @@ luajs.VM.prototype._resetGlobals = function () {
 	this._globals = this._bindLib(luajs.lib);
 
 	// Load standard lib into package.loaded:
-	for (var i in this._globals) if (this._globals[i] instanceof luajs.Table) this._globals['package'].loaded[i] = this._globals[i];
+	for (var i in this._globals) if (this._globals.hasOwnProperty(i) && this._globals[i] instanceof luajs.Table) this._globals['package'].loaded[i] = this._globals[i];
 	this._globals['package'].loaded._G = this._globals;
 
 	// Load environment vars
-	for (var i in this._env) this._globals[i] = this._env[i];
+	for (var i in this._env) if (this._env.hasOwnProperty(i)) this._globals[i] = this._env[i];
 };
 
 
@@ -54,14 +54,16 @@ luajs.VM.prototype._bindLib = function (lib) {
 	var result = {};
 
 	for (var i in lib) {
-		if (lib[i] && lib[i].constructor === Object) {
-			result[i] = this._bindLib(lib[i]);
+		if (lib.hasOwnProperty(i)) {
+			if (lib[i] && lib[i].constructor === Object) {
+				result[i] = this._bindLib(lib[i]);
 
-		} else if (typeof lib[i] == 'function') {
-			result[i] = lib[i].bind(this);
+			} else if (typeof lib[i] == 'function') {
+				result[i] = lib[i].bind(this);
 
-		} else {
-			result[i] = lib[i];
+			} else {
+				result[i] = lib[i];
+			}
 		}
 	}
 
@@ -131,29 +133,32 @@ luajs.VM.prototype.execute = function (coConfig, file) {
 	if (!files.length) throw new Error ('No files loaded.'); 
 	
 	for (index in files) {
-		file = files[index];		
-		if (!file.data) throw new Error ('Tried to execute file before data loaded.');
-	
-	
-		this._thread = new luajs.Function (this, file, file.data, this._globals);	
-		this._trigger ('executing', [this._thread, coConfig]);
+		if (files.hasOwnProperty(index)) {
+
+			file = files[index];		
+			if (!file.data) throw new Error ('Tried to execute file before data loaded.');
 		
-		try {
-			if (!coConfig) {
-				this._thread.call ();
-				
-			} else {
-				var co = luajs.lib.coroutine.wrap (this._thread),
-					resume = function () {
-						co ();
-						if (coConfig.uiOnly && co._coroutine.status != 'dead') window.setTimeout (resume, 1);
-					};
-	
-				resume ();
-			}
+		
+			this._thread = new luajs.Function (this, file, file.data, this._globals);	
+			this._trigger ('executing', [this._thread, coConfig]);
 			
-		} catch (e) {
-			luajs.Error.catchExecutionError (e);
+			try {
+				if (!coConfig) {
+					this._thread.call ();
+					
+				} else {
+					var co = luajs.lib.coroutine.wrap (this._thread),
+						resume = function () {
+							co ();
+							if (coConfig.uiOnly && co._coroutine.status != 'dead') window.setTimeout (resume, 1);
+						};
+		
+					resume ();
+				}
+				
+			} catch (e) {
+				luajs.Error.catchExecutionError (e);
+			}
 		}
 	}
 };
@@ -179,7 +184,7 @@ luajs.VM.prototype.setGlobal = function (name, value) {
 luajs.VM.prototype.dispose = function () {
 	var thread;
 
-	for (var i in this._files) this._files[i].dispose ();
+	for (var i in this._files) if (this._files.hasOwnProperty(i)) this._files[i].dispose ();
 
 	if (thread = this._thread) thread.dispose ();
 

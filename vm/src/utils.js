@@ -68,13 +68,14 @@ luajs.debug = {};
 
 			var convertToTable = function (obj) {
 				for (var i in obj) {
-
-					if (typeof obj[i] === 'object') {
-						obj[i] = convertToTable (obj[i]);
-						
-					} else if (obj[i] === null) {
-						obj[i] = undefined;
-					}				
+					if (obj.hasOwnProperty(i)) {
+						if (typeof obj[i] === 'object') {
+							obj[i] = convertToTable (obj[i]);
+							
+						} else if (obj[i] === null) {
+							obj[i] = undefined;
+						}
+					}
 				}
 				
 				return new luajs.Table (obj);

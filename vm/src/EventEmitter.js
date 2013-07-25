@@ -33,8 +33,10 @@ luajs.EventEmitter.prototype._trigger = function (name, data) {
 	if (!((data || {}) instanceof Array)) data = [data];
 	
 	for (i in listeners) {
-		result = listeners[i].apply (this, data);
-		if (result !== undefined && !result) break;
+		if (listeners.hasOwnProperty(i)) {
+			result = listeners[i].apply (this, data);
+			if (result !== undefined && !result) break;
+		}
 	}
 };
 
@@ -61,7 +63,7 @@ luajs.EventEmitter.prototype.bind = function (name, callback) {
  */
 luajs.EventEmitter.prototype.unbind = function (name, callback) {
 	for (var i in this._listeners[name]) {
-		if (this._listeners[name][i] === callback) this._listeners[name].splice (i, 1);
+		if (this._listeners[name].hasOwnProperty(i) && this._listeners[name][i] === callback) this._listeners[name].splice (i, 1);
 	}
 }
 

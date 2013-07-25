@@ -58,7 +58,7 @@ var luajs = luajs || {};
 		var n = 0,
 			i, l, character, addSlash;
 					
-		for (i in ROSETTA_STONE) pattern = pattern.replace (new RegExp(i, 'g'), ROSETTA_STONE[i]);
+		for (i in ROSETTA_STONE) if (ROSETTA_STONE.hasOwnProperty(i)) pattern = pattern.replace (new RegExp(i, 'g'), ROSETTA_STONE[i]);
 		l = pattern.length;
 
 		for (i = 0; i < l; i++) {
@@ -81,7 +81,7 @@ var luajs = luajs || {};
 		}			
 
 		return pattern;	
-	};
+	}
 	
 
 
@@ -257,13 +257,15 @@ var luajs = luajs || {};
 			}
 	
 			for (i in table.__luajs.keys) {
-				var key = table.__luajs.keys[i];
+				if (table.__luajs.keys.hasOwnProperty(i)) {
+					var key = table.__luajs.keys[i];
 	
-				if (!found) {
-					if (key === index) found = true;
-	
-				} else if (table.__luajs.values[i] !== undefined) {
-					return [key, table.__luajs.values[i]];
+					if (!found) {
+						if (key === index) found = true;
+		
+					} else if (table.__luajs.values[i] !== undefined) {
+						return [key, table.__luajs.values[i]];
+					}
 				}
 			}
 		
@@ -545,6 +547,7 @@ var luajs = luajs || {};
 	
 	
 	luajs.lib.coroutine = {
+
 		
 		create: function (closure) {
 			//return new luajs.Coroutine (closure);
@@ -575,7 +578,7 @@ var luajs = luajs || {};
 			return closure.status;
 		},
 		
-		
+	
 		
 		
 		wrap: function (closure) {
@@ -715,25 +718,27 @@ var luajs = luajs || {};
 
 	luajs.lib.io = {
 		
-
+		
 		write: function () {
 			var i, arg, output = '';
 			
 			for (var i in arguments) {
-				var arg = arguments[i];
-				if (['string', 'number'].indexOf (typeof arg) == -1) throw new luajs.Error ('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
-				output += arg;
+				if (arguments.hasOwnProperty(i)) {
+					var arg = arguments[i];
+					if (['string', 'number'].indexOf (typeof arg) == -1) throw new luajs.Error ('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
+					output += arg;
+				}
 			}
 			
 			luajs.stdout.write (output);
 		}
-
+		
 		
 	};
-
-
-
-
+	
+	
+	
+		
 	luajs.lib.math = {
 	
 	
@@ -1078,7 +1083,7 @@ var luajs = luajs || {};
 	
 	
 			for (var i in handlers) {
-				if (format.indexOf (i) >= 0) format = format.replace (i, handlers[i](date));
+				if (handlers.hasOwnProperty(i) && format.indexOf (i) >= 0) format = format.replace (i, handlers[i](date));
 			}
 			
 			return format;
@@ -1575,8 +1580,8 @@ var luajs = luajs || {};
 			return result.join (sep);
 		},
 		
-		
-
+	
+	
 	
 		getn: function (table) {
 			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.getn(). Table expected');
@@ -1586,7 +1591,7 @@ var luajs = luajs || {};
 				i, 
 				j = 0;
 
-			for (i in vals) keys[i] = true;
+			for (i in vals) if (vals.hasOwnProperty(i)) keys[i] = true;
 			while (keys[j + 1]) j++;
 	
 			// Following translated from ltable.c (http://www.lua.org/source/5.1/ltable.c.html)
@@ -1608,9 +1613,9 @@ var luajs = luajs || {};
 			}
 
 			return j;
-		},		
+		},
+		
 			
-
 		
 		
 		/**
@@ -1633,9 +1638,10 @@ var luajs = luajs || {};
 			table.setMember(index, obj);
 	
 			if (oldValue) luajs.lib.table.insert (table, index + 1, oldValue);
-		},			
+		},	
 		
-
+		
+		
 		
 		maxn: function (table) {
 			// v5.2: luajs.warn ('table.maxn is deprecated');
@@ -1643,6 +1649,7 @@ var luajs = luajs || {};
 			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.maxn(). Table expected');
 	
 			// // length = 0;
+			// // while (table[length + 1] != undefined) length++;
 			// // 
 			// // return length;
 	
@@ -1676,6 +1683,10 @@ var luajs = luajs || {};
 				
 			result = vals.splice(index, 1);
 			while (index < max && vals[index] === undefined) delete vals[index++];
+			// table[index] = table[index + 1];	
+			
+			// luajs.lib.table.remove (table, index + 1);
+			// if (table[index] === undefined) delete table[index];
 	
 			return result;
 		},
@@ -1686,25 +1697,24 @@ var luajs = luajs || {};
 		sort: function (table, comp) {
 			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ("Bad argument #1 to 'sort' (table expected)");
 	
-			var val,
-				arr = [],
-				sortFunc = function (a, b) {
-					return a < b? -1 : 1;
-				};
-	
-	
+			var sortFunc, 
+				arr = table.__luajs.numValues;
+		
 			if (comp) {
 				if (!((comp || {}) instanceof luajs.Function)) throw new luajs.Error ("Bad argument #2 to 'sort' (function expected)");
 	
 				sortFunc = function (a, b) {
 					return comp.call ({}, a, b)[0]? -1 : 1;
 				}
+			
+			} else {
+				sortFunc = function (a, b) {
+					return a < b? -1 : 1;
+				};
 			}
 	
-			for (var i = 1; (val = table.getMember (i)) !== undefined; i++) arr.push (val);
-			arr.sort (sortFunc);
-	
-			for (i in arr) table.setMember (parseInt (i, 10) + 1, arr[i]);
+			arr.shift();
+			arr.sort(sortFunc).unshift(undefined);
 		},
 
 
@@ -1721,12 +1731,12 @@ var luajs = luajs || {};
 	
 			for (index = i; index <= j; index++) vals.push (table.getMember (index));
 			return vals;
-		},
+		}
+
+
+	}
+
 	
-		
-	};
-
-
-
-
+	
+	
 })();
