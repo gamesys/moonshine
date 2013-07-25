@@ -94,9 +94,28 @@ luajs.debug = {};
 			if (!('' + x).match (FLOATING_POINT_PATTERN)) return;
 			
 			return parseFloat (x);
-		}
+		},
 		
 
+
+
+		get: function (url, success, error) {
+	        var xhr = new XMLHttpRequest();
+	        xhr.responseType = 'text';
+
+	        xhr.onload = function (e) {
+	            if (this.status == 200) {
+	                if (success) success(this.response);
+	            } else {
+	                if (error) error(this.status);
+	            }
+	        }
+
+	        xhr.open('GET', url, true);
+	        xhr.send({});
+	    }
+
+	
 	};
 
 

@@ -1,6 +1,10 @@
 /**
  * @fileOverview Coroutine class.
+<<<<<<< HEAD
+ * @author <a href="http://paulcuth.me.uk">Paul Cuthbertson</a>
+=======
  * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
+>>>>>>> master
  * @copyright Gamesys Limited 2013
  */
 
@@ -103,7 +107,7 @@ luajs.Coroutine.prototype.resume = function () {
 			luajs.stddebug.write ('[coroutine started]\n');
 
 			this._started = true;
-			retval = this._func.apply ({}, arguments);
+			retval = this._func.apply (null, arguments, true);
 
 		} else {
 			this.status = 'resuming';
@@ -131,6 +135,7 @@ luajs.Coroutine.prototype.resume = function () {
 	}
 
 	if (this.status == 'dead') {
+		luajs.Coroutine._remove ();
 		luajs.stddebug.write ('[coroutine terminated]\n');
 		this._dispose();
 	}

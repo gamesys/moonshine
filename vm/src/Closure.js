@@ -1,5 +1,6 @@
 /**
  * @fileOverview Closure class.
+ * @author <a href="http://paulcuth.me.uk">Paul Cuthbertson</a>
  * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
  * @copyright Gamesys Limited 2013
  */
@@ -364,6 +365,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function getupval (a, b) {
+		if (this._upvalues[b] === undefined) return;
 		this._register[a] = this._upvalues[b].getValue ();
 	}
 
@@ -476,7 +478,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__add')))
 		|| ((c || {}) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__add')))) {
-			this._register[a] = f.apply ([b, c])[0];
+			this._register[a] = f.apply (null, [b, c], true)[0];
 
 		} else {
 			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
@@ -496,7 +498,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__sub')))
 		|| ((c || {}) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__sub')))) {
-			this._register[a] = f.apply ([b, c])[0];
+			this._register[a] = f.apply (null, [b, c], true)[0];
 
 		} else {
 			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
@@ -516,7 +518,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mul')))
 		|| ((c || {}) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__mul')))) {
-			this._register[a] = f.apply ([b, c])[0];
+			this._register[a] = f.apply (null, [b, c], true)[0];
 
 		} else {
 			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
@@ -536,7 +538,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__div')))
 		|| ((c || {}) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__div')))) {
-			this._register[a] = f.apply ([b, c])[0];
+			this._register[a] = f.apply (null, [b, c], true)[0];
 
 		} else {
 			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
@@ -556,7 +558,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mod')))
 		|| ((c || {}) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__mod')))) {
-			this._register[a] = f.apply ([b, c])[0];
+			this._register[a] = f.apply (null, [b, c], true)[0];
 
 		} else {
 			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
@@ -576,7 +578,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__pow')))
 		|| ((c || {}) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__pow')))) {
-			this._register[a] = f.apply ([b, c])[0];
+			this._register[a] = f.apply (null, [b, c], true)[0];
 
 		} else {
 			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
@@ -591,7 +593,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		var mt, f;
 
 		if ((this._register[b] || {}) instanceof luajs.Table && (mt = this._register[b].__luajs.metatable) && (f = mt.getMember ('__unm'))) {
-			this._register[a] = f.apply ([this._register[b]])[0];
+			this._register[a] = f.apply (null, [this._register[b]], true)[0];
 
 		} else {
 			b = this._register[b];
@@ -645,7 +647,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		for (var i = c - 1; i >= b; i--) {
 			if (((this._register[i] || {}) instanceof luajs.Table && (mt = this._register[i].__luajs.metatable) && (f = mt.getMember ('__concat')))
 			|| ((text || {}) instanceof luajs.Table && (mt = text.__luajs.metatable) && (f = mt.getMember ('__concat')))) {
-				text = f.apply ([this._register[i], text])[0];
+				text = f.apply (null, [this._register[i], text], true)[0];
 
 			} else {
 				if (!(typeof this._register[i] === 'string' || typeof this._register[i] === 'number') || !(typeof text === 'string' || typeof text === 'number')) throw new luajs.Error ('Attempt to concatenate a non-string or non-numeric value');
@@ -673,7 +675,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		var mtb, mtc, f, result;
 
 		if (b !== c && (b || {}) instanceof luajs.Table && (c || {}) instanceof luajs.Table && (mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__eq'))) {
-			result = !!f.apply ([b, c])[0];			
+			result = !!f.apply (null, [b, c], true)[0];			
 		} else {
 			result = (b === c);
 		}
@@ -697,7 +699,7 @@ luajs.Closure.prototype.dispose = function (force) {
 			
 		} else if (typeB == 'table') {
 			if ((mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__lt'))) {
-				result = f.apply ([b, c])[0];
+				result = f.apply (null, [b, c], true)[0];
 			} else {
 				throw new luajs.Error ('attempt to compare two table values');
 			}
@@ -725,7 +727,7 @@ luajs.Closure.prototype.dispose = function (force) {
 			
 		} else if (typeB == 'table') {
 			if ((mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__le'))) {
-				result = f.apply ([b, c])[0];
+				result = f.apply (null, [b, c], true)[0];
 			} else {
 				throw new luajs.Error ('attempt to compare two table values');
 			}

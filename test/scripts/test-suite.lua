@@ -528,6 +528,30 @@ assertTrue (c == nil, 'pcall() should only return 2 items when the function erro
 
 
 
+-- require
+	
+mainGlobal1 = 'mainGlbl'
+mainGlobal2 = 'mainGlbl'
+
+local mainLocal = 'mainLoc'
+
+local result = require 'test-req'
+
+assertTrue (type(result) == 'table', 'require() should return a table')
+assertTrue (type(result.getValue) == 'function', 'require() should return the value that is returned from the module[1]')
+assertTrue (result.getValue() == 'modVal', 'require() should return the value that is returned from the module[2]')
+
+assertTrue (package.loaded['test-req'] == result, 'Module loaded by require() should also be available in package.loaded[modname]')
+
+assertTrue (mainGlobal1 == 'innerGlbl', 'require() should pass the same global namespace into the module[1]')
+assertTrue (mainGlobal2 == 'mainGlbl', 'require() should pass the same global namespace into the module[2]')
+assertTrue (innerLocal == nil, 'Module locals should not leak into outer environment in a require() call')
+
+
+
+
+
+
 -- select
 
 local a, b, c, d = select (3, 2, 4, 6, 8, 10)
@@ -3003,10 +3027,6 @@ local datetest = function ()
 end 
 
 datetest ()
-
-
-
-
 
 
 

@@ -81,8 +81,40 @@ var luajs = luajs || {};
 		}			
 
 		return pattern;	
-	};
+	}
 	
+
+
+
+	function loadfile (filename, callback) {
+		var vm = this,
+			file,
+			pathData;
+
+		if (filename.substr(0, 1) != '/') {
+			pathData = (this._thread._file._url || '').match(/^(.*\/).*?$/);
+			pathData = (pathData && pathData[1]) || '';
+			filename = pathData + filename;
+		}
+
+		file = new luajs.File (filename);
+
+		file.bind ('loaded', function (data) {
+			var func = new luajs.Function (vm, file, file.data, vm._globals);
+			vm._trigger ('module-loaded', file, func);
+			
+			callback(func);
+		});
+
+		file.bind ('error', function (code) {
+			vm._trigger ('module-load-error', file, code);
+			callback();
+		});
+
+		this._trigger ('loading-module', file);
+		file.load ();
+	}
+
 
 
 
@@ -156,21 +188,35 @@ var luajs = luajs || {};
 	
 		
 		load: function (func, chunkname) {
-			return [undefined, 'Unimplemented'];
+			var file = new luajs.File,
+				chunk = '', piece, lastPiece;
+
+			while ((piece = func()) && piece != lastPiece) {
+				chunk += (lastPiece = piece);
+			}
+
+			file._data = JSON.parse(chunk);
+			return new luajs.Function(this, file, file._data, this._globals, []);
 		},
 	
 	
 	
 		
 		loadfile: function (filename) {
-			return [undefined, 'Unimplemented'];
+			var thread = luajs.lib.coroutine.yield(),
+				callback = function (result) {
+					thread.resume(result);
+				};
+
+			loadfile.call(this, filename, callback);
 		},
 	
 	
 	
 		
-		loadstring: function (func, chunkname) {
-			return [undefined, 'Unimplemented'];
+		loadstring: function (string, chunkname) {
+			var f = function () { return string; };
+			return luajs.lib.load.call(this, f, chunkname);
 		},
 	
 	
@@ -233,7 +279,7 @@ var luajs = luajs || {};
 		 * Implementation of Lua's pairs function.
 		 * @param {object} table The table to be iterated over.
 		 */
-		pairs: function (table) {	
+		pairs: function (table) {
 			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in pairs(). Table expected');
 			return [luajs.lib.next, table];
 		},
@@ -249,11 +295,11 @@ var luajs = luajs || {};
 	
 			try {			
 				if (typeof func == 'function') {
-					result = func.apply ({}, args);
+					result = func.apply (null, args);
 					
 				} else if ((func || {}) instanceof luajs.Function) {
-					result = func.apply (args);
-				
+					result = func.apply (null, args, true);
+
 				} else {
 					throw new luajs.Error ('Attempt to call non-function');
 				}
@@ -323,8 +369,56 @@ var luajs = luajs || {};
 			return table;
 		},
 	
+
+
+
+		require: function (modname) {
+			var thread,
+				packageLib = luajs.lib['package'],
+				vm = this,
+				module,
+				preload,
+				paths,
+				path;
+
+			function load (preloadFunc) {
+				packageLib.loaded[modname] = true;
+				module = preloadFunc.call(null, modname)[0];
+
+				if (module !== undefined) packageLib.loaded[modname] = module;
+				return packageLib.loaded[modname];
+			}
+
+			if (module = packageLib.loaded[modname]) return module;
+			if (preload = packageLib.preload[modname]) return load(preload);
+
+			paths = packageLib.path.replace(/;;/g, ';').split(';');
+			thread = luajs.lib.coroutine.yield();
+
+
+			function loadNextPath () {
+				path = paths.shift()
+
+				if (!path) {
+					thread.resume();
+			
+				} else {
+					path = path.replace(/\?/g, modname);
+
+					loadfile.call(vm, path, function (preload) {
+						if (preload) {
+							thread.resume(load(preload));
+						} else {
+							loadNextPath();
+						}
+					});
+				}
+			}
+
+			loadNextPath();
+		},	
 	
-	
+
 	
 		select: function (index) {
 			var args = [];
@@ -427,18 +521,29 @@ var luajs = luajs || {};
 		
 		
 		xpcall: function (func, err) {
-			var result, success;
+			var result, success, invalid;
 				
 			try {
-				result = func.apply ({});
+				if (typeof func == 'function') {
+					result = func.apply ();
+					
+				} else if ((func || {}) instanceof luajs.Function) {
+					result = func.apply (null, undefined, true);
+
+				} else {
+					invalid = true;
+				}
+
 				success = true;
 				
 			} catch (e) {
-				result = err.apply ({});
+				result = err.apply (null, undefined, true);
 				if (((result || {}) instanceof Array)) result = result[0];
 	
 				success = false;
 			}
+
+			if (invalid) throw new luajs.Error ('Attempt to call non-function');
 			
 			if (!((result || {}) instanceof Array)) result = [result];
 			result.unshift (success);
@@ -484,7 +589,7 @@ var luajs = luajs || {};
 			return closure.status;
 		},
 		
-		
+	
 		
 		
 		wrap: function (closure) {
@@ -494,7 +599,7 @@ var luajs = luajs || {};
 				var args = [co];
 				for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 	
-				var retvals = luajs.lib.coroutine.resume.apply ({}, args),
+				var retvals = luajs.lib.coroutine.resume.apply (null, args),
 					success = retvals.shift ();
 					
 				if (success) return retvals;
@@ -542,6 +647,81 @@ var luajs = luajs || {};
 		}
 	
 		
+	};
+
+
+	
+
+	luajs.lib.debug = {
+
+		debug: function () {
+			// Not implemented
+		},
+
+
+		getfenv: function (o) {
+			// Not implemented
+		},
+
+
+		gethook: function (thread) {
+			// Not implemented
+		},
+
+
+		getinfo: function (thread, func, what) {
+			// Not implemented
+		},
+
+
+		getlocal: function (thread, level, local) {
+			// Not implemented
+		},
+
+
+		getmetatable: function (object) {
+			// Not implemented
+		},
+
+
+		getregistry: function () {
+			// Not implemented
+		},
+
+
+		getupvalue: function (func, up) {
+			// Not implemented
+		},
+
+
+		setfenv: function (object, table) {
+			// Not implemented
+		},
+
+
+		sethook: function (thread, hook, mask, count) {
+			// Not implemented
+		},
+
+
+		setlocal: function (thread, level, local, value) {
+			// Not implemented
+		},
+
+
+		setmetatable: function (object, table) {
+			// Not implemented
+		},
+
+
+		setupvalue: function (func, up, value) {
+			// Not implemented
+		},
+
+
+		traceback: function (thread, message, level) {
+			// Not implemented
+		}
 	};
 
 
@@ -840,7 +1020,7 @@ var luajs = luajs || {};
 					var dayOfYear = parseInt (handlers['%j'](d), 10),
 						jan1 = new Date (d.getFullYear (), 0, 1, 12),
 						offset = (8 - jan1['get' + utc + 'Day'] () + firstDay) % 7;
-	
+
 					return ('0' + (Math.floor ((dayOfYear - offset) / 7) + 1)).substr (-2);
 				},
 	
@@ -1009,9 +1189,37 @@ var luajs = luajs || {};
 	
 			
 	};
-	
-	
-	
+
+
+
+
+	luajs.lib['package'] = {
+
+		cpath: undefined,
+
+
+		loaded: new luajs.Table(),
+
+
+		loadlib: function (libname, funcname) {
+			// Not implemented
+		},
+
+
+		path: '?.lua.json;?.json;./modules/?.json;./modules/?/?.json;./modules/?/index.json',
+
+
+		preload: {},
+
+
+		seeall: function (module) {
+			// Not implemented
+		}
+		
+	};
+
+
+
 
 	luajs.lib.string = {
 		
@@ -1042,8 +1250,7 @@ var luajs = luajs || {};
 		
 		
 		dump: function (func) {
-			console.log (func);
-			return JSON.stringify(func);
+			return JSON.stringify(func._data);
 		},
 		
 		
@@ -1256,7 +1463,7 @@ var luajs = luajs || {};
 			while ((n === undefined || count < n) && s && (match = s.match (pattern))) {
 
 				if (typeof repl == 'function' || (repl || {}) instanceof luajs.Function) {
-					str = repl.call ({}, match[0]);
+					str = repl.apply (null, [match[0]], true);
 					if (str instanceof Array) str = str[0];
 					if (str === undefined) str = match[0];
 
@@ -1508,7 +1715,7 @@ var luajs = luajs || {};
 				if (!((comp || {}) instanceof luajs.Function)) throw new luajs.Error ("Bad argument #2 to 'sort' (function expected)");
 	
 				sortFunc = function (a, b) {
-					return comp.call ({}, a, b)[0]? -1 : 1;
+					return comp.apply (null, [a, b], true)[0]? -1 : 1;
 				}
 			
 			} else {
