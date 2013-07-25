@@ -1206,7 +1206,7 @@ var luajs = luajs || {};
 		},
 
 
-		path: '?.json;?.lua.json;./modules/?.json;./modules/?/?.json;./modules/?/index.json',
+		path: '?.lua.json;?.json;./modules/?.json;./modules/?/?.json;./modules/?/index.json',
 
 
 		preload: {},
