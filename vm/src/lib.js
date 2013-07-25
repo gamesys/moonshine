@@ -295,11 +295,11 @@ var luajs = luajs || {};
 	
 			try {			
 				if (typeof func == 'function') {
-					result = func.apply ({}, args);
+					result = func.apply (null, args);
 					
 				} else if ((func || {}) instanceof luajs.Function) {
-					result = func.apply (args);
-				
+					result = func.apply (null, args, true);
+
 				} else {
 					throw new luajs.Error ('Attempt to call non-function');
 				}
@@ -383,7 +383,7 @@ var luajs = luajs || {};
 
 			function load (preloadFunc) {
 				packageLib.loaded[modname] = true;
-				module = preloadFunc.call({}, modname)[0];
+				module = preloadFunc.call(null, modname)[0];
 
 				if (module !== undefined) packageLib.loaded[modname] = module;
 				return packageLib.loaded[modname];
@@ -521,18 +521,29 @@ var luajs = luajs || {};
 		
 		
 		xpcall: function (func, err) {
-			var result, success;
+			var result, success, invalid;
 				
 			try {
-				result = func.apply ({});
+				if (typeof func == 'function') {
+					result = func.apply ();
+					
+				} else if ((func || {}) instanceof luajs.Function) {
+					result = func.apply (null, undefined, true);
+
+				} else {
+					invalid = true;
+				}
+
 				success = true;
 				
 			} catch (e) {
-				result = err.apply ({});
+				result = err.apply (null, undefined, true);
 				if (((result || {}) instanceof Array)) result = result[0];
 	
 				success = false;
 			}
+
+			if (invalid) throw new luajs.Error ('Attempt to call non-function');
 			
 			if (!((result || {}) instanceof Array)) result = [result];
 			result.unshift (success);
@@ -588,7 +599,7 @@ var luajs = luajs || {};
 				var args = [co];
 				for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 	
-				var retvals = luajs.lib.coroutine.resume.apply ({}, args),
+				var retvals = luajs.lib.coroutine.resume.apply (null, args),
 					success = retvals.shift ();
 					
 				if (success) return retvals;
@@ -1452,7 +1463,7 @@ var luajs = luajs || {};
 			while ((n === undefined || count < n) && s && (match = s.match (pattern))) {
 
 				if (typeof repl == 'function' || (repl || {}) instanceof luajs.Function) {
-					str = repl.call ({}, match[0]);
+					str = repl.apply (null, [match[0]], true);
 					if (str instanceof Array) str = str[0];
 					if (str === undefined) str = match[0];
 
@@ -1704,7 +1715,7 @@ var luajs = luajs || {};
 				if (!((comp || {}) instanceof luajs.Function)) throw new luajs.Error ("Bad argument #2 to 'sort' (function expected)");
 	
 				sortFunc = function (a, b) {
-					return comp.call ({}, a, b)[0]? -1 : 1;
+					return comp.apply (null, [a, b], true)[0]? -1 : 1;
 				}
 			
 			} else {

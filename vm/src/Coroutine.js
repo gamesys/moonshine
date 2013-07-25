@@ -107,7 +107,7 @@ luajs.Coroutine.prototype.resume = function () {
 			luajs.stddebug.write ('[coroutine started]\n');
 
 			this._started = true;
-			retval = this._func.apply ({}, arguments);
+			retval = this._func.apply (null, arguments, true);
 
 		} else {
 			this.status = 'resuming';
