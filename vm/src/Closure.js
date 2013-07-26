@@ -31,7 +31,7 @@ luajs.Closure = function (vm, file, data, globals, upvalues) {
 	this._upvalues = upvalues || {};
 	this._constants = data.constants;
 	this._functions = data.functions;
-	this._instructions = new luajs.InstructionSet(data.instructions);
+	this._instructions = data.instructions;
 
 	this._register = [];
 	this._pc = 0;
@@ -47,6 +47,7 @@ luajs.Closure = function (vm, file, data, globals, upvalues) {
 		};
 		
 	result._instance = this;
+
 	result.dispose = function () {
 		me.dispose ();
 		delete this.dispose;
