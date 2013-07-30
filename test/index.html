@@ -7,9 +7,11 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
 		<script src="/frameworks/jquery/jquery.min.js"></script>
 		
+		<script src="../vm/src/gc.js"></script>
 		<script src="../vm/src/EventEmitter.js"></script>
 		<script src="../vm/src/VM.js"></script>
 		<script src="../vm/src/InstructionSet.js"></script>
+		<script src="../vm/src/Register.js"></script>
 		<script src="../vm/src/Closure.js"></script>
 		<script src="../vm/src/Function.js"></script>
 		<script src="../vm/src/Coroutine.js"></script>
@@ -51,6 +53,7 @@
 	</head>
 	
 	<body>
+		<button>Go!</button>
 		<pre id="output"></pre>
 		<!-- pre id="debug"></pre -->
 
@@ -68,6 +71,11 @@
 				luajs.stdout.write = function (message) {
 					elOutput.innerHTML += escapeHTML (message) + '\n';
 				};
+
+
+				function getTimestamp () {
+					return Date.now();
+				}
 					
 				// luajs.stddebug.write = function (message) {
 				// 	debugText += escapeHTML (message) + '\n';
@@ -79,9 +87,11 @@
 				// }, 500);
 
 	
-				var vm = new luajs.VM ();
-				
-				vm.load ('./scripts/test-suite.lua.json', true);
+				var vm = new luajs.VM ({ getTimestamp: getTimestamp });
+	
+				document.getElementsByTagName('button')[0].addEventListener('click', function () {
+					vm.load ('./scripts/test-suite.lua.json', true);
+				});
 				//vm.load ('./scripts/coroutine.json', true);
 			
 			})();

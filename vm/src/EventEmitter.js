@@ -8,6 +8,7 @@ var luajs = luajs || {};
 
 
 
+
 /**
  * Abstract object that fires events.
  * @constructor
@@ -30,7 +31,7 @@ luajs.EventEmitter.prototype._trigger = function (name, data) {
 		i;
 		
 	if (!listeners) return;
-	if (!((data || {}) instanceof Array)) data = [data];
+	if (!((data || luajs.EMPTY_OBJ) instanceof Array)) data = [data];
 	
 	for (i in listeners) {
 		if (listeners.hasOwnProperty(i)) {

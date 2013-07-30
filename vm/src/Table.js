@@ -15,20 +15,22 @@ var luajs = luajs || {};
  */
 luajs.Table = function (obj) {
 
-	var isArr = ((obj || {}) instanceof Array),
+	var isArr = ((obj || luajs.EMPTY_OBJ) instanceof Array),
+		meta,
 		key,
 		value,
 		i;
 
-	obj = obj || {};
+	obj = obj || luajs.gc.createObject();
 
-	this.__luajs = { 
-		type: 'table',
-		index: ++luajs.Table.count,
-		keys: [],
-		values: [],
-		numValues: [undefined]
-	};
+	this.__luajs = meta = luajs.gc.createObject();
+	meta.type = 'table';
+	meta.index = ++luajs.Table.count;
+	meta.keys = luajs.gc.createArray();
+	meta.values = luajs.gc.createArray();
+	meta.numValues = [undefined];
+	meta.refCount = 0;
+
 
 	for (i in obj) {
 		if (obj.hasOwnProperty(i)) {
@@ -106,6 +108,7 @@ luajs.Table.prototype.getMember = function (key) {
  */
 luajs.Table.prototype.setMember = function (key, value) {
 	var mt = this.__luajs.metatable,
+		oldValue,
 		keys,
 		index;
 
@@ -119,11 +122,13 @@ luajs.Table.prototype.setMember = function (key, value) {
 
 	switch (typeof key) {
 		case 'string':
+			oldValue = this[key];
 			this[key] = value;
 			break;
 
 
 		case 'number':
+			oldValue = this.__luajs.numValues[key];
 			this.__luajs.numValues[key] = value;
 			break;
 
@@ -137,8 +142,12 @@ luajs.Table.prototype.setMember = function (key, value) {
 				keys[index] = key;
 			}
 			
+			oldValue = this.__luajs.values[index];
 			this.__luajs.values[index] = value;
 	}
+
+	luajs.gc.decrRef(oldValue);
+	luajs.gc.incrRef(value);
 };
 
 

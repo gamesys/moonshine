@@ -51,7 +51,7 @@ luajs.VM.prototype._resetGlobals = function () {
  * Returns a copy of an object, with all functions bound to the VM. (recursive)
  */
 luajs.VM.prototype._bindLib = function (lib) {
-	var result = {};
+	var result = luajs.gc.createObject();
 
 	for (var i in lib) {
 		if (lib.hasOwnProperty(i)) {

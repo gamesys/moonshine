@@ -162,7 +162,7 @@ var luajs = luajs || {};
 		 * @param {object} table The table from which to obtain the metatable.
 		 */
 		getmetatable: function (table) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in getmetatable(). Table expected');
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in getmetatable(). Table expected');
 			return table.__luajs.metatable;
 		},
 		
@@ -170,7 +170,7 @@ var luajs = luajs || {};
 	
 	
 		ipairs: function (table) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in ipairs(). Table expected');
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in ipairs(). Table expected');
 			
 			var iterator = function (table, index) {
 				if (index === undefined) throw new luajs.Error ('Bad argument #2 to ipairs() iterator');
@@ -196,7 +196,7 @@ var luajs = luajs || {};
 			}
 
 			file._data = JSON.parse(chunk);
-			return new luajs.Function(this, file, file._data, this._globals, []);
+			return new luajs.Function(this, file, file._data, this._globals, luajs.gc.createArray());
 		},
 	
 	
@@ -269,7 +269,7 @@ var luajs = luajs || {};
 				}
 			}
 		
-			return [];
+			return luajs.gc.createArray();
 		},
 	
 	
@@ -280,7 +280,7 @@ var luajs = luajs || {};
 		 * @param {object} table The table to be iterated over.
 		 */
 		pairs: function (table) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in pairs(). Table expected');
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in pairs(). Table expected');
 			return [luajs.lib.next, table];
 		},
 	
@@ -288,7 +288,7 @@ var luajs = luajs || {};
 	
 	
 		pcall: function (func) {
-			var args = [],
+			var args = luajs.gc.createArray(),
 				result;
 				
 			for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);
@@ -297,7 +297,7 @@ var luajs = luajs || {};
 				if (typeof func == 'function') {
 					result = func.apply (null, args);
 					
-				} else if ((func || {}) instanceof luajs.Function) {
+				} else if ((func || luajs.EMPTY_OBJ) instanceof luajs.Function) {
 					result = func.apply (null, args, true);
 
 				} else {
@@ -308,7 +308,7 @@ var luajs = luajs || {};
 				return [false, e.message];
 			}
 			
-			if (!((result || {}) instanceof Array)) result = [result];
+			if (!((result || luajs.EMPTY_OBJ) instanceof Array)) result = [result];
 			result.unshift (true);
 			
 			return result;
@@ -319,16 +319,16 @@ var luajs = luajs || {};
 	
 		print: function () {
 	
-			var output = [],
+			var output = luajs.gc.createArray(),
 				item;
 			
 			for (var i = 0, l = arguments.length; i< l; i++) {
 				item = arguments[i];
 				
-				if ((item || {}) instanceof luajs.Table) {
+				if ((item || luajs.EMPTY_OBJ) instanceof luajs.Table) {
 					output.push ('table: 0x' + item.__luajs.index.toString (16));
 					
-				} else if ((item || {}) instanceof Function) {
+				} else if ((item || luajs.EMPTY_OBJ) instanceof Function) {
 					output.push ('JavaScript function: ' + item.toString ());
 									
 				} else if (item === undefined) {
@@ -354,7 +354,7 @@ var luajs = luajs || {};
 	
 	
 		rawget: function (table, index) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in rawget(). Table expected');
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in rawget(). Table expected');
 			return table[index];
 		},
 	
@@ -362,7 +362,7 @@ var luajs = luajs || {};
 	
 	
 		rawset: function (table, index, value) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in rawset(). Table expected');
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in rawset(). Table expected');
 			if (index == undefined) throw new luajs.Error ('Bad argument #2 in rawset(). Nil not allowed');
 	
 			table[index] = value;
@@ -421,7 +421,7 @@ var luajs = luajs || {};
 
 	
 		select: function (index) {
-			var args = [];
+			var args = luajs.gc.createArray();
 			
 			if (index == '#') {
 				return arguments.length - 1;
@@ -444,10 +444,13 @@ var luajs = luajs || {};
 		 * @param {object} metatable The metatable to attach.
 		 */
 		setmetatable: function (table, metatable) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in setmetatable(). Table expected');	
-			if (!(metatable === undefined || (metatable || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #2 in setmetatable(). Nil or table expected');	
-			
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in setmetatable(). Table expected');	
+			if (!(metatable === undefined || (metatable || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #2 in setmetatable(). Nil or table expected');	
+
+			luajs.gc.decrRef(table.__luajs.metatable);
 			table.__luajs.metatable = metatable;
+			luajs.gc.incrRef(metatable);
+
 			return table;
 		},
 		
@@ -499,7 +502,7 @@ var luajs = luajs || {};
 				 
 				case 'object': 
 					if (v.constructor === luajs.Table) return 'table';
-					if ((v || {}) instanceof luajs.Function) return 'function';
+					if ((v || luajs.EMPTY_OBJ) instanceof luajs.Function) return 'function';
 				
 					return 'userdata';
 			}
@@ -527,7 +530,7 @@ var luajs = luajs || {};
 				if (typeof func == 'function') {
 					result = func.apply ();
 					
-				} else if ((func || {}) instanceof luajs.Function) {
+				} else if ((func || luajs.EMPTY_OBJ) instanceof luajs.Function) {
 					result = func.apply (null, undefined, true);
 
 				} else {
@@ -538,14 +541,14 @@ var luajs = luajs || {};
 				
 			} catch (e) {
 				result = err.apply (null, undefined, true);
-				if (((result || {}) instanceof Array)) result = result[0];
+				if (((result || luajs.EMPTY_OBJ) instanceof Array)) result = result[0];
 	
 				success = false;
 			}
 
 			if (invalid) throw new luajs.Error ('Attempt to call non-function');
 			
-			if (!((result || {}) instanceof Array)) result = [result];
+			if (!((result || luajs.EMPTY_OBJ) instanceof Array)) result = [result];
 			result.unshift (success);
 			
 			return result;
@@ -569,7 +572,7 @@ var luajs = luajs || {};
 		
 		
 		resume: function (thread) {
-			var args = [];
+			var args = luajs.gc.createArray();
 			for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 
 			return thread.resume.apply (thread, args);
@@ -618,7 +621,7 @@ var luajs = luajs || {};
 			if (!luajs.Coroutine._running) throw new luajs.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
 			if (luajs.Coroutine._running.status != 'running') throw new luajs.Error ('attempt to yield non-running coroutine in host');
 
-			var args = [],
+			var args = luajs.gc.createArray(),
 				running = luajs.Coroutine._running;
 
 			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
@@ -1228,7 +1231,7 @@ var luajs = luajs || {};
 			i = i || 1;
 			j = j || i;
 			
-			var result = [],
+			var result = luajs.gc.createArray(),
 				length = s.length,
 				index;
 			
@@ -1420,7 +1423,7 @@ var luajs = luajs || {};
 				}
 			}
 			 
-			return sprintfWrapper.init.apply ({}, arguments);
+			return sprintfWrapper.init.apply (null, arguments);
 			
 		},
 		
@@ -1462,12 +1465,12 @@ var luajs = luajs || {};
 
 			while ((n === undefined || count < n) && s && (match = s.match (pattern))) {
 
-				if (typeof repl == 'function' || (repl || {}) instanceof luajs.Function) {
+				if (typeof repl == 'function' || (repl || luajs.EMPTY_OBJ) instanceof luajs.Function) {
 					str = repl.apply (null, [match[0]], true);
 					if (str instanceof Array) str = str[0];
 					if (str === undefined) str = match[0];
 
-				} else if ((repl || {}) instanceof luajs.Table) {
+				} else if ((repl || luajs.EMPTY_OBJ) instanceof luajs.Table) {
 					str = repl.getMember (match[0]);
 					
 				} else if (typeof repl == 'object') {
@@ -1581,13 +1584,13 @@ var luajs = luajs || {};
 		
 		
 		concat: function (table, sep, i, j) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.concat(). Table expected');
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.concat(). Table expected');
 	
 			sep = sep || '';
 			i = i || 1;
 			j = j || luajs.lib.table.maxn (table);
 
-			var result = [].concat(table.__luajs.numValues).splice (i, j - i + 1);
+			var result = luajs.gc.createArray().concat(table.__luajs.numValues).splice (i, j - i + 1);
 			return result.join (sep);
 		},
 		
@@ -1595,10 +1598,10 @@ var luajs = luajs || {};
 	
 	
 		getn: function (table) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.getn(). Table expected');
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.getn(). Table expected');
 
 			var vals = table.__luajs.numValues, 
-				keys = [],
+				keys = luajs.gc.createArray(),
 				i, 
 				j = 0;
 
@@ -1636,7 +1639,7 @@ var luajs = luajs || {};
 		 * @param {object} obj The value to insert.
 		 */
 		insert: function (table, index, obj) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.insert(). Table expected');
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.insert(). Table expected');
 	
 			if (obj == undefined) {
 				obj = index;
@@ -1657,7 +1660,7 @@ var luajs = luajs || {};
 		maxn: function (table) {
 			// v5.2: luajs.warn ('table.maxn is deprecated');
 			
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.maxn(). Table expected');
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.maxn(). Table expected');
 	
 			// // length = 0;
 			// // while (table[length + 1] != undefined) length++;
@@ -1683,7 +1686,7 @@ var luajs = luajs || {};
 		 * @param {object} index The position of the element to remove.
 		 */
 		remove: function (table, index) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.remove(). Table expected');
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.remove(). Table expected');
 	
 			var max = luajs.lib.table.getn(table),
 				vals = table.__luajs.numValues,
@@ -1706,13 +1709,13 @@ var luajs = luajs || {};
 		
 		
 		sort: function (table, comp) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ("Bad argument #1 to 'sort' (table expected)");
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ("Bad argument #1 to 'sort' (table expected)");
 	
 			var sortFunc, 
 				arr = table.__luajs.numValues;
 		
 			if (comp) {
-				if (!((comp || {}) instanceof luajs.Function)) throw new luajs.Error ("Bad argument #2 to 'sort' (function expected)");
+				if (!((comp || luajs.EMPTY_OBJ) instanceof luajs.Function)) throw new luajs.Error ("Bad argument #2 to 'sort' (function expected)");
 	
 				sortFunc = function (a, b) {
 					return comp.apply (null, [a, b], true)[0]? -1 : 1;
@@ -1732,12 +1735,12 @@ var luajs = luajs || {};
 
 
 		unpack: function (table, i, j) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in unpack(). Table expected');	
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in unpack(). Table expected');	
 	
 			i = i || 1;
 			if (j === undefined) j = luajs.lib.table.getn (table);
 			
-			var vals = [],
+			var vals = luajs.gc.createArray(),
 				index;
 	
 			for (index = i; index <= j; index++) vals.push (table.getMember (index));

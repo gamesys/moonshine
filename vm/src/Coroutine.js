@@ -25,7 +25,7 @@ luajs.Coroutine = function (closure) {
 	this._index = luajs.Coroutine._index++;
 	this._started = false;
 	this._yieldVars = undefined;
-	this._resumeStack = [];
+	this._resumeStack = this._resumeStack || luajs.gc.createArray();
 	this.status = 'suspended';
 
 	luajs.stddebug.write ('[coroutine created]\n');
@@ -96,7 +96,7 @@ luajs.Coroutine.prototype.resume = function () {
 		if (luajs.debug.status == 'resuming') {
 			var funcToResume = luajs.debug.resumeStack.pop ();
 			
-			if ((funcToResume || {}) instanceof luajs.Coroutine) {
+			if ((funcToResume || luajs.EMPTY_OBJ) instanceof luajs.Coroutine) {
 				retval = funcToResume.resume ();
 			} else {
 				retval = this._func._instance._run ();
@@ -113,7 +113,7 @@ luajs.Coroutine.prototype.resume = function () {
 			this.status = 'resuming';
 			luajs.stddebug.write ('[coroutine resuming]\n');
 
-			var args = [];
+			var args = luajs.gc.createArray();
 			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 
 			this._yieldVars = args;
@@ -162,15 +162,15 @@ luajs.Coroutine.prototype.toString = function () {
  */
 luajs.Coroutine.prototype._dispose = function () {
 
-	// delete this._func;
-	// delete this._index;
-	// delete this._listeners;
+	delete this._func;
+	delete this._index;
+	delete this._listeners;
 	// delete this._resumeStack;
-	// delete this._started;
-	// delete this._yieldVars
-	// delete this.status
+	delete this._started;
+	delete this._yieldVars
+	delete this.status
 
-	this._resumeStack.splice(0, this._resumeStack.length);
+	this._resumeStack.length = 0;
 
 	luajs.Coroutine._graveyard.push(this);
 };

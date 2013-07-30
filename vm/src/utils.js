@@ -43,18 +43,18 @@ luajs.debug = {};
 
 		toObject: function (table) {
 			var isArr = luajs.lib.table.getn (table) > 0,
-				result = isArr? [] : {},
+				result = luajs.gc['create' + (isArr? 'Array' : 'Object')](),
 				numValues = table.__luajs.numValues,
 				i,
 				l = numValues.length;
 
 			for (i = 1; i < l; i++) {
-				result[i - 1] = ((numValues[i] || {}) instanceof luajs.Table)? luajs.utils.toObject(numValues[i]) : numValues[i];
+				result[i - 1] = ((numValues[i] || luajs.EMPTY_OBJ) instanceof luajs.Table)? luajs.utils.toObject(numValues[i]) : numValues[i];
 			}
 
 			for (i in table) {
 				if (table.hasOwnProperty (i) && !(i in luajs.Table.prototype) && i !== '__luajs') {
-					result[i] = ((table[i] || {}) instanceof luajs.Table)? luajs.utils.toObject (table[i]) : table[i];
+					result[i] = ((table[i] || luajs.EMPTY_OBJ) instanceof luajs.Table)? luajs.utils.toObject (table[i]) : table[i];
 				}
 			}
 			
@@ -112,7 +112,7 @@ luajs.debug = {};
 	        }
 
 	        xhr.open('GET', url, true);
-	        xhr.send({});
+	        xhr.send(luajs.EMPTY_OBJ);
 	    }
 
 	

@@ -42,8 +42,8 @@ luajs.Error.prototype.constructor = luajs.Error;
  */
 luajs.Error.catchExecutionError = function (e) {
 	if (!e) return;
-	//if ((e || {}) instanceof luajs.Error && console) throw new Error ('[luajs] ' + e.message + '\n    ' + (e.luaStack || []).join ('\n    '));
-	if (e instanceof luajs.Error) e.message = e.message + '\n    ' + (e.luaStack || []).join('\n    ');
+	//if ((e || luajs.EMPTY_OBJ) instanceof luajs.Error && console) throw new Error ('[luajs] ' + e.message + '\n    ' + (e.luaStack || []).join ('\n    '));
+	if ((e || luajs.EMPTY_OBJ) instanceof luajs.Error) e.message = e.message + '\n    ' + (e.luaStack || []).join('\n    ');
 	
 	throw e;
 };
