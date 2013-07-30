@@ -4,7 +4,11 @@
 
 do
 	local passed, failed = 0, 0
-	local startTime = getTimestamp()
+	local startTime
+
+	if getTimestamp then
+		startTime = getTimestamp()
+	end
 	
 	function assertTrue (condition, message)
 		if not condition then 
@@ -19,7 +23,12 @@ do
 	
 	
 	function showResults ()		
-		local endTime = getTimestamp()
+		local durationStr = ''
+
+		if getTimestamp then
+			local endTime = getTimestamp()
+			durationStr = 'Completed in '..(endTime - startTime)..'ms.'
+		end
 
 		print "\n------------------------"
 		if failed == 0 then
@@ -29,8 +38,7 @@ do
 		end
 
 		print '------------------------\n'
-		print ('Total asserts: '..(passed + failed)..'; Passed: '..passed..'; Failed: '..failed)
-		print ('Completed in '..(endTime - startTime)..'ms.')
+		print ('Total asserts: '..(passed + failed)..'; Passed: '..passed..'; Failed: '..failed..durationStr)
 	end
 
 end
