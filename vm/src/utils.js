@@ -101,6 +101,8 @@ luajs.debug = {};
 
 		get: function (url, success, error) {
 	        var xhr = new XMLHttpRequest();
+
+	        xhr.open('GET', url, true);
 	        xhr.responseType = 'text';
 
 	        xhr.onload = function (e) {
@@ -111,7 +113,6 @@ luajs.debug = {};
 	            }
 	        }
 
-	        xhr.open('GET', url, true);
 	        xhr.send({});
 	    }
 
