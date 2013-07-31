@@ -69,6 +69,10 @@
 					elOutput.innerHTML += escapeHTML (message) + '\n';
 				};
 					
+				function getTimestamp () {
+					return Date.now();
+				}
+
 				// luajs.stddebug.write = function (message) {
 				// 	debugText += escapeHTML (message) + '\n';
 				// };
@@ -79,7 +83,7 @@
 				// }, 500);
 
 	
-				var vm = new luajs.VM ();
+				var vm = new luajs.VM ({ getTimestamp: getTimestamp });
 				
 				vm.load ('./scripts/test-suite.lua.json', true);
 				//vm.load ('./scripts/coroutine.json', true);
