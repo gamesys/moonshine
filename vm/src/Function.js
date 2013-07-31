@@ -28,7 +28,8 @@ luajs.Function = function (vm, file, data, globals, upvalues) {
 	this._retainCount = 0;
 
 	// Convert instructions to byte array (where possible);
- 	if (this._data.instructions instanceof Array) this._data.instructions = new luajs.InstructionSet(data.instructions);
+ 	//if (this._data.instructions instanceof Array) this._data.instructions = new luajs.InstructionSet(data.instructions);
+ 	this._convertInstructions();
 
 	this.constructor._instances.push(this);
 };
@@ -64,6 +65,50 @@ luajs.Function._instances = [];
  */
 luajs.Function.prototype.getInstance = function () {
 	return luajs.Closure.create (this._vm, this._file, this._data, this._globals, this._upvalues); //new luajs.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
+};
+
+
+
+
+/**
+ * Converts the function's instructions from the format in file into ArrayBuffer or Array in place.
+ */
+luajs.Function.prototype._convertInstructions = function () {
+	var instructions = this._data.instructions,
+		buffer,
+		result,
+		i, l,
+		instruction,
+		offset;
+	
+	if ('ArrayBuffer' in window) {
+		if (instructions instanceof Int32Array) return;
+
+		buffer = new ArrayBuffer(instructions.length * 4 * 4);
+		result = new Int32Array(buffer);
+
+		if (instructions.length == 0 || instructions[0].op === undefined) {
+			result.set(instructions);
+			this._data.instructions = result;
+			return;
+		}
+
+	} else {
+		if (instructions.length == 0 || instructions[0].op === undefined) return;
+		result = [];
+	}
+
+	for (i = 0, l = instructions.length; i < l; i++) {
+		instruction = instructions[i];
+		offset = i * 4;
+
+		result[offset] = instruction.op;
+		result[offset + 1] = instruction.A;
+		result[offset + 2] = instruction.B;
+		result[offset + 3] = instruction.C;
+	}
+
+	this._data.instructions = result;
 };
 
 
