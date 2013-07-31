@@ -59,7 +59,9 @@ luajs.VM.prototype._bindLib = function (lib) {
 				result[i] = this._bindLib(lib[i]);
 
 			} else if (typeof lib[i] == 'function') {
-				result[i] = lib[i].bind(this);
+				result[i] = (function (func, context) {
+					return function () { return func.apply(context, arguments); };
+				})(lib[i], this);
 
 			} else {
 				result[i] = lib[i];
