@@ -1,0 +1,38 @@
+{
+	"name": "moonshine",
+	"description": "Distillery for Moonshine Lua VM",
+	"keywords": [
+		"Moonshine",
+		"Lua",
+		"JavaScript",
+		"virtual machine"
+	],
+	"author": {
+		"name": "Gamesys Ltd.",
+		"url": "http://gamesyscorporate.com"
+	},
+	"contributors": [
+		{
+			"name": "Paul Cuthbertson",
+			"email": "paul.cuthbertson@gamesys.co.uk"
+		}
+	],
+	"version": "0.1.0",
+	"engines": {
+		"node": ">=0.8.x"
+	},
+	"main": "./distil.moonshine.js",
+	"bin": {
+		"moonshine": "./bin/moonshine"
+	},
+	"homepage": "http://moonshinejs.org",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/gamesys/moonshine"
+	},
+	"bugs": {
+		"url": "https://github.com/gamesys/moonshine/issues"
+	},
+	"dependencies": {
+	}
+}
