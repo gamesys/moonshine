@@ -29,7 +29,6 @@ luajs.Table = function (obj) {
 	meta.keys = luajs.gc.createArray();
 	meta.values = luajs.gc.createArray();
 	meta.numValues = [undefined];
-	meta.refCount = 0;
 
 
 	for (i in obj) {

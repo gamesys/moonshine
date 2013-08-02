@@ -449,7 +449,9 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function newtable (a, b, c) {
-		this._register.setItem(a, new luajs.Table ());
+		var t = new luajs.Table ();
+		t.__luajs.refCount = 0;
+		this._register.setItem(a, t);
 	}
 
 
@@ -896,7 +898,7 @@ luajs.Closure.prototype.dispose = function (force) {
 			this._register.clearItem(local.registerIndex);
 		}
 		
-		this._register.reset();
+//		this._register.reset();
 		this.dead = true;
 		
 		return retvals;

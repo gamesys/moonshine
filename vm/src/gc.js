@@ -54,7 +54,7 @@ luajs.gc = {
 
 
 	decrRef: function (val) {
-		if (!val || !(val instanceof luajs.Table)) return;
+		if (!val || !(val instanceof luajs.Table) || val.__luajs.refCount === undefined) return;
 		if (--val.__luajs.refCount == 0) this.collect(val);
 	},
 
@@ -62,7 +62,7 @@ luajs.gc = {
 
 
 	incrRef: function (val) {
-		if (!val || !(val instanceof luajs.Table)) return;
+		if (!val || !(val instanceof luajs.Table) || val.__luajs.refCount === undefined) return;
 		val.__luajs.refCount++;
 	},
 
@@ -74,7 +74,7 @@ luajs.gc = {
 		if (val instanceof Array) return this.cacheArray(val);
 		if (typeof val == 'object' && val.constructor == Object) return this.cacheObject(val);
 
-		if (!(val instanceof luajs.Table)) return;
+		if (!(val instanceof luajs.Table) || val.__luajs.refCount === undefined) return;
 
 		var i, l, 
 			meta = val.__luajs;
