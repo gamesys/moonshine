@@ -755,7 +755,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function testset (a, b, c) {
-		if (!this._register[b] === !c) {
+		if (!this._register[b] !== !c) {
 			this._register[a] = this._register[b];
 		} else {
 			this._pc++;
