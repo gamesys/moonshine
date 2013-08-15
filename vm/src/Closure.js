@@ -474,7 +474,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
 		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
 
-		var toFloat = luajs.utils.toFloat,
+		var coerce = luajs.utils.coerce,
 			mt, f, bn, cn;
 
 		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__add')))
@@ -482,8 +482,9 @@ luajs.Closure.prototype.dispose = function (force) {
 			this._register[a] = f.apply (null, [b, c], true)[0];
 
 		} else {
-			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = parseFloat (b) + parseFloat (c);
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			this._register[a] = b + c;
 		}
 	}
 
@@ -494,7 +495,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
 		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
 
-		var toFloat = luajs.utils.toFloat,
+		var coerce = luajs.utils.coerce,
 			mt, f;
 
 		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__sub')))
@@ -502,8 +503,9 @@ luajs.Closure.prototype.dispose = function (force) {
 			this._register[a] = f.apply (null, [b, c], true)[0];
 
 		} else {
-			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = parseFloat (b) - parseFloat (c);
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			this._register[a] = b - c;
 		}
 	}
 
@@ -514,7 +516,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
 		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
 
-		var toFloat = luajs.utils.toFloat,
+		var coerce = luajs.utils.coerce,
 			mt, f;
 
 		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mul')))
@@ -522,8 +524,9 @@ luajs.Closure.prototype.dispose = function (force) {
 			this._register[a] = f.apply (null, [b, c], true)[0];
 
 		} else {
-			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = parseFloat (b) * parseFloat (c);
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			this._register[a] = b * c;
 		}
 	}
 
@@ -534,7 +537,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
 		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
 
-		var toFloat = luajs.utils.toFloat,
+		var coerce = luajs.utils.coerce,
 			mt, f;
 
 		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__div')))
@@ -542,8 +545,9 @@ luajs.Closure.prototype.dispose = function (force) {
 			this._register[a] = f.apply (null, [b, c], true)[0];
 
 		} else {
-			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = parseFloat (b) / parseFloat (c);
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			this._register[a] = b / c;
 		}
 	}
 
@@ -554,7 +558,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
 		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
 		
-		var toFloat = luajs.utils.toFloat,
+		var coerce = luajs.utils.coerce,
 			mt, f;
 
 		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mod')))
@@ -562,8 +566,9 @@ luajs.Closure.prototype.dispose = function (force) {
 			this._register[a] = f.apply (null, [b, c], true)[0];
 
 		} else {
-			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = parseFloat (b) % parseFloat (c);
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			this._register[a] = b % c;
 		}
 	}
 
@@ -574,7 +579,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
 		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
 
-		var toFloat = luajs.utils.toFloat,
+		var coerce = luajs.utils.coerce,
 			mt, f;
 
 		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__pow')))
@@ -582,8 +587,9 @@ luajs.Closure.prototype.dispose = function (force) {
 			this._register[a] = f.apply (null, [b, c], true)[0];
 
 		} else {
-			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = Math.pow (parseFloat (b), parseFloat (c));
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			this._register[a] = Math.pow (b, c);
 		}
 	}
 
@@ -597,9 +603,8 @@ luajs.Closure.prototype.dispose = function (force) {
 			this._register[a] = f.apply (null, [this._register[b]], true)[0];
 
 		} else {
-			b = this._register[b];
-			if (luajs.utils.toFloat (b) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = -parseFloat (b);
+			b = luajs.utils.coerce(this._register[b], 'number', 'attempt to perform arithmetic on a non-numeric value');
+			this._register[a] = -b;
 		}
 	}
 

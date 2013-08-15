@@ -29,6 +29,7 @@ luajs.debug = {};
 					return '' + val;
 
 				case 'number':
+					if (val === Infinity || val === -Infinity) return val;
 					if (('' + val).match(FLOATING_POINT_PATTERN)) n = parseFloat(val);
 					if (n === undefined && errorMessage) throw new luajs.Error(errorMessage);
 					return n;
@@ -85,18 +86,6 @@ luajs.debug = {};
 		},
 		
 		
-
-
-		toFloat: function (x) {
-			if (x === Infinity || x === -Infinity) return x;
-
-			var FLOATING_POINT_PATTERN = /^[-+]?[0-9]*\.?([0-9]+([eE][-+]?[0-9]+)?)?$/;
-			if (!('' + x).match (FLOATING_POINT_PATTERN)) return;
-			
-			return parseFloat (x);
-		},
-		
-
 
 
 		get: function (url, success, error) {

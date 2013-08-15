@@ -912,8 +912,9 @@ var luajs = luajs || {};
 		
 		
 		pow: function (x, y) {
-			if ((x = luajs.utils.toFloat (x)) === undefined) throw new luajs.Error ("bad argument #1 to 'pow' (number expected)");
-			if ((y = luajs.utils.toFloat (y)) === undefined) throw new luajs.Error ("bad argument #2 to 'pow' (number expected)");
+			var coerce = luajs.utils.coerce;
+			x = coerce(x, 'number', "bad argument #1 to 'pow' (number expected)")
+			y = coerce(y, 'number', "bad argument #2 to 'pow' (number expected)")
 			return Math.pow (x, y);
 		},
 		
@@ -921,7 +922,7 @@ var luajs = luajs || {};
 		
 		
 		rad: function (x) {
-			if ((x = luajs.utils.toFloat (x)) === undefined) throw new luajs.Error ("bad argument #1 to 'rad' (number expected)");
+			x = luajs.utils.coerce(x, 'number', "bad argument #1 to 'rad' (number expected)")
 			return (Math.PI / 180) * x;
 		},
 	
@@ -1448,7 +1449,7 @@ var luajs = luajs || {};
 		gsub: function (s, pattern, repl, n) {
 			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'gsub' (string expected, got " + typeof s + ")");
 			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'gsub' (string expected, got " + typeof pattern + ")");
-			if (n !== undefined && (n = luajs.utils.toFloat (n)) === undefined) throw new luajs.Error ("bad argument #4 to 'gsub' (number expected, got " + typeof n + ")");
+			if (n !== undefined && (n = luajs.utils.coerce(n, 'number')) === undefined) throw new luajs.Error ("bad argument #4 to 'gsub' (number expected, got " + typeof n + ")");
 
 			s = '' + s;
 			pattern = translatePattern ('' + pattern);
