@@ -559,7 +559,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
 		
 		var coerce = luajs.utils.coerce,
-			mt, f;
+			mt, f, result, absC;
 
 		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mod')))
 		|| ((c || {}) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__mod')))) {
@@ -568,7 +568,17 @@ luajs.Closure.prototype.dispose = function (force) {
 		} else {
 			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
 			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
-			this._register[a] = b % c;
+
+			if (c === 0 || c === -Infinity || c === Infinity || window.isNaN(b) || window.isNaN(c)) {
+				result = NaN;
+
+			} else {
+				result = Math.abs(b) % (absC = Math.abs(c));
+				if (!(b < 0) ^ !(c < 0)) result = absC - result;
+				if (c < 0) result *= -1;
+			}
+
+			this._register[a] = result;
 		}
 	}
 
