@@ -297,7 +297,7 @@ var shine = shine || {};
 			locals: this._readLocalsList(),
 			upvalues: this._readStringList()
 		};
-console.log(this._runConfig.stripDebugging);
+
 		if (this._runConfig.stripDebugging) {
 			delete result.linePositions;
 			delete result.locals;

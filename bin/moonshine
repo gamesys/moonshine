@@ -10,32 +10,39 @@
 
 
 var command = process.argv[2],
-	filename = process.argv[process.argv.length - 1],
+	filenames = [],
 	switches = {},
 	Parser = require('../distil/distil.moonshine.js').Parser,
 	exec = require('child_process').exec,
 	fs = require('fs'),
-	i;
+	arg, i, l;
 
 
-for (i = 3; i < process.argv.length - 1; i++) switches[process.argv[i]] = 1;
+for (i = 3, l = process.argv.length; i < l; i++) {
+	arg = process.argv[i];
+
+	if (arg.substr(0, 1) === '-') {
+		switches[arg] = 1;
+	} else {
+		filenames.push(arg);
+	}
+}
 
 
 switch (command) {
-	case 'distil': return distil(filename);
-	case 'distil-lua': return distilLua(filename);
-	case 'distil-luac': return distilLuac(filename);
+	case 'distil': return distil(filenames);
 	default: return console.log('Unknown command: ' + command);
 }
 
 
 
 
-function distil (filename) {
-	if (filename.match(/.*\.lua$/)) {
-		distilLua(filename);
-	} else {
-		distilLuac(filename);
+function distil (filenames) {
+	var filename, i, l;
+
+	for (i = 0, l = filenames.length; i < l; i++) {
+		filename = filenames[i];
+		if (/^.*\.lua$/.test(filename)) distilLua(filename);
 	}
 }
 
@@ -64,7 +71,7 @@ function distilLuac (filename) {
 		};
 
 	parser.parse(filename, config, function (tree) {
-		if (match = filename.match(/(.*)\.luac$/)) filename = match[1];
+		if (match = filename.match(/^(.*)\.luac$/)) filename = match[1];
 
 		fs.writeFile(filename + '.json', JSON.stringify(tree), function (err) {
 			if (err) throw new Error(err);
