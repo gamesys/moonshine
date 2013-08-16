@@ -335,7 +335,7 @@ var luajs = luajs || {};
 					output.push ('nil');
 					
 				} else {
-					output.push (item);
+					output.push (luajs.lib.tostring(item));
 				}
 //	console.log ('print>>', item);
 			}
