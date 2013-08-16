@@ -1264,7 +1264,7 @@ var luajs = luajs || {};
 			s = '' + s;
 			init = init || 1;
 
-			var index, reg, match;
+			var index, reg, match, result;
 
 			// Regex
 			if (plain === undefined || !plain) {
@@ -1275,7 +1275,10 @@ var luajs = luajs || {};
 				if (index < 0) return;
 				
 				match = s.substr(init - 1).match (reg);
-				return [index + init, index + init + match[0].length - 1, match[1]];
+				result = [index + init, index + init + match[0].length - 1];
+
+				match.shift();
+				return result.concat(match);
 			}
 			
 			// Plain
@@ -1430,17 +1433,18 @@ var luajs = luajs || {};
 		
 		gmatch: function (s, pattern) {
 			pattern = translatePattern (pattern);
-			var reg = new RegExp (pattern, 'g');
-				
+			var reg = new RegExp (pattern, 'g'),
+				matches = ('' + s).match(reg);
+
 			return function () {
-				var result = reg.exec(s),
-					item;
+				var match = matches.shift(),
+					groups = new RegExp(reg).exec(match);
 
-				if (!result) return;
+				if (match === undefined) return;
 
-				item = result? result.shift() : undefined;
-				return result.length? result : item;
-			};			
+				groups.shift();
+				return groups.length? groups : match;
+			};				
 		},
 		
 		
@@ -1454,12 +1458,12 @@ var luajs = luajs || {};
 			s = '' + s;
 			pattern = translatePattern ('' + pattern);
 
-			var reg = new RegExp (pattern),
-				count = 0,
+			var count = 0,
 				result = '',
 				str,
 				prefix,
-				match;
+				match,
+				lastMatch;
 
 			while ((n === undefined || count < n) && s && (match = s.match (pattern))) {
 
@@ -1477,10 +1481,16 @@ var luajs = luajs || {};
 				} else {
 					str = ('' + repl).replace(/%([0-9])/g, function (m, i) { return match[i]; });
 				}
-				
-				prefix = s.split (match[0], 1)[0];
+
+				if (match[0].length == 0 && lastMatch === undefined) {
+				 	prefix = '';
+				} else {
+					prefix = s.split (match[0], 1)[0];
+				}
+	
+				lastMatch = match[0];
 				result += prefix + str;
-				s = s.substr((prefix + match[0]).length);
+				s = s.substr((prefix + lastMatch).length);
 
 				count++;
 			}

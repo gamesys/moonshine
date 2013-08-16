@@ -112,7 +112,6 @@ do
 
 end
 
-
 assertTrue (a == a, 'Equality operator should return true if first operand is equal to second')
 assertTrue (not (a == b), 'Equality operator should return false if first operand is not equal to second')
 
@@ -934,6 +933,12 @@ assertTrue (e == 1, 'string.find() should return return 1 if the second argument
 assertTrue (f == nil, 'string.find() should return nil if the second argument is not contained within the first after the index specified by the third argument')
 assertTrue (g == 17, 'string.find() should return the location of the second argument if it is contained within the first after the index specified by the third argument')
 
+local b, c, d, e = string.find (a, 'q(.)(.)');
+assertEqual (b, 5, 'string.find() should return the location of the first occurrence of the second argument within the first, if it is present [3]')
+assertEqual (c, 7, 'string.find() should return the location of the last character of the first occurrence of the second argument within the first, if it is present')
+assertEqual (d, 'u', 'string.find() should return the groups that are specified in the regex. [1]')
+assertEqual (e, 'i', 'string.find() should return the groups that are specified in the regex. [2]')
+
 
 -- gmatch
 
@@ -964,6 +969,18 @@ assertTrue (b == nil, 'string.gmatch() iterator should return nil as second retu
 local a, b = x()
 assertTrue (a == 'to=Lua', 'string.gmatch() iterator should return the second match when no groups are specified')
 assertTrue (b == nil, 'string.gmatch() iterator should return nil as second return value when no groups are specified [2]')
+
+do
+	local x = string.gmatch(';a;', 'a*')
+	local a, b, c, d, e, f = x(), x(), x(), x(), x(), x();
+
+	assertEqual (a, '', 'string.gmatch() iterator should return correct values [1]')
+	assertEqual (b, 'a', 'string.gmatch() iterator should return correct values [2]')
+	assertEqual (c, '', 'string.gmatch() iterator should return correct values [3]')
+	assertEqual (d, '', 'string.gmatch() iterator should return correct values [4]')
+	assertEqual (e, nil, 'string.gmatch() iterator should return correct values [5]')
+	assertEqual (e, nil, 'string.gmatch() iterator should return correct values [6]')
+end
 
 
 
@@ -1006,6 +1023,10 @@ d = string.gsub (b, a, c)
 assertTrue (d == ':X:X:X:X:X:', 'string.gsub() should replace the matched part of the string if the value returned from the map function is not nil')
 
 
+c = string.gsub (';a;', 'a*', 'ITEM')
+assertTrue (c == 'ITEM;ITEMITEM;ITEM', 'string.gsub() should replace the matched part of the string[2]')
+
+    
 
 
 
