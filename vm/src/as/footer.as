@@ -1,11 +1,11 @@
 
-			luajs.debug = {};
+			shine.debug = {};
 
-			Luajs.Table = luajs.Table;
-			Luajs.utils = luajs.utils;
-			Luajs.lib = luajs.lib;
+			Moonshine.Table = shine.Table;
+			Moonshine.utils = shine.utils;
+			Moonshine.lib = shine.lib;
 
-			VM = new luajs.VM(env);
+			VM = new shine.VM(env);
 		}
 	}
 }

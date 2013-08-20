@@ -4,40 +4,40 @@
  * @copyright Gamesys Limited 2013
  */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 
 
 
-luajs.stdout = {};
+shine.stdout = {};
 
-luajs.stdout.write = function (message) {
+shine.stdout.write = function (message) {
 	// Overwrite this in host application
 	if (console && console.log) {
 		console.log (message);
 	} else if (trace) {
 		trace (message);
 	}
-}
+};
 
 
 
 
-luajs.stddebug = {};
+shine.stddebug = {};
 
-luajs.stddebug.write = function (message) {
-	// Luajs bytecode debugging output
-}
-
-
+shine.stddebug.write = function (message) {
+	// Moonshine bytecode debugging output
+};
 
 
-luajs.stderr = {};
 
-luajs.stderr.write = function (message, level) {
+
+shine.stderr = {};
+
+shine.stderr.write = function (message, level) {
 	level = level || 'error';
 	if (console && console[level]) console[level] (message);
-}
+};
 
 
 

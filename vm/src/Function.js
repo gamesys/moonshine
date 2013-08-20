@@ -4,39 +4,39 @@
  * @copyright Gamesys Limited 2013
 */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 /**
  * Represents a function definition.
  * @constructor
- * @extends luajs.EventEmitter
- * @param {luajs.File} file The file in which the function is declared.
+ * @extends shine.EventEmitter
+ * @param {shine.File} file The file in which the function is declared.
  * @param {object} data Object containing the Luac data for the function.
  * @param {object} globals The global variables for the environment in which the function is declared.
  * @param {object} [upvalues] The upvalues passed from the parent closure.
  */
-luajs.Function = function (vm, file, data, globals, upvalues) {
-	//luajs.EventEmitter.call (this);
+shine.Function = function (vm, file, data, globals, upvalues) {
+	//shine.EventEmitter.call (this);
 
 	this._vm = vm;
 	this._file = file;
 	this._data = data;
 	this._globals = globals;
-	this._upvalues = upvalues || luajs.gc.createObject();
-	this._index = luajs.Function._index++;
-	this.instances = luajs.gc.createArray();
+	this._upvalues = upvalues || shine.gc.createObject();
+	this._index = shine.Function._index++;
+	this.instances = shine.gc.createArray();
 	this._retainCount = 0;
 
 	// Convert instructions to byte array (where possible);
- 	//if (this._data.instructions instanceof Array) this._data.instructions = new luajs.InstructionSet(data.instructions);
+ 	//if (this._data.instructions instanceof Array) this._data.instructions = new shine.InstructionSet(data.instructions);
  	this._convertInstructions();
 
 	this.constructor._instances.push(this);
 };
 
 
-luajs.Function.prototype = {}; //new luajs.EventEmitter ();
-luajs.Function.prototype.constructor = luajs.Function;
+shine.Function.prototype = {}; //new shine.EventEmitter ();
+shine.Function.prototype.constructor = shine.Function;
 
 
 /**
@@ -44,7 +44,7 @@ luajs.Function.prototype.constructor = luajs.Function;
  * @type Number
  * @static
  */
-luajs.Function._index = 0;
+shine.Function._index = 0;
 
 
 
@@ -54,17 +54,17 @@ luajs.Function._index = 0;
  * @type Array
  * @static
  */
-luajs.Function._instances = [];
+shine.Function._instances = [];
 
 
 
 
 /**
  * Creates a new function instance from the definition.
- * @returns {luajs.Closure} An instance of the function definition.
+ * @returns {shine.Closure} An instance of the function definition.
  */
-luajs.Function.prototype.getInstance = function () {
-	return luajs.Closure.create (this._vm, this._file, this._data, this._globals, this._upvalues); //new luajs.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
+shine.Function.prototype.getInstance = function () {
+	return shine.Closure.create (this._vm, this._file, this._data, this._globals, this._upvalues); //new shine.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
 };
 
 
@@ -73,7 +73,7 @@ luajs.Function.prototype.getInstance = function () {
 /**
  * Converts the function's instructions from the format in file into ArrayBuffer or Array in place.
  */
-luajs.Function.prototype._convertInstructions = function () {
+shine.Function.prototype._convertInstructions = function () {
 	var instructions = this._data.instructions,
 		buffer,
 		result,
@@ -118,8 +118,8 @@ luajs.Function.prototype._convertInstructions = function () {
  * Calls the function, implicitly creating a new instance and passing on the arguments provided.
  * @returns {Array} Array of the return values from the call.
  */
-luajs.Function.prototype.call = function () {
-	var args = luajs.gc.createArray(),
+shine.Function.prototype.call = function () {
+	var args = shine.gc.createArray(),
 		l = arguments.length,
 		i;
 		
@@ -136,20 +136,20 @@ luajs.Function.prototype.call = function () {
  * @param {Array} args Array containing arguments to use.
  * @returns {Array} Array of the return values from the call.
  */
-luajs.Function.prototype.apply = function (obj, args, internal) {
-	if ((obj || luajs.EMPTY_OBJ) instanceof Array && !args) {
+shine.Function.prototype.apply = function (obj, args, internal) {
+	if ((obj || shine.EMPTY_OBJ) instanceof Array && !args) {
 		args = obj;
 		obj = undefined;
 	}
 
-	var func = internal? this.getInstance () : luajs.lib.coroutine.wrap (this);
+	var func = internal? this.getInstance () : shine.lib.coroutine.wrap (this);
 	
 	try {
 		return func.apply (obj, args);
 //		return this.getInstance ().apply (obj, args);
 
 	} catch (e) {
-		luajs.Error.catchExecutionError (e);
+		shine.Error.catchExecutionError (e);
 	}
 };
 
@@ -160,7 +160,7 @@ luajs.Function.prototype.apply = function (obj, args, internal) {
  * Creates a unique description of the function.
  * @returns {string} Description.
  */
-luajs.Function.prototype.toString = function () {
+shine.Function.prototype.toString = function () {
 	return 'function: 0x' + this._index.toString (16);
 };
 
@@ -170,7 +170,7 @@ luajs.Function.prototype.toString = function () {
 /**
  * Saves this function from disposal.
  */
-luajs.Function.prototype.retain = function () {
+shine.Function.prototype.retain = function () {
 	this._retainCount++;
 };
 
@@ -180,7 +180,7 @@ luajs.Function.prototype.retain = function () {
 /**
  * Releases this function to be disposed.
  */
-luajs.Function.prototype.release = function () {
+shine.Function.prototype.release = function () {
 	if (!--this._retainCount && this._readyToDispose) this.dispose();
 };
 
@@ -191,7 +191,7 @@ luajs.Function.prototype.release = function () {
  * Test if the function has been marked as retained.
  * @returns {boolean} Whether or not the function is marked as retained.
  */
-luajs.Function.prototype.isRetained = function () {
+shine.Function.prototype.isRetained = function () {
 	if (this._retainCount) return true;
 	
 	for (var i in this.instances) {
@@ -207,7 +207,7 @@ luajs.Function.prototype.isRetained = function () {
 /**
  * Dump memory associated with function.
  */
-luajs.Function.prototype.dispose = function (force) {
+shine.Function.prototype.dispose = function (force) {
 	this._readyToDispose = true;
 	
 	if (force) {

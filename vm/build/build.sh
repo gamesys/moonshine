@@ -1,15 +1,15 @@
-echo > ../luajs.js
+echo > ../moonshine.js
 
-cat ../src/gc.js >> ../luajs.js
-cat ../src/EventEmitter.js >> ../luajs.js
-cat ../src/VM.js >> ../luajs.js
-cat ../src/Register.js >> ../luajs.js
-cat ../src/Closure.js >> ../luajs.js
-cat ../src/Function.js >> ../luajs.js
-cat ../src/Coroutine.js >> ../luajs.js
-cat ../src/Table.js >> ../luajs.js
-cat ../src/Error.js >> ../luajs.js
-cat ../src/File.js >> ../luajs.js
-cat ../src/lib.js >> ../luajs.js
-cat ../src/utils.js >> ../luajs.js
-cat ../src/output.js >> ../luajs.js
+cat ../src/gc.js >> ../moonshine.js
+cat ../src/EventEmitter.js >> ../moonshine.js
+cat ../src/VM.js >> ../moonshine.js
+cat ../src/Register.js >> ../moonshine.js
+cat ../src/Closure.js >> ../moonshine.js
+cat ../src/Function.js >> ../moonshine.js
+cat ../src/Coroutine.js >> ../moonshine.js
+cat ../src/Table.js >> ../moonshine.js
+cat ../src/Error.js >> ../moonshine.js
+cat ../src/File.js >> ../moonshine.js
+cat ../src/lib.js >> ../moonshine.js
+cat ../src/utils.js >> ../moonshine.js
+cat ../src/output.js >> ../moonshine.js

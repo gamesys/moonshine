@@ -2,11 +2,8 @@
 	<head>
 		<title></title>
 
-		<link rel="stylesheet" href="../debug/css/debug.luajs.css" />
+		<link rel="stylesheet" href="../debug/css/debug.moonshine.css" />
 				
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-		<script src="/frameworks/jquery/jquery.min.js"></script>
-		
 		<script src="../vm/src/gc.js"></script>
 		<script src="../vm/src/EventEmitter.js"></script>
 		<script src="../vm/src/VM.js"></script>
@@ -21,8 +18,8 @@
 		<script src="../vm/src/utils.js"></script>
 		<script src="../vm/src/output.js"></script>
 		
-		<!-- script src="../debug/debug.luajs.js"></script -->
-		<script src="http://paulcuth.me.uk/lichen/lichen.js.php?accept=$,jQuery,luajs"></script>
+		<!-- script src="../debug/debug.moonshine.js"></script -->
+		<script src="http://paulcuth.me.uk/lichen/lichen.js.php?accept=shine"></script>
 
 		<style>
 			#debug,
@@ -66,7 +63,7 @@
 				    return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 				}	
 
-				luajs.stdout.write = function (message) {
+				shine.stdout.write = function (message) {
 					elOutput.innerHTML += escapeHTML (message) + '\n';
 				};
 
@@ -75,7 +72,7 @@
 					return Date.now();
 				}
 					
-				// luajs.stddebug.write = function (message) {
+				// shine.stddebug.write = function (message) {
 				// 	debugText += escapeHTML (message) + '\n';
 				// };
 				
@@ -85,7 +82,7 @@
 				// }, 500);
 
 	
-				var vm = new luajs.VM ({ getTimestamp: getTimestamp });
+				var vm = new shine.VM ({ getTimestamp: getTimestamp });
 				vm.load ('./scripts/test-runner.lua.json', true);
 
 			})();

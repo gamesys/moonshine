@@ -4,7 +4,7 @@
  * @copyright Gamesys Limited 2013
 */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 
 
@@ -97,10 +97,10 @@ var luajs = luajs || {};
 			filename = pathData + filename;
 		}
 
-		file = new luajs.File (filename);
+		file = new shine.File (filename);
 
 		file.bind ('loaded', function (data) {
-			var func = new luajs.Function (vm, file, file.data, vm._globals);
+			var func = new shine.Function (vm, file, file.data, vm._globals);
 			vm._trigger ('module-loaded', file, func);
 			
 			callback(func);
@@ -118,11 +118,11 @@ var luajs = luajs || {};
 
 
 
-	luajs.lib = {
+	shine.lib = {
 	
 		
 		assert: function (v, m) {
-			if (v === false || v === undefined) throw new luajs.Error (m || 'Assertion failed!');
+			if (v === false || v === undefined) throw new shine.Error (m || 'Assertion failed!');
 			return [v, m];
 		},
 	
@@ -144,7 +144,7 @@ var luajs = luajs || {};
 		
 		
 		error: function (message) {	
-			throw new luajs.Error (message);
+			throw new shine.Error (message);
 		},
 	
 	
@@ -162,23 +162,23 @@ var luajs = luajs || {};
 		 * @param {object} table The table from which to obtain the metatable.
 		 */
 		getmetatable: function (table) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in getmetatable(). Table expected');
-			return table.__luajs.metatable;
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in getmetatable(). Table expected');
+			return table.__shine.metatable;
 		},
 		
 	
 	
 	
 		ipairs: function (table) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in ipairs(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in ipairs(). Table expected');
 			
 			var iterator = function (table, index) {
-				if (index === undefined) throw new luajs.Error ('Bad argument #2 to ipairs() iterator');
+				if (index === undefined) throw new shine.Error ('Bad argument #2 to ipairs() iterator');
 
 				var nextIndex = index + 1;
 
-				if (!table.__luajs.numValues.hasOwnProperty (nextIndex)) return undefined;
-				return [nextIndex, table.__luajs.numValues[nextIndex]];
+				if (!table.__shine.numValues.hasOwnProperty (nextIndex)) return undefined;
+				return [nextIndex, table.__shine.numValues[nextIndex]];
 			};
 	
 			return [iterator, table, 0];
@@ -188,7 +188,7 @@ var luajs = luajs || {};
 	
 		
 		load: function (func, chunkname) {
-			var file = new luajs.File,
+			var file = new shine.File,
 				chunk = '', piece, lastPiece;
 
 			while ((piece = func()) && piece != lastPiece) {
@@ -196,14 +196,14 @@ var luajs = luajs || {};
 			}
 
 			file._data = JSON.parse(chunk);
-			return new luajs.Function(this, file, file._data, this._globals, luajs.gc.createArray());
+			return new shine.Function(this, file, file._data, this._globals, shine.gc.createArray());
 		},
 	
 	
 	
 		
 		loadfile: function (filename) {
-			var thread = luajs.lib.coroutine.yield(),
+			var thread = shine.lib.coroutine.yield(),
 				callback = function (result) {
 					thread.resume(result);
 				};
@@ -216,7 +216,7 @@ var luajs = luajs || {};
 		
 		loadstring: function (string, chunkname) {
 			var f = function () { return string; };
-			return luajs.lib.load.call(this, f, chunkname);
+			return shine.lib.load.call(this, f, chunkname);
 		},
 	
 	
@@ -230,7 +230,7 @@ var luajs = luajs || {};
 		next: function (table, index) {	
 			// SLOOOOOOOW...
 			var found = (index === undefined),
-				numValues = table.__luajs.numValues,
+				numValues = table.__shine.numValues,
 				i, l;
 
 			if (found || typeof index == 'number') {
@@ -246,7 +246,7 @@ var luajs = luajs || {};
 			}
 			
 			for (i in table) {
-				if (table.hasOwnProperty (i) && !(i in luajs.Table.prototype) && i !== '__luajs') {
+				if (table.hasOwnProperty (i) && !(i in shine.Table.prototype) && i !== '__shine') {
 					if (!found) {
 						if (i == index) found = true;
 	
@@ -256,20 +256,20 @@ var luajs = luajs || {};
 				}
 			}
 	
-			for (i in table.__luajs.keys) {
-				if (table.__luajs.keys.hasOwnProperty(i)) {
-					var key = table.__luajs.keys[i];
+			for (i in table.__shine.keys) {
+				if (table.__shine.keys.hasOwnProperty(i)) {
+					var key = table.__shine.keys[i];
 	
 					if (!found) {
 						if (key === index) found = true;
 		
-					} else if (table.__luajs.values[i] !== undefined) {
-						return [key, table.__luajs.values[i]];
+					} else if (table.__shine.values[i] !== undefined) {
+						return [key, table.__shine.values[i]];
 					}
 				}
 			}
 		
-			return luajs.gc.createArray();
+			return shine.gc.createArray();
 		},
 	
 	
@@ -280,15 +280,15 @@ var luajs = luajs || {};
 		 * @param {object} table The table to be iterated over.
 		 */
 		pairs: function (table) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in pairs(). Table expected');
-			return [luajs.lib.next, table];
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in pairs(). Table expected');
+			return [shine.lib.next, table];
 		},
 	
 		
 	
 	
 		pcall: function (func) {
-			var args = luajs.gc.createArray(),
+			var args = shine.gc.createArray(),
 				result;
 				
 			for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);
@@ -297,18 +297,18 @@ var luajs = luajs || {};
 				if (typeof func == 'function') {
 					result = func.apply (null, args);
 					
-				} else if ((func || luajs.EMPTY_OBJ) instanceof luajs.Function) {
+				} else if ((func || shine.EMPTY_OBJ) instanceof shine.Function) {
 					result = func.apply (null, args, true);
 
 				} else {
-					throw new luajs.Error ('Attempt to call non-function');
+					throw new shine.Error ('Attempt to call non-function');
 				}
 	
 			} catch (e) {
 				return [false, e.message];
 			}
 			
-			if (!((result || luajs.EMPTY_OBJ) instanceof Array)) result = [result];
+			if (!((result || shine.EMPTY_OBJ) instanceof Array)) result = [result];
 			result.unshift (true);
 			
 			return result;
@@ -319,28 +319,28 @@ var luajs = luajs || {};
 	
 		print: function () {
 	
-			var output = luajs.gc.createArray(),
+			var output = shine.gc.createArray(),
 				item;
 			
 			for (var i = 0, l = arguments.length; i< l; i++) {
 				item = arguments[i];
 				
-				if ((item || luajs.EMPTY_OBJ) instanceof luajs.Table) {
-					output.push ('table: 0x' + item.__luajs.index.toString (16));
+				if ((item || shine.EMPTY_OBJ) instanceof shine.Table) {
+					output.push ('table: 0x' + item.__shine.index.toString (16));
 					
-				} else if ((item || luajs.EMPTY_OBJ) instanceof Function) {
+				} else if ((item || shine.EMPTY_OBJ) instanceof Function) {
 					output.push ('JavaScript function: ' + item.toString ());
 									
 				} else if (item === undefined) {
 					output.push ('nil');
 					
 				} else {
-					output.push (luajs.lib.tostring(item));
+					output.push (shine.lib.tostring(item));
 				}
 //	console.log ('print>>', item);
 			}
 	
-			return luajs.stdout.write (output.join ('\t'));
+			return shine.stdout.write (output.join ('\t'));
 		},
 	
 	
@@ -354,7 +354,7 @@ var luajs = luajs || {};
 	
 	
 		rawget: function (table, index) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in rawget(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in rawget(). Table expected');
 			return table[index];
 		},
 	
@@ -362,8 +362,8 @@ var luajs = luajs || {};
 	
 	
 		rawset: function (table, index, value) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in rawset(). Table expected');
-			if (index == undefined) throw new luajs.Error ('Bad argument #2 in rawset(). Nil not allowed');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in rawset(). Table expected');
+			if (index == undefined) throw new shine.Error ('Bad argument #2 in rawset(). Nil not allowed');
 	
 			table[index] = value;
 			return table;
@@ -374,7 +374,7 @@ var luajs = luajs || {};
 
 		require: function (modname) {
 			var thread,
-				packageLib = luajs.lib['package'],
+				packageLib = shine.lib['package'],
 				vm = this,
 				module,
 				preload,
@@ -393,7 +393,7 @@ var luajs = luajs || {};
 			if (preload = packageLib.preload[modname]) return load(preload);
 
 			paths = packageLib.path.replace(/;;/g, ';').split(';');
-			thread = luajs.lib.coroutine.yield();
+			thread = shine.lib.coroutine.yield();
 
 
 			function loadNextPath () {
@@ -421,7 +421,7 @@ var luajs = luajs || {};
 
 	
 		select: function (index) {
-			var args = luajs.gc.createArray();
+			var args = shine.gc.createArray();
 			
 			if (index == '#') {
 				return arguments.length - 1;
@@ -431,7 +431,7 @@ var luajs = luajs || {};
 				return args;
 				
 			} else {
-				throw new luajs.Error ('Bad argument #1 in select(). Number or "#" expected');
+				throw new shine.Error ('Bad argument #1 in select(). Number or "#" expected');
 			}
 		},
 		
@@ -444,12 +444,12 @@ var luajs = luajs || {};
 		 * @param {object} metatable The metatable to attach.
 		 */
 		setmetatable: function (table, metatable) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in setmetatable(). Table expected');	
-			if (!(metatable === undefined || (metatable || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #2 in setmetatable(). Nil or table expected');	
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in setmetatable(). Table expected');	
+			if (!(metatable === undefined || (metatable || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #2 in setmetatable(). Nil or table expected');	
 
-			luajs.gc.decrRef(table.__luajs.metatable);
-			table.__luajs.metatable = metatable;
-			luajs.gc.incrRef(metatable);
+			shine.gc.decrRef(table.__shine.metatable);
+			table.__shine.metatable = metatable;
+			shine.gc.incrRef(metatable);
 
 			return table;
 		},
@@ -501,8 +501,8 @@ var luajs = luajs || {};
 					return t;
 				 
 				case 'object': 
-					if (v.constructor === luajs.Table) return 'table';
-					if ((v || luajs.EMPTY_OBJ) instanceof luajs.Function) return 'function';
+					if (v.constructor === shine.Table) return 'table';
+					if ((v || shine.EMPTY_OBJ) instanceof shine.Function) return 'function';
 				
 					return 'userdata';
 			}
@@ -511,8 +511,8 @@ var luajs = luajs || {};
 		
 	
 		unpack: function (table, i, j) {
-			// v5.2: luajs.warn ('unpack is deprecated. Use table.unpack instead.');
-			return luajs.lib.table.unpack (table, i, j);
+			// v5.2: shine.warn ('unpack is deprecated. Use table.unpack instead.');
+			return shine.lib.table.unpack (table, i, j);
 		},
 		
 		
@@ -530,7 +530,7 @@ var luajs = luajs || {};
 				if (typeof func == 'function') {
 					result = func.apply ();
 					
-				} else if ((func || luajs.EMPTY_OBJ) instanceof luajs.Function) {
+				} else if ((func || shine.EMPTY_OBJ) instanceof shine.Function) {
 					result = func.apply (null, undefined, true);
 
 				} else {
@@ -541,14 +541,14 @@ var luajs = luajs || {};
 				
 			} catch (e) {
 				result = err.apply (null, undefined, true);
-				if (((result || luajs.EMPTY_OBJ) instanceof Array)) result = result[0];
+				if (((result || shine.EMPTY_OBJ) instanceof Array)) result = result[0];
 	
 				success = false;
 			}
 
-			if (invalid) throw new luajs.Error ('Attempt to call non-function');
+			if (invalid) throw new shine.Error ('Attempt to call non-function');
 			
-			if (!((result || luajs.EMPTY_OBJ) instanceof Array)) result = [result];
+			if (!((result || shine.EMPTY_OBJ) instanceof Array)) result = [result];
 			result.unshift (success);
 			
 			return result;
@@ -560,19 +560,19 @@ var luajs = luajs || {};
 	
 	
 	
-	luajs.lib.coroutine = {
+	shine.lib.coroutine = {
 
 		
 		create: function (closure) {
-			//return new luajs.Coroutine (closure);
-			return luajs.Coroutine.create (closure);
+			//return new shine.Coroutine (closure);
+			return shine.Coroutine.create (closure);
 		},
 		
 		
 		
 		
 		resume: function (thread) {
-			var args = luajs.gc.createArray();
+			var args = shine.gc.createArray();
 			for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 
 			return thread.resume.apply (thread, args);
@@ -582,7 +582,7 @@ var luajs = luajs || {};
 		
 		
 		running: function () {
-			return luajs.Coroutine._running;
+			return shine.Coroutine._running;
 		},
 		
 	
@@ -596,13 +596,13 @@ var luajs = luajs || {};
 		
 		
 		wrap: function (closure) {
-			var co = luajs.lib.coroutine.create (closure);
+			var co = shine.lib.coroutine.create (closure);
 			
 			var result = function () {			
 				var args = [co];
 				for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 	
-				var retvals = luajs.lib.coroutine.resume.apply (null, args),
+				var retvals = shine.lib.coroutine.resume.apply (null, args),
 					success = retvals.shift ();
 					
 				if (success) return retvals;
@@ -618,11 +618,11 @@ var luajs = luajs || {};
 		
 		yield: function () {
 			// If running in main thread, throw error.
-			if (!luajs.Coroutine._running) throw new luajs.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
-			if (luajs.Coroutine._running.status != 'running') throw new luajs.Error ('attempt to yield non-running coroutine in host');
+			if (!shine.Coroutine._running) throw new shine.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
+			if (shine.Coroutine._running.status != 'running') throw new shine.Error ('attempt to yield non-running coroutine in host');
 
-			var args = luajs.gc.createArray(),
-				running = luajs.Coroutine._running;
+			var args = shine.gc.createArray(),
+				running = shine.Coroutine._running;
 
 			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 	
@@ -635,7 +635,7 @@ var luajs = luajs || {};
 						i, 
 						l = arguments.length,
 						f = function () { 
-							luajs.lib.coroutine.resume.apply (undefined, args); 
+							shine.lib.coroutine.resume.apply (undefined, args); 
 						};
 
 					for (i = 0; i < l; i++) args.push (arguments[i]);
@@ -655,7 +655,7 @@ var luajs = luajs || {};
 
 	
 
-	luajs.lib.debug = {
+	shine.lib.debug = {
 
 		debug: function () {
 			// Not implemented
@@ -730,7 +730,7 @@ var luajs = luajs || {};
 
 
 
-	luajs.lib.io = {
+	shine.lib.io = {
 		
 		
 		write: function () {
@@ -739,12 +739,12 @@ var luajs = luajs || {};
 			for (var i in arguments) {
 				if (arguments.hasOwnProperty(i)) {
 					var arg = arguments[i];
-					if (['string', 'number'].indexOf (typeof arg) == -1) throw new luajs.Error ('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
+					if (['string', 'number'].indexOf (typeof arg) == -1) throw new shine.Error ('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
 					output += arg;
 				}
 			}
 			
-			luajs.stdout.write (output);
+			shine.stdout.write (output);
 		}
 		
 		
@@ -753,7 +753,7 @@ var luajs = luajs || {};
 	
 	
 		
-	luajs.lib.math = {
+	shine.lib.math = {
 	
 	
 		abs: function (x) {
@@ -869,7 +869,7 @@ var luajs = luajs || {};
 		
 		
 		log10: function (x) {
-			// v5.2: luajs.warn ('math.log10 is deprecated. Use math.log with 10 as its second argument, instead.');
+			// v5.2: shine.warn ('math.log10 is deprecated. Use math.log with 10 as its second argument, instead.');
 			return Math.log (x) / Math.log (10);
 		},
 		
@@ -915,7 +915,7 @@ var luajs = luajs || {};
 		
 		
 		pow: function (x, y) {
-			var coerce = luajs.utils.coerce;
+			var coerce = shine.utils.coerce;
 			x = coerce(x, 'number', "bad argument #1 to 'pow' (number expected)")
 			y = coerce(y, 'number', "bad argument #2 to 'pow' (number expected)")
 			return Math.pow (x, y);
@@ -925,7 +925,7 @@ var luajs = luajs || {};
 		
 		
 		rad: function (x) {
-			x = luajs.utils.coerce(x, 'number', "bad argument #1 to 'rad' (number expected)")
+			x = shine.utils.coerce(x, 'number', "bad argument #1 to 'rad' (number expected)")
 			return (Math.PI / 180) * x;
 		},
 	
@@ -939,17 +939,17 @@ var luajs = luajs || {};
 			if (min === undefined && max === undefined) return getRandom();
 	
 	
-			if (typeof min !== 'number') throw new luajs.Error ("bad argument #1 to 'random' (number expected)");
+			if (typeof min !== 'number') throw new shine.Error ("bad argument #1 to 'random' (number expected)");
 	
 			if (max === undefined) {
 				max = min;
 				min = 1;
 	
 			} else if (typeof max !== 'number') {
-				throw new luajs.Error ("bad argument #2 to 'random' (number expected)");
+				throw new shine.Error ("bad argument #2 to 'random' (number expected)");
 			}
 	
-			if (min > max) throw new luajs.Error ("bad argument #2 to 'random' (interval is empty)");
+			if (min > max) throw new shine.Error ("bad argument #2 to 'random' (interval is empty)");
 			return Math.floor (getRandom() * (max - min + 1) + min);
 		},
 	
@@ -957,7 +957,7 @@ var luajs = luajs || {};
 	
 	
 		randomseed: function (x) {
-			if (typeof x !== 'number') throw new luajs.Error ("bad argument #1 to 'randomseed' (number expected)");
+			if (typeof x !== 'number') throw new shine.Error ("bad argument #1 to 'randomseed' (number expected)");
 			randomSeed = x;
 		},
 	
@@ -1002,7 +1002,7 @@ var luajs = luajs || {};
 	
 	
 	
-	luajs.lib.os = {
+	shine.lib.os = {
 	
 	
 		clock: function () {
@@ -1083,7 +1083,7 @@ var luajs = luajs || {};
 					return (d.getTimezoneOffset () !== jan.getTimezoneOffset ());
 				};
 				
-				return new luajs.Table ({
+				return new shine.Table ({
 					year: parseInt (handlers['%Y'](date), 10),
 					month: parseInt (handlers['%m'](date), 10),
 					day: parseInt (handlers['%d'](date), 10),
@@ -1115,7 +1115,7 @@ var luajs = luajs || {};
 	
 	
 		execute: function () {
-			if (arguments.length) throw new luajs.Error ('shell is not available. You should always check first by calling os.execute with no parameters');
+			if (arguments.length) throw new shine.Error ('shell is not available. You should always check first by calling os.execute with no parameters');
 			return 0;
 		},
 	
@@ -1170,9 +1170,9 @@ var luajs = luajs || {};
 			} else {	
 				var day, month, year, hour, min, sec;
 				
-				if (!(day = table.getMember ('day'))) throw new luajs.Error ("Field 'day' missing in date table");
-				if (!(month = table.getMember ('month'))) throw new luajs.Error ("Field 'month' missing in date table");
-				if (!(year = table.getMember ('year'))) throw new luajs.Error ("Field 'year' missing in date table");
+				if (!(day = table.getMember ('day'))) throw new shine.Error ("Field 'day' missing in date table");
+				if (!(month = table.getMember ('month'))) throw new shine.Error ("Field 'month' missing in date table");
+				if (!(year = table.getMember ('year'))) throw new shine.Error ("Field 'year' missing in date table");
 				hour = table.getMember ('hour') || 12;
 				min = table.getMember ('min') || 0;
 				sec = table.getMember ('sec') || 0;
@@ -1197,12 +1197,12 @@ var luajs = luajs || {};
 
 
 
-	luajs.lib['package'] = {
+	shine.lib['package'] = {
 
 		cpath: undefined,
 
 
-		loaded: new luajs.Table(),
+		loaded: new shine.Table(),
 
 
 		loadlib: function (libname, funcname) {
@@ -1225,14 +1225,14 @@ var luajs = luajs || {};
 
 
 
-	luajs.lib.string = {
+	shine.lib.string = {
 		
 		
 		'byte': function (s, i, j) {
 			i = i || 1;
 			j = j || i;
 			
-			var result = luajs.gc.createArray(),
+			var result = shine.gc.createArray(),
 				length = s.length,
 				index;
 			
@@ -1261,8 +1261,8 @@ var luajs = luajs || {};
 		
 		
 		find: function (s, pattern, init, plain) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'find' (string expected, got " + typeof s + ")");
-			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'find' (string expected, got " + typeof pattern + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'find' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new shine.Error ("bad argument #2 to 'find' (string expected, got " + typeof pattern + ")");
 
 			s = '' + s;
 			init = init || 1;
@@ -1454,9 +1454,9 @@ var luajs = luajs || {};
 		
 		
 		gsub: function (s, pattern, repl, n) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'gsub' (string expected, got " + typeof s + ")");
-			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'gsub' (string expected, got " + typeof pattern + ")");
-			if (n !== undefined && (n = luajs.utils.coerce(n, 'number')) === undefined) throw new luajs.Error ("bad argument #4 to 'gsub' (number expected, got " + typeof n + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'gsub' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new shine.Error ("bad argument #2 to 'gsub' (string expected, got " + typeof pattern + ")");
+			if (n !== undefined && (n = shine.utils.coerce(n, 'number')) === undefined) throw new shine.Error ("bad argument #4 to 'gsub' (number expected, got " + typeof n + ")");
 
 			s = '' + s;
 			pattern = translatePattern ('' + pattern);
@@ -1470,12 +1470,12 @@ var luajs = luajs || {};
 
 			while ((n === undefined || count < n) && s && (match = s.match (pattern))) {
 
-				if (typeof repl == 'function' || (repl || luajs.EMPTY_OBJ) instanceof luajs.Function) {
+				if (typeof repl == 'function' || (repl || shine.EMPTY_OBJ) instanceof shine.Function) {
 					str = repl.apply (null, [match[0]], true);
 					if (str instanceof Array) str = str[0];
 					if (str === undefined) str = match[0];
 
-				} else if ((repl || luajs.EMPTY_OBJ) instanceof luajs.Table) {
+				} else if ((repl || shine.EMPTY_OBJ) instanceof shine.Table) {
 					str = repl.getMember (match[0]);
 					
 				} else if (typeof repl == 'object') {
@@ -1505,7 +1505,7 @@ var luajs = luajs || {};
 		
 		
 		len: function (s) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'len' (string expected, got " + typeof s + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'len' (string expected, got " + typeof s + ")");
 			return ('' + s).length;
 		},
 		
@@ -1513,7 +1513,7 @@ var luajs = luajs || {};
 		
 		
 		lower: function (s) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'lower' (string expected, got " + typeof s + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'lower' (string expected, got " + typeof s + ")");
 			return ('' + s).toLowerCase ();
 		},
 		
@@ -1521,8 +1521,8 @@ var luajs = luajs || {};
 		
 		
 		match: function (s, pattern, init) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'match' (string expected, got " + typeof s + ")");
-			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'match' (string expected, got " + typeof pattern + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'match' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new shine.Error ("bad argument #2 to 'match' (string expected, got " + typeof pattern + ")");
 
 			init = init? init - 1 : 0;
 			s = ('' + s).substr (init);
@@ -1562,7 +1562,7 @@ var luajs = luajs || {};
 		
 		
 		sub: function (s, i, j) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'sub' (string expected, got " + typeof s + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'sub' (string expected, got " + typeof s + ")");
 			s = '' + s;
 			i = i || 1;
 			j = j || s.length;
@@ -1591,17 +1591,17 @@ var luajs = luajs || {};
 	
 	
 	
-	luajs.lib.table = {
+	shine.lib.table = {
 		
 		
 		concat: function (table, sep, i, j) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.concat(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in table.concat(). Table expected');
 	
 			sep = sep || '';
 			i = i || 1;
-			j = j || luajs.lib.table.maxn (table);
+			j = j || shine.lib.table.maxn (table);
 
-			var result = luajs.gc.createArray().concat(table.__luajs.numValues).splice (i, j - i + 1);
+			var result = shine.gc.createArray().concat(table.__shine.numValues).splice (i, j - i + 1);
 			return result.join (sep);
 		},
 		
@@ -1609,10 +1609,10 @@ var luajs = luajs || {};
 	
 	
 		getn: function (table) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.getn(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in table.getn(). Table expected');
 
-			var vals = table.__luajs.numValues, 
-				keys = luajs.gc.createArray(),
+			var vals = table.__shine.numValues, 
+				keys = shine.gc.createArray(),
 				i, 
 				j = 0;
 
@@ -1650,28 +1650,28 @@ var luajs = luajs || {};
 		 * @param {object} obj The value to insert.
 		 */
 		insert: function (table, index, obj) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.insert(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in table.insert(). Table expected');
 	
 			if (obj == undefined) {
 				obj = index;
 				// index = 1;
 				// while (table.getMember(index) !== undefined) index++;
-				index = table.__luajs.numValues.length;
+				index = table.__shine.numValues.length;
 			}
 	
 			var oldValue = table.getMember(index);
 			table.setMember(index, obj);
 	
-			if (oldValue) luajs.lib.table.insert (table, index + 1, oldValue);
+			if (oldValue) shine.lib.table.insert (table, index + 1, oldValue);
 		},	
 		
 		
 		
 		
 		maxn: function (table) {
-			// v5.2: luajs.warn ('table.maxn is deprecated');
+			// v5.2: shine.warn ('table.maxn is deprecated');
 			
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.maxn(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in table.maxn(). Table expected');
 	
 			// // length = 0;
 			// // while (table[length + 1] != undefined) length++;
@@ -1685,7 +1685,7 @@ var luajs = luajs || {};
 			// for (i in table) if ((index = 0 + parseInt (i, 10)) == i && table[i] !== null && index > result) result = index;
 			// return result; 
 
-			return table.__luajs.numValues.length - 1;
+			return table.__shine.numValues.length - 1;
 		},
 		
 		
@@ -1697,10 +1697,10 @@ var luajs = luajs || {};
 		 * @param {object} index The position of the element to remove.
 		 */
 		remove: function (table, index) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.remove(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in table.remove(). Table expected');
 	
-			var max = luajs.lib.table.getn(table),
-				vals = table.__luajs.numValues,
+			var max = shine.lib.table.getn(table),
+				vals = table.__shine.numValues,
 				result;
 
 			if (index > max) return;
@@ -1710,7 +1710,7 @@ var luajs = luajs || {};
 			while (index < max && vals[index] === undefined) delete vals[index++];
 			// table[index] = table[index + 1];	
 			
-			// luajs.lib.table.remove (table, index + 1);
+			// shine.lib.table.remove (table, index + 1);
 			// if (table[index] === undefined) delete table[index];
 	
 			return result;
@@ -1720,13 +1720,13 @@ var luajs = luajs || {};
 		
 		
 		sort: function (table, comp) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ("Bad argument #1 to 'sort' (table expected)");
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ("Bad argument #1 to 'sort' (table expected)");
 	
 			var sortFunc, 
-				arr = table.__luajs.numValues;
+				arr = table.__shine.numValues;
 		
 			if (comp) {
-				if (!((comp || luajs.EMPTY_OBJ) instanceof luajs.Function)) throw new luajs.Error ("Bad argument #2 to 'sort' (function expected)");
+				if (!((comp || shine.EMPTY_OBJ) instanceof shine.Function)) throw new shine.Error ("Bad argument #2 to 'sort' (function expected)");
 	
 				sortFunc = function (a, b) {
 					return comp.apply (null, [a, b], true)[0]? -1 : 1;
@@ -1746,12 +1746,12 @@ var luajs = luajs || {};
 
 
 		unpack: function (table, i, j) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in unpack(). Table expected');	
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in unpack(). Table expected');	
 	
 			i = i || 1;
-			if (j === undefined) j = luajs.lib.table.getn (table);
+			if (j === undefined) j = shine.lib.table.getn (table);
 			
-			var vals = luajs.gc.createArray(),
+			var vals = shine.gc.createArray(),
 				index;
 	
 			for (index = i; index <= j; index++) vals.push (table.getMember (index));

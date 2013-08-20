@@ -5,43 +5,43 @@
  * @copyright Gamesys Limited 2013
  */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 
 
 /**
  * Represents an instance of a function and its related closure.
  * @constructor
- * @extends luajs.EventEmitter
- * @param {luajs.File} file The file in which the function is declared.
+ * @extends shine.EventEmitter
+ * @param {shine.File} file The file in which the function is declared.
  * @param {object} data Object containing the Luac data for the function.
  * @param {object} globals The global variables for the environment in which the function is declared.
  * @param {object} [upvalues] The upvalues passed from the parent closure.
  */
-luajs.Closure = function (vm, file, data, globals, upvalues) {
+shine.Closure = function (vm, file, data, globals, upvalues) {
 	var me = this;
 	
-	//luajs.EventEmitter.call (this);
+	//shine.EventEmitter.call (this);
 
 	this._vm = vm;
 	this._globals = globals;
 	this._file = file;
 	this._data = data;
 
-	this._upvalues = upvalues || luajs.gc.createObject();
+	this._upvalues = upvalues || shine.gc.createObject();
 	this._constants = data.constants;
 	this._functions = data.functions;
 	this._instructions = data.instructions;
 
-	this._register = this._register || luajs.Register.create();
+	this._register = this._register || shine.Register.create();
 	this._pc = 0;
-	this._localsUsedAsUpvalues = this._localsUsedAsUpvalues || luajs.gc.createArray();
-	this._funcInstances = this._funcInstances || luajs.gc.createArray();
+	this._localsUsedAsUpvalues = this._localsUsedAsUpvalues || shine.gc.createArray();
+	this._funcInstances = this._funcInstances || shine.gc.createArray();
 
 	
 	var me = this,
 		result = function () { 
-			var args = luajs.gc.createArray();
+			var args = shine.gc.createArray();
 			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);
 			return me.execute (args);
 		};
@@ -57,20 +57,20 @@ luajs.Closure = function (vm, file, data, globals, upvalues) {
 };
 
 
-luajs.Closure.prototype = {};//new luajs.EventEmitter ();
-luajs.Closure.prototype.constructor = luajs.Closure;
+shine.Closure.prototype = {};//new shine.EventEmitter ();
+shine.Closure.prototype.constructor = shine.Closure;
 
-luajs.Closure._graveyard = [];
+shine.Closure._graveyard = [];
 
 
-luajs.Closure.create = function (vm, file, data, globals, upvalues) {
-	var instance = luajs.Closure._graveyard.pop();
+shine.Closure.create = function (vm, file, data, globals, upvalues) {
+	var instance = shine.Closure._graveyard.pop();
 	//console.log (instance? 'reusing' : 'creating');
 	
 	if (instance) {
-		return luajs.Closure.apply(instance, arguments);
+		return shine.Closure.apply(instance, arguments);
 	} else {
-		return new luajs.Closure(vm, file, data, globals, upvalues);
+		return new shine.Closure(vm, file, data, globals, upvalues);
 	}
 };
 
@@ -82,21 +82,21 @@ luajs.Closure.create = function (vm, file, data, globals, upvalues) {
  * @param {Array} args Array containing arguments to use.
  * @returns {Array} Array of return values.
  */
-luajs.Closure.prototype.execute = function (args) {
+shine.Closure.prototype.execute = function (args) {
 	this._pc = 0;
 
-	//if (this._data && this._data.sourceName) luajs.stddebug.write ('Executing ' + this._data.sourceName + '...'); //? ' ' + this._data.sourceName : ' function') + '...<br><br>');
-	//luajs.stddebug.write ('\n');
+	//if (this._data && this._data.sourceName) shine.stddebug.write ('Executing ' + this._data.sourceName + '...'); //? ' ' + this._data.sourceName : ' function') + '...<br><br>');
+	//shine.stddebug.write ('\n');
 
 	// ASSUMPTION: Parameter values are automatically copied to R(0) onwards of the function on initialisation. This is based on observation and is neither confirmed nor denied in any documentation. (Different rules apply to v5.0-style VARARG functions)
-	this._params = luajs.gc.createArray().concat(args);
+	this._params = shine.gc.createArray().concat(args);
 	this._register.set(args.splice (0, this._data.paramCount));
 
 	if (this._data.is_vararg == 7) {	// v5.0 compatibility (LUA_COMPAT_VARARG)
 		var arg = [].concat (args),
 			length = arg.length;
 					
-		arg = new luajs.Table (arg);
+		arg = new shine.Table (arg);
 		arg.setMember ('n', length);
 		
 		this._register.push (arg);
@@ -106,15 +106,15 @@ luajs.Closure.prototype.execute = function (args) {
 		return this._run ();
 		
 	} catch (e) {
-		if (!((e || luajs.EMPTY_OBJ) instanceof luajs.Error)) {
+		if (!((e || shine.EMPTY_OBJ) instanceof shine.Error)) {
 			var stack = (e.stack || '');
 
-			e = new luajs.Error ('Error in host call: ' + e.message);
+			e = new shine.Error ('Error in host call: ' + e.message);
 			e.stack = stack;
 			e.luaStack = stack.split ('\n');
 		}
 
-		if (!e.luaStack) e.luaStack = luajs.gc.createArray();
+		if (!e.luaStack) e.luaStack = shine.gc.createArray();
 		e.luaStack.push ('at ' + (this._data.sourceName || 'function') + (this._data.linePositions? ' on line ' + this._data.linePositions[this._pc - 1] : ''));
 	
 		throw e;
@@ -128,7 +128,7 @@ luajs.Closure.prototype.execute = function (args) {
  * Continues execution of the function instance from its current position.
  * @returns {Array} Array of return values.
  */
-luajs.Closure.prototype._run = function () {
+shine.Closure.prototype._run = function () {
 	var instruction,
 		line,
 		retval,
@@ -137,23 +137,23 @@ luajs.Closure.prototype._run = function () {
 	this.terminated = false;
 	
 	
-	if (luajs.debug.status == 'resuming') {
-	 	if (luajs.debug.resumeStack.length) {
+	if (shine.debug.status == 'resuming') {
+	 	if (shine.debug.resumeStack.length) {
 			this._pc--;
 			
 		} else {
-			luajs.debug.status = 'running';
+			shine.debug.status = 'running';
 		}
 
-	} else if (luajs.Coroutine._running && luajs.Coroutine._running.status == 'resuming') {
-	 	if (luajs.Coroutine._running._resumeStack.length) {
+	} else if (shine.Coroutine._running && shine.Coroutine._running.status == 'resuming') {
+	 	if (shine.Coroutine._running._resumeStack.length) {
 			this._pc--;
 			
 		} else {
-			luajs.Coroutine._running.status = 'running';
-			//luajs.stddebug.write ('[coroutine resumed]\n');
+			shine.Coroutine._running.status = 'running';
+			//shine.stddebug.write ('[coroutine resumed]\n');
 	
-			yieldVars = luajs.Coroutine._running._yieldVars;
+			yieldVars = shine.Coroutine._running._yieldVars;
 		}
 	}	
 	
@@ -165,7 +165,7 @@ luajs.Closure.prototype._run = function () {
 			a = this._instructions[offset + 1],
 			b = this._instructions[offset + 2],
 			c = this._instructions[offset + 3],
-			retvals = luajs.gc.createArray();
+			retvals = shine.gc.createArray();
 
 		for (var i = 0, l = yieldVars.length; i < l; i++) retvals.push (yieldVars[i]);
 
@@ -184,7 +184,7 @@ luajs.Closure.prototype._run = function () {
 			}
 		}
 
-		luajs.gc.collect(retvals);
+		shine.gc.collect(retvals);
 	}
 
 
@@ -193,16 +193,16 @@ luajs.Closure.prototype._run = function () {
 
 		retval = this._executeInstruction (this._pc++, line);
 
-		if (luajs.Coroutine._running && luajs.Coroutine._running.status == 'suspending') {
-			luajs.Coroutine._running._resumeStack.push (this);
+		if (shine.Coroutine._running && shine.Coroutine._running.status == 'suspending') {
+			shine.Coroutine._running._resumeStack.push (this);
 
-			if (luajs.Coroutine._running._func._instance == this) {
-				retval = luajs.Coroutine._running._yieldVars;
+			if (shine.Coroutine._running._func._instance == this) {
+				retval = shine.Coroutine._running._yieldVars;
 
-				luajs.Coroutine._running.status = 'suspended';
-				luajs.Coroutine._remove ();
+				shine.Coroutine._running.status = 'suspended';
+				shine.Coroutine._remove ();
 
-				//luajs.stddebug.write ('[coroutine suspended]\n');
+				//shine.stddebug.write ('[coroutine suspended]\n');
 				
 				return retval;
 			}
@@ -210,8 +210,8 @@ luajs.Closure.prototype._run = function () {
 			return;
 		}
 
-		if (luajs.debug.status == 'suspending' && !retval) {
-			luajs.debug.resumeStack.push (this);			
+		if (shine.debug.status == 'suspending' && !retval) {
+			shine.debug.resumeStack.push (this);			
 			return retval;
 		}
 		
@@ -237,7 +237,7 @@ luajs.Closure.prototype._run = function () {
  * @param {number} line The line number on which to find the instruction (for debugging).
  * @returns {Array} Array of the values that make be returned from executing the instruction.
  */
-luajs.Closure.prototype._executeInstruction = function (pc, line) {
+shine.Closure.prototype._executeInstruction = function (pc, line) {
 	var offset = pc * 4,
 		opcode = this._instructions[offset],
 		op = this.constructor.OPERATIONS[opcode],
@@ -247,12 +247,12 @@ luajs.Closure.prototype._executeInstruction = function (pc, line) {
 
 	if (!op) throw new Error ('Operation not implemented! (' + opcode + ')');
 
-	// if (luajs.debug.status != 'resuming') {
+	// if (shine.debug.status != 'resuming') {
 	// 	var tab = '',
 	// 		opName = this.constructor.OPERATION_NAMES[opcode];
 			
 	// 	for (var i = 0; i < this._index; i++) tab += '\t';
-	// 	luajs.stddebug.write (tab + '[' + this._pc + ']\t' + line + '\t' + opName + '\t' + A + '\t' + B + (C !== undefined? '\t' + C : ''));
+	// 	shine.stddebug.write (tab + '[' + this._pc + ']\t' + line + '\t' + opName + '\t' + A + '\t' + B + (C !== undefined? '\t' + C : ''));
 	// }
 
 	return op.call (this, A, B, C);
@@ -266,7 +266,7 @@ luajs.Closure.prototype._executeInstruction = function (pc, line) {
  * @param {number} index Array containing arguments to use.
  * @returns {object} Value of the constant.
  */
-luajs.Closure.prototype._getConstant = function (index) {
+shine.Closure.prototype._getConstant = function (index) {
 	if (this._constants[index] === null) return;
 	return this._constants[index];
 };
@@ -279,7 +279,7 @@ luajs.Closure.prototype._getConstant = function (index) {
  * Returns whether or not the closure has retained child scopes.
  * @returns {boolean} Has retained child scopes.
  */
-luajs.Closure.prototype.hasRetainedScope = function () {
+shine.Closure.prototype.hasRetainedScope = function () {
 
 	if (this._localsUsedAsUpvalues.length) return true;
 	if (this._upvalues.length) return true;
@@ -302,7 +302,7 @@ luajs.Closure.prototype.hasRetainedScope = function () {
 /**
  * Dump memory associtated with closure.
  */
-luajs.Closure.prototype.dispose = function (force) {
+shine.Closure.prototype.dispose = function (force) {
 
 	if (force || !this.hasRetainedScope ()) {
 		delete this._vm;
@@ -318,21 +318,21 @@ luajs.Closure.prototype.dispose = function (force) {
 		// delete this._funcInstances;
 	
 //		delete this._listeners;
-		luajs.gc.collect(this._params);
+		shine.gc.collect(this._params);
 		delete this._params;
 	
 		delete this._constants;
 
 //		delete this._localsUsedAsUpvalues;
 
-		luajs.gc.collect(this._upvalues);
+		shine.gc.collect(this._upvalues);
 		delete this._upvalues;
 
 		this._register.reset();
 		this._funcInstances.length = 0;
 		this._localsUsedAsUpvalues.length = 0;
 
-		luajs.Closure._graveyard.push(this);
+		shine.Closure._graveyard.push(this);
 	//	console.log ('graveyard');
 	}
 	
@@ -388,7 +388,7 @@ luajs.Closure.prototype.dispose = function (force) {
 	function getglobal (a, b) {
 
 		if (this._getConstant (b) == '_G') {	// Special case
-			this._register.setItem(a, new luajs.Table (this._globals));
+			this._register.setItem(a, new shine.Table (this._globals));
 			
 		} else if (this._globals[this._getConstant (b)] !== undefined) {
 			this._register.setItem(a, this._globals[this._getConstant (b)]);
@@ -405,13 +405,13 @@ luajs.Closure.prototype.dispose = function (force) {
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
 		if (this._register.getItem(b) === undefined) {
-			throw new luajs.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
+			throw new shine.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
 
-		} else if ((this._register.getItem(b) || luajs.EMPTY_OBJ) instanceof luajs.Table) {
+		} else if ((this._register.getItem(b) || shine.EMPTY_OBJ) instanceof shine.Table) {
 			this._register.setItem(a, this._register.getItem(b).getMember(c));
 
-		} else if (typeof this._register.getItem(b) == 'string' && luajs.lib.string[c]) {
-			this._register.setItem(a, luajs.lib.string[c]);
+		} else if (typeof this._register.getItem(b) == 'string' && shine.lib.string[c]) {
+			this._register.setItem(a, shine.lib.string[c]);
 
 		} else {
 			this._register.setItem(a, this._register.getItem(b)[c]);
@@ -428,8 +428,8 @@ luajs.Closure.prototype.dispose = function (force) {
 
 		this._globals[varName] = newValue;
 
-		luajs.gc.decrRef(oldValue);
-		luajs.gc.incrRef(newValue);
+		shine.gc.decrRef(oldValue);
+		shine.gc.incrRef(newValue);
 	}
 
 
@@ -446,11 +446,11 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		if ((this._register.getItem(a) || luajs.EMPTY_OBJ) instanceof luajs.Table) {
+		if ((this._register.getItem(a) || shine.EMPTY_OBJ) instanceof shine.Table) {
 			this._register.getItem(a).setMember (b, c);
 		
 		} else if (this._register.getItem(a) === undefined) {
-			throw new luajs.Error ('Attempt to index a missing field (can\'t set "' + b + '" on a nil value)');
+			throw new shine.Error ('Attempt to index a missing field (can\'t set "' + b + '" on a nil value)');
 			
 		} else {
 			this._register.getItem(a)[b] = c;
@@ -461,8 +461,8 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function newtable (a, b, c) {
-		var t = new luajs.Table ();
-		t.__luajs.refCount = 0;
+		var t = new shine.Table ();
+		t.__shine.refCount = 0;
 		this._register.setItem(a, t);
 	}
 
@@ -474,13 +474,13 @@ luajs.Closure.prototype.dispose = function (force) {
 		this._register.setItem(a + 1, this._register.getItem(b));
 
 		if (this._register.getItem(b) === undefined) {
-			throw new luajs.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
+			throw new shine.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
 
-		} else if ((this._register.getItem(b) || luajs.EMPTY_OBJ) instanceof luajs.Table) {
+		} else if ((this._register.getItem(b) || shine.EMPTY_OBJ) instanceof shine.Table) {
 			this._register.setItem(a, this._register.getItem(b).getMember (c));
 
-		} else if (typeof this._register.getItem(b) == 'string' && luajs.lib.string[c]) {
-			this._register.setItem(a, luajs.lib.string[c]);
+		} else if (typeof this._register.getItem(b) == 'string' && shine.lib.string[c]) {
+			this._register.setItem(a, shine.lib.string[c]);
 
 		} else {
 			this._register.setItem(a, this._register.getItem(b)[c]);					
@@ -495,11 +495,11 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var coerce = luajs.utils.coerce,
+		var coerce = shine.utils.coerce,
 			mt, f, bn, cn;
 
-		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__add')))
-		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__add')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__add')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__add')))) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
@@ -516,11 +516,11 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var coerce = luajs.utils.coerce,
+		var coerce = shine.utils.coerce,
 			mt, f;
 
-		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__sub')))
-		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__sub')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__sub')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__sub')))) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
@@ -537,11 +537,11 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var coerce = luajs.utils.coerce,
+		var coerce = shine.utils.coerce,
 			mt, f;
 
-		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mul')))
-		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__mul')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__mul')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__mul')))) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
@@ -558,11 +558,11 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var coerce = luajs.utils.coerce,
+		var coerce = shine.utils.coerce,
 			mt, f;
 
-		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__div')))
-		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__div')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__div')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__div')))) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
@@ -579,11 +579,11 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 		
-		var coerce = luajs.utils.coerce,
+		var coerce = shine.utils.coerce,
 			mt, f, result, absC;
 
-		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mod')))
-		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__mod')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__mod')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__mod')))) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
@@ -595,7 +595,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 			} else {
 				result = Math.abs(b) % (absC = Math.abs(c));
-				if (!(b < 0) ^ !(c < 0)) result = absC - result;
+				if (b * c < 0) result = absC - result;
 				if (c < 0) result *= -1;
 			}
 
@@ -610,11 +610,11 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var coerce = luajs.utils.coerce,
+		var coerce = shine.utils.coerce,
 			mt, f;
 
-		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__pow')))
-		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__pow')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__pow')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__pow')))) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
@@ -630,11 +630,11 @@ luajs.Closure.prototype.dispose = function (force) {
 	function unm (a, b) {
 		var mt, f;
 
-		if ((this._register.getItem(b) || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = this._register.getItem(b).__luajs.metatable) && (f = mt.getMember ('__unm'))) {
+		if ((this._register.getItem(b) || shine.EMPTY_OBJ) instanceof shine.Table && (mt = this._register.getItem(b).__shine.metatable) && (f = mt.getMember ('__unm'))) {
 			this._register.setItem(a, f.apply (null, [this._register.getItem(b)], true)[0]);
 
 		} else {
-			b = luajs.utils.coerce(this._register.getItem(b), 'number', 'attempt to perform arithmetic on a non-numeric value');
+			b = shine.utils.coerce(this._register.getItem(b), 'number', 'attempt to perform arithmetic on a non-numeric value');
 			this._register.setItem(a, -b);
 		}
 	}
@@ -652,18 +652,18 @@ luajs.Closure.prototype.dispose = function (force) {
 	function len (a, b) {
 		var length = 0;
 
-		if ((this._register.getItem(b) || luajs.EMPTY_OBJ) instanceof luajs.Table) {
+		if ((this._register.getItem(b) || shine.EMPTY_OBJ) instanceof shine.Table) {
 
 			//while (this._register.getItem(b)[length + 1] != undefined) length++;
 			//this._register.setItem(a, length);
-			this._register.setItem(a, luajs.lib.table.getn (this._register.getItem(b)));
+			this._register.setItem(a, shine.lib.table.getn (this._register.getItem(b)));
 
 		} else if (typeof this._register.getItem(b) == 'object') {				
 			for (var i in this._register.getItem(b)) if (this._register.getItem(b).hasOwnProperty (i)) length++;
 			this._register.setItem(a, length);
 
 		} else if (this._register.getItem(b) == undefined) {
-			throw new luajs.Error ('attempt to get length of a nil value');
+			throw new shine.Error ('attempt to get length of a nil value');
 
 		} else if (this._register.getItem(b).length === undefined) {
 			this._register.setItem(a, undefined);
@@ -682,12 +682,12 @@ luajs.Closure.prototype.dispose = function (force) {
 			mt, f;
 
 		for (var i = c - 1; i >= b; i--) {
-			if (((this._register.getItem(i) || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = this._register.getItem(i).__luajs.metatable) && (f = mt.getMember ('__concat')))
-			|| ((text || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = text.__luajs.metatable) && (f = mt.getMember ('__concat')))) {
+			if (((this._register.getItem(i) || shine.EMPTY_OBJ) instanceof shine.Table && (mt = this._register.getItem(i).__shine.metatable) && (f = mt.getMember ('__concat')))
+			|| ((text || shine.EMPTY_OBJ) instanceof shine.Table && (mt = text.__shine.metatable) && (f = mt.getMember ('__concat')))) {
 				text = f.apply (null, [this._register.getItem(i), text], true)[0];
 
 			} else {
-				if (!(typeof this._register.getItem(i) === 'string' || typeof this._register.getItem(i) === 'number') || !(typeof text === 'string' || typeof text === 'number')) throw new luajs.Error ('Attempt to concatenate a non-string or non-numeric value');
+				if (!(typeof this._register.getItem(i) === 'string' || typeof this._register.getItem(i) === 'number') || !(typeof text === 'string' || typeof text === 'number')) throw new shine.Error ('Attempt to concatenate a non-string or non-numeric value');
 				text = this._register.getItem(i) + text;
 			}
 		}
@@ -711,7 +711,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 		var mtb, mtc, f, result;
 
-		if (b !== c && (b || luajs.EMPTY_OBJ) instanceof luajs.Table && (c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__eq'))) {
+		if (b !== c && (b || shine.EMPTY_OBJ) instanceof shine.Table && (c || shine.EMPTY_OBJ) instanceof shine.Table && (mtb = b.__shine.metatable) && (mtc = c.__shine.metatable) && mtb === mtc && (f = mtb.getMember ('__eq'))) {
 			result = !!f.apply (null, [b, c], true)[0];			
 		} else {
 			result = (b === c);
@@ -727,18 +727,18 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var typeB = (typeof b != 'object' && typeof b) || ((b || luajs.EMPTY_OBJ) instanceof luajs.Table && 'table') || 'userdata',
-			typeC = (typeof c != 'object' && typeof b) || ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && 'table') || 'userdata',
+		var typeB = (typeof b != 'object' && typeof b) || ((b || shine.EMPTY_OBJ) instanceof shine.Table && 'table') || 'userdata',
+			typeC = (typeof c != 'object' && typeof b) || ((c || shine.EMPTY_OBJ) instanceof shine.Table && 'table') || 'userdata',
 			f, result, mtb, mtc;
 
 		if (typeB !== typeC) {
-			throw new luajs.Error ('attempt to compare ' + typeB + ' with ' + typeC);
+			throw new shine.Error ('attempt to compare ' + typeB + ' with ' + typeC);
 			
 		} else if (typeB == 'table') {
-			if ((mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__lt'))) {
+			if ((mtb = b.__shine.metatable) && (mtc = c.__shine.metatable) && mtb === mtc && (f = mtb.getMember ('__lt'))) {
 				result = f.apply (null, [b, c], true)[0];
 			} else {
-				throw new luajs.Error ('attempt to compare two table values');
+				throw new shine.Error ('attempt to compare two table values');
 			}
 
 		} else {
@@ -755,18 +755,18 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var typeB = (typeof b != 'object' && typeof b) || ((b || luajs.EMPTY_OBJ) instanceof luajs.Table && 'table') || 'userdata',
-			typeC = (typeof c != 'object' && typeof b) || ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && 'table') || 'userdata',
+		var typeB = (typeof b != 'object' && typeof b) || ((b || shine.EMPTY_OBJ) instanceof shine.Table && 'table') || 'userdata',
+			typeC = (typeof c != 'object' && typeof b) || ((c || shine.EMPTY_OBJ) instanceof shine.Table && 'table') || 'userdata',
 			f, result, mtb, mtc;
 
 		if (typeB !== typeC) {
-			throw new luajs.Error ('attempt to compare ' + typeB + ' with ' + typeC);
+			throw new shine.Error ('attempt to compare ' + typeB + ' with ' + typeC);
 			
 		} else if (typeB == 'table') {
-			if ((mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__le'))) {
+			if ((mtb = b.__shine.metatable) && (mtc = c.__shine.metatable) && mtb === mtc && (f = mtb.getMember ('__le'))) {
 				result = f.apply (null, [b, c], true)[0];
 			} else {
-				throw new luajs.Error ('attempt to compare two table values');
+				throw new shine.Error ('attempt to compare two table values');
 			}
 
 		} else {
@@ -803,24 +803,24 @@ luajs.Closure.prototype.dispose = function (force) {
 
 	function call (a, b, c) {
 
-		var args = luajs.gc.createArray(), 
+		var args = shine.gc.createArray(), 
 			i, l,
 			retvals,
 			funcToResume,
 			f, o, mt;
 
 
-		if (luajs.debug.status == 'resuming') {
-			funcToResume = luajs.debug.resumeStack.pop ();
+		if (shine.debug.status == 'resuming') {
+			funcToResume = shine.debug.resumeStack.pop ();
 			
-			if ((funcToResume || luajs.EMPTY_OBJ) instanceof luajs.Coroutine) {
+			if ((funcToResume || shine.EMPTY_OBJ) instanceof shine.Coroutine) {
 				retvals = funcToResume.resume ();
 			} else {
 				retvals = funcToResume._run ();
 			}
 			
-		} else if (luajs.Coroutine._running && luajs.Coroutine._running.status == 'resuming') {
-			funcToResume = luajs.Coroutine._running._resumeStack.pop ()
+		} else if (shine.Coroutine._running && shine.Coroutine._running.status == 'resuming') {
+			funcToResume = shine.Coroutine._running._resumeStack.pop ()
 			retvals = funcToResume._run ();
 			
 		} else {
@@ -842,25 +842,25 @@ luajs.Closure.prototype.dispose = function (force) {
 		if (!funcToResume) {
 			o = this._register.getItem(a);
 
-			if ((o || luajs.EMPTY_OBJ) instanceof luajs.Function) {
+			if ((o || shine.EMPTY_OBJ) instanceof shine.Function) {
 				retvals = o.apply (null, args, true);
 
 			} else if (o && o.apply) {
 				retvals = o.apply (null, args);
 
-			} else if (o && (o || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = o.__luajs.metatable) && (f = mt.getMember ('__call')) && f.apply) {
+			} else if (o && (o || shine.EMPTY_OBJ) instanceof shine.Table && (mt = o.__shine.metatable) && (f = mt.getMember ('__call')) && f.apply) {
 				args.unshift (o);
 				retvals = f.apply (null, args, true);
 
 			} else {
-	 			throw new luajs.Error ('Attempt to call non-function');
+	 			throw new shine.Error ('Attempt to call non-function');
 			}
 		}
 		
-		luajs.gc.collect(args);
+		shine.gc.collect(args);
 
-		if (!((retvals || luajs.EMPTY_OBJ) instanceof Array)) retvals = [retvals];
-		if (luajs.Coroutine._running && luajs.Coroutine._running.status == 'suspending') return;
+		if (!((retvals || shine.EMPTY_OBJ) instanceof Array)) retvals = [retvals];
+		if (shine.Coroutine._running && shine.Coroutine._running.status == 'suspending') return;
 
 
 		if (c === 0) {
@@ -894,7 +894,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function return_ (a, b) {
-		var retvals = luajs.gc.createArray(),
+		var retvals = shine.gc.createArray(),
 			val,
 			i, l;
 
@@ -908,7 +908,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		} else {
 			for (i = 0; i < b - 1; i++) {
 				retvals.push (val = this._register.getItem(a + i));
-				luajs.gc.incrRef(val);
+				shine.gc.incrRef(val);
 			}
 		}
 
@@ -960,7 +960,7 @@ luajs.Closure.prototype.dispose = function (force) {
 			retvals = this._register.getItem(a).apply (null, args),
 			index;
 
-		if (!((retvals || luajs.EMPTY_OBJ) instanceof Array)) retvals = [retvals];
+		if (!((retvals || shine.EMPTY_OBJ) instanceof Array)) retvals = [retvals];
 		if (retvals[0] && retvals[0] === '' + (index = parseInt (retvals[0], 10))) retvals[0] = index;
 		
 		for (var i = 0; i < c; i++) this._register.setItem(a + i + 3, retvals[i]);
@@ -1007,7 +1007,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 	function closure (a, bx) {
 		var me = this,
-			upvalues = luajs.gc.createArray(),
+			upvalues = shine.gc.createArray(),
 			opcode;
 
 		while ((opcode = this._instructions[this._pc * 4]) !== undefined && (opcode === 0 || opcode === 4) && this._instructions[this._pc * 4 + 1] === 0) {	// move, getupval
@@ -1020,7 +1020,7 @@ luajs.Closure.prototype.dispose = function (force) {
 					C = me._instructions[offset + 3],
 					upvalue;
 
-				// luajs.stddebug.write ('-> ' + me.constructor.OPERATION_NAMES[op] + '\t' + A + '\t' + B + '\t' + C);
+				// shine.stddebug.write ('-> ' + me.constructor.OPERATION_NAMES[op] + '\t' + A + '\t' + B + '\t' + C);
 
 				
 				if (op === 0) {	// move
@@ -1071,7 +1071,7 @@ luajs.Closure.prototype.dispose = function (force) {
 			this._pc++;
 		}
 
-		var func = new luajs.Function (this._vm, this._file, this._functions[bx], this._globals, upvalues);
+		var func = new shine.Function (this._vm, this._file, this._functions[bx], this._globals, upvalues);
 		//this._funcInstances.push (func);
 		this._register.setItem(a, func);
 	}
@@ -1095,8 +1095,8 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 
-	luajs.Closure.OPERATIONS = [move, loadk, loadbool, loadnil, getupval, getglobal, gettable, setglobal, setupval, settable, newtable, self, add, sub, mul, div, mod, pow, unm, not, len, concat, jmp, eq, lt, le, test, testset, call, tailcall, return_, forloop, forprep, tforloop, setlist, close, closure, vararg];
-	luajs.Closure.OPERATION_NAMES = ["move", "loadk", "loadbool", "loadnil", "getupval", "getglobal", "gettable", "setglobal", "setupval", "settable", "newtable", "self", "add", "sub", "mul", "div", "mod", "pow", "unm", "not", "len", "concat", "jmp", "eq", "lt", "le", "test", "testset", "call", "tailcall", "return", "forloop", "forprep", "tforloop", "setlist", "close", "closure", "vararg"];
+	shine.Closure.OPERATIONS = [move, loadk, loadbool, loadnil, getupval, getglobal, gettable, setglobal, setupval, settable, newtable, self, add, sub, mul, div, mod, pow, unm, not, len, concat, jmp, eq, lt, le, test, testset, call, tailcall, return_, forloop, forprep, tforloop, setlist, close, closure, vararg];
+	shine.Closure.OPERATION_NAMES = ["move", "loadk", "loadbool", "loadnil", "getupval", "getglobal", "gettable", "setglobal", "setupval", "settable", "newtable", "self", "add", "sub", "mul", "div", "mod", "pow", "unm", "not", "len", "concat", "jmp", "eq", "lt", "le", "test", "testset", "call", "tailcall", "return", "forloop", "forprep", "tforloop", "setlist", "close", "closure", "vararg"];
 
 })();
 

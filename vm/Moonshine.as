@@ -1,15 +1,42 @@
 
+package {
+	import flash.utils.getQualifiedClassName;
+	import flash.utils.setTimeout;
+
+	public class Moonshine {
+		private var VM : Object;
+		public static var Table : Object;
+		public static var utils : Object;
+		public static var lib : Object;
 
 
-var luajs = luajs || {};
+		public function execute(file : Object) : void {
+			VM.execute(false, file);
+		}
+
+		public function Moonshine(env : Object) {
+			var console : Object;
+
+			var window : Object = {};
+			window.setTimeout = setTimeout;
+			window.isNaN = isNaN;
+
+			var JSON : Object;
+			var ArrayBuffer : Object;
+			var Int32Array : Object;
+			var XMLHttpRequest : Function = function () {};
 
 
-luajs.EMPTY_OBJ = {};
+
+var shine = shine || {};
+
+
+shine.EMPTY_OBJ = {};
 
 
 
 
-luajs.gc = { 
+shine.gc = { 
 
 
 	objects: [],
@@ -23,7 +50,7 @@ luajs.gc = {
 	cacheArray: function (arr) {
 		arr.length = 0;
 		this.arrays.push(arr);
-		luajs.gc.collected++;
+		shine.gc.collected++;
 	},
 
 
@@ -32,39 +59,39 @@ luajs.gc = {
 	cacheObject: function (obj) {
 		for (var i in obj) if (obj.hasOwnProperty(i)) delete obj[i];
 		this.objects.push(obj);
-		luajs.gc.collected++;
+		shine.gc.collected++;
 	},
 
 
 
 
 	createObject: function () { 
-		if (luajs.gc.objects.length) luajs.gc.reused++;
-		return luajs.gc.objects.pop() || {};
+		if (shine.gc.objects.length) shine.gc.reused++;
+		return shine.gc.objects.pop() || {};
 	},
 
 
 
 
 	createArray: function () {
-		if (luajs.gc.arrays.length) luajs.gc.reused++;
-		return luajs.gc.arrays.pop() || [];
+		if (shine.gc.arrays.length) shine.gc.reused++;
+		return shine.gc.arrays.pop() || [];
 	},
 
 
 
 
 	decrRef: function (val) {
-		if (!val || !(val instanceof luajs.Table) || val.__luajs.refCount === undefined) return;
-		if (--val.__luajs.refCount == 0) this.collect(val);
+		if (!val || !(val instanceof shine.Table) || val.__shine.refCount === undefined) return;
+		if (--val.__shine.refCount == 0) this.collect(val);
 	},
 
 
 
 
 	incrRef: function (val) {
-		if (!val || !(val instanceof luajs.Table) || val.__luajs.refCount === undefined) return;
-		val.__luajs.refCount++;
+		if (!val || !(val instanceof shine.Table) || val.__shine.refCount === undefined) return;
+		val.__shine.refCount++;
 	},
 
 
@@ -75,10 +102,10 @@ luajs.gc = {
 		if (val instanceof Array) return this.cacheArray(val);
 		if (typeof val == 'object' && val.constructor == Object) return this.cacheObject(val);
 
-		if (!(val instanceof luajs.Table) || val.__luajs.refCount === undefined) return;
+		if (!(val instanceof shine.Table) || val.__shine.refCount === undefined) return;
 
 		var i, l, 
-			meta = val.__luajs;
+			meta = val.__shine;
 
 		for (i = 0, l = meta.values.length; i < l; i++) this.decrRef(meta.values[i]);
 		for (i = 0, l = meta.numValues.length; i < l; i++) this.decrRef(meta.numValues[i]);
@@ -90,7 +117,7 @@ luajs.gc = {
 		delete meta.values;
 
 		this.cacheObject(meta);
-		delete val.__luajs;
+		delete val.__shine;
 
 		for (i in val) if (val.hasOwnProperty(i)) this.decrRef(val[i]);
 	}
@@ -104,7 +131,7 @@ luajs.gc = {
  * @copyright Gamesys Limited 2013
  */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 
 
@@ -113,7 +140,7 @@ var luajs = luajs || {};
  * Abstract object that fires events.
  * @constructor
  */
-luajs.EventEmitter = function () {
+shine.EventEmitter = function () {
 	this._listeners = {};
 };
 
@@ -125,13 +152,13 @@ luajs.EventEmitter = function () {
  * @param {string} name Name of the event.
  * @param {Array} [data = []] Array containing any associated data.
  */
-luajs.EventEmitter.prototype._trigger = function (name, data) {
+shine.EventEmitter.prototype._trigger = function (name, data) {
 	var listeners = this._listeners[name],
 		result,
 		i;
 		
 	if (!listeners) return;
-	if (!((data || luajs.EMPTY_OBJ) instanceof Array)) data = [data];
+	if (!((data || shine.EMPTY_OBJ) instanceof Array)) data = [data];
 	
 	for (i in listeners) {
 		if (listeners.hasOwnProperty(i)) {
@@ -149,7 +176,7 @@ luajs.EventEmitter.prototype._trigger = function (name, data) {
  * @param {string} name Name of the event.
  * @param {Function} Callback Listener function.
  */
-luajs.EventEmitter.prototype.bind = function (name, callback) {
+shine.EventEmitter.prototype.bind = function (name, callback) {
 	if (!this._listeners[name]) this._listeners[name] = [];
 	this._listeners[name].push (callback);
 }
@@ -162,7 +189,7 @@ luajs.EventEmitter.prototype.bind = function (name, callback) {
  * @param {string} name Name of the event.
  * @param {Function} Callback Listener function to be removed.
  */
-luajs.EventEmitter.prototype.unbind = function (name, callback) {
+shine.EventEmitter.prototype.unbind = function (name, callback) {
 	for (var i in this._listeners[name]) {
 		if (this._listeners[name].hasOwnProperty(i) && this._listeners[name][i] === callback) this._listeners[name].splice (i, 1);
 	}
@@ -174,18 +201,18 @@ luajs.EventEmitter.prototype.unbind = function (name, callback) {
  * @copyright Gamesys Limited 2013
  */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 
 
 /**
  * A Lua virtual machine.
  * @constructor
- * @extends luajs.EventEmitter
+ * @extends shine.EventEmitter
  * @param {object} env Object containing global variables and methods from the host.
  */
-luajs.VM = function (env) {
-	luajs.EventEmitter.call (this);
+shine.VM = function (env) {
+	shine.EventEmitter.call (this);
 	
 	this._files = [];
 	this._env = env || {};
@@ -194,8 +221,8 @@ luajs.VM = function (env) {
 	this._resetGlobals ();
 };
 
-luajs.VM.prototype = new luajs.EventEmitter ();
-luajs.VM.prototype.constructor = luajs.VM;
+shine.VM.prototype = new shine.EventEmitter ();
+shine.VM.prototype.constructor = shine.VM;
 
 
 
@@ -203,11 +230,11 @@ luajs.VM.prototype.constructor = luajs.VM;
 /**
  * Resets all global variables to their original values.
  */
-luajs.VM.prototype._resetGlobals = function () {
-	this._globals = this._bindLib(luajs.lib);
+shine.VM.prototype._resetGlobals = function () {
+	this._globals = this._bindLib(shine.lib);
 
 	// Load standard lib into package.loaded:
-	for (var i in this._globals) if (this._globals.hasOwnProperty(i) && this._globals[i] instanceof luajs.Table) this._globals['package'].loaded[i] = this._globals[i];
+	for (var i in this._globals) if (this._globals.hasOwnProperty(i) && this._globals[i] instanceof shine.Table) this._globals['package'].loaded[i] = this._globals[i];
 	this._globals['package'].loaded._G = this._globals;
 
 	// Load environment vars
@@ -220,8 +247,8 @@ luajs.VM.prototype._resetGlobals = function () {
 /**
  * Returns a copy of an object, with all functions bound to the VM. (recursive)
  */
-luajs.VM.prototype._bindLib = function (lib) {
-	var result = luajs.gc.createObject();
+shine.VM.prototype._bindLib = function (lib) {
+	var result = shine.gc.createObject();
 
 	for (var i in lib) {
 		if (lib.hasOwnProperty(i)) {
@@ -239,7 +266,7 @@ luajs.VM.prototype._bindLib = function (lib) {
 		}
 	}
 
-	return new luajs.Table(result);
+	return new shine.Table(result);
 };
 
 
@@ -251,14 +278,14 @@ luajs.VM.prototype._bindLib = function (lib) {
  * @param {boolean} [execute = true] Whether or not to execute the file once loaded.
  * @param {object} [coConfig] Coroutine configuration. Only applicable if execute == true.
  */
-luajs.VM.prototype.load = function (url, execute, coConfig) {
+shine.VM.prototype.load = function (url, execute, coConfig) {
 	var me = this,
 		file;
 
 	switch (typeof url) {
 
 		case 'string':
-			file = new luajs.File (url);
+			file = new shine.File (url);
 			
 			this._files.push (file);
 
@@ -274,7 +301,7 @@ luajs.VM.prototype.load = function (url, execute, coConfig) {
 
 
 		case 'object':
-			file = new luajs.File ();
+			file = new shine.File ();
 			file.data = url;
 			if (execute || execute === undefined) me.execute (coConfig, file);
 
@@ -282,7 +309,7 @@ luajs.VM.prototype.load = function (url, execute, coConfig) {
 
 
 		default: 
-			console.warn('Object of unknown type passed to luajs.VM.load()');
+			console.warn('Object of unknown type passed to shine.VM.load()');
 	}
 
 };
@@ -293,9 +320,9 @@ luajs.VM.prototype.load = function (url, execute, coConfig) {
 /**
  * Executes the loaded Luac data.
  * @param {object} [coConfig] Coroutine configuration.
- * @param {luajs.File} [file] A specific file to execute. If not present, executes all files in the order loaded.
+ * @param {shine.File} [file] A specific file to execute. If not present, executes all files in the order loaded.
  */
-luajs.VM.prototype.execute = function (coConfig, file) {
+shine.VM.prototype.execute = function (coConfig, file) {
 	var me = this,
 		files = file? [file] : this._files,
 		index,
@@ -312,7 +339,7 @@ luajs.VM.prototype.execute = function (coConfig, file) {
 			if (!file.data) throw new Error ('Tried to execute file before data loaded.');
 		
 		
-			thread = this._thread = new luajs.Function (this, file, file.data, this._globals);
+			thread = this._thread = new shine.Function (this, file, file.data, this._globals);
 			this._trigger ('executing', [thread, coConfig]);
 			
 			try {
@@ -320,7 +347,7 @@ luajs.VM.prototype.execute = function (coConfig, file) {
 					thread.call ();
 					
 				} else {
-					var co = luajs.lib.coroutine.wrap (thread),
+					var co = shine.lib.coroutine.wrap (thread),
 						resume = function () {
 							co ();
 							if (coConfig.uiOnly && co._coroutine.status != 'dead') window.setTimeout (resume, 1);
@@ -330,7 +357,7 @@ luajs.VM.prototype.execute = function (coConfig, file) {
 				}
 				
 			} catch (e) {
-				luajs.Error.catchExecutionError (e);
+				shine.Error.catchExecutionError (e);
 			}
 		}
 	}
@@ -344,7 +371,7 @@ luajs.VM.prototype.execute = function (coConfig, file) {
  * @param {string} name Name of the global variable.
  * @param {object} value Value.
  */
-luajs.VM.prototype.setGlobal = function (name, value) {
+shine.VM.prototype.setGlobal = function (name, value) {
 	this._globals[name] = value;
 };
 
@@ -354,7 +381,7 @@ luajs.VM.prototype.setGlobal = function (name, value) {
 /**
  * Dumps memory associated with the VM.
  */
-luajs.VM.prototype.dispose = function () {
+shine.VM.prototype.dispose = function () {
 	var thread;
 
 	for (var i in this._files) if (this._files.hasOwnProperty(i)) this._files[i].dispose ();
@@ -369,95 +396,95 @@ luajs.VM.prototype.dispose = function () {
 
 
 	// Clear static stacks -- Very dangerous for environments that contain multiple VMs!
-	while (luajs.Function._instances.length) luajs.Function._instances.dispose(true);
-	luajs.Closure._graveyard.splice(0, luajs.Closure._graveyard.length);
-	luajs.Coroutine._graveyard.splice(0, luajs.Coroutine._graveyard.length);
+	while (shine.Function._instances.length) shine.Function._instances.dispose(true);
+	shine.Closure._graveyard.splice(0, shine.Closure._graveyard.length);
+	shine.Coroutine._graveyard.splice(0, shine.Coroutine._graveyard.length);
 
 };
 
 
 
-luajs.Register = function () {
-	luajs.Register.count++;
-	this._register = luajs.gc.createArray();
+shine.Register = function () {
+	shine.Register.count++;
+	this._register = shine.gc.createArray();
 }
-luajs.Register.count = 0;
+shine.Register.count = 0;
 
 
-luajs.Register._graveyard = [];
+shine.Register._graveyard = [];
 
 
 
-luajs.Register.create = function () {
-	var o = luajs.Register._graveyard.pop();
-	return o || new luajs.Register(arguments);
+shine.Register.create = function () {
+	var o = shine.Register._graveyard.pop();
+	return o || new shine.Register(arguments);
 }
 
 
 
 
-luajs.Register.prototype.getLength = function () {
+shine.Register.prototype.getLength = function () {
 	return this._register.length;
 }
 
 
 
 
-luajs.Register.prototype.getItem = function (index) {
+shine.Register.prototype.getItem = function (index) {
 	return this._register[index];
 }
 
 
 
 
-luajs.Register.prototype.setItem = function (index, value) {
+shine.Register.prototype.setItem = function (index, value) {
 	var item = this._register[index];
-	luajs.gc.decrRef(item);
+	shine.gc.decrRef(item);
 
 	item = this._register[index] = value;
-	luajs.gc.incrRef(item);
+	shine.gc.incrRef(item);
 }
 
 
 
 
-luajs.Register.prototype.set = function (arr) {
+shine.Register.prototype.set = function (arr) {
 	for (var i = 0, l = arr.length; i < l; i++) this.setItem(i, arr[i]);
 }
 
 
 
 
-luajs.Register.prototype.push = function () {
+shine.Register.prototype.push = function () {
 	this._register.push.apply(this._register, arguments);
 }
 
 
 
 
-luajs.Register.prototype.splice = function () {
+shine.Register.prototype.splice = function () {
 	this._register.splice.apply(this._register, arguments);
 }
 
 
 
 
-luajs.Register.prototype.reset = function () {
-	for (var i = 0, l = this._register.length; i < l; i++) luajs.gc.decrRef(this._register[i]);
+shine.Register.prototype.reset = function () {
+	for (var i = 0, l = this._register.length; i < l; i++) shine.gc.decrRef(this._register[i]);
 	this._register.length = 0;
 }
 
 
 
 
-luajs.Register.prototype.clearItem = function (index) {
+shine.Register.prototype.clearItem = function (index) {
 	delete this._register[index];
 }
 
 
 
 
-luajs.Register.prototype.dispose = function (index) {
+shine.Register.prototype.dispose = function (index) {
 	this._register.reset();
 	this.constructor._graveyard.push(this);
 }
@@ -472,43 +499,43 @@ luajs.Register.prototype.dispose = function (index) {
  * @copyright Gamesys Limited 2013
  */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 
 
 /**
  * Represents an instance of a function and its related closure.
  * @constructor
- * @extends luajs.EventEmitter
- * @param {luajs.File} file The file in which the function is declared.
+ * @extends shine.EventEmitter
+ * @param {shine.File} file The file in which the function is declared.
  * @param {object} data Object containing the Luac data for the function.
  * @param {object} globals The global variables for the environment in which the function is declared.
  * @param {object} [upvalues] The upvalues passed from the parent closure.
  */
-luajs.Closure = function (vm, file, data, globals, upvalues) {
+shine.Closure = function (vm, file, data, globals, upvalues) {
 	var me = this;
 	
-	//luajs.EventEmitter.call (this);
+	//shine.EventEmitter.call (this);
 
 	this._vm = vm;
 	this._globals = globals;
 	this._file = file;
 	this._data = data;
 
-	this._upvalues = upvalues || luajs.gc.createObject();
+	this._upvalues = upvalues || shine.gc.createObject();
 	this._constants = data.constants;
 	this._functions = data.functions;
 	this._instructions = data.instructions;
 
-	this._register = this._register || luajs.Register.create();
+	this._register = this._register || shine.Register.create();
 	this._pc = 0;
-	this._localsUsedAsUpvalues = this._localsUsedAsUpvalues || luajs.gc.createArray();
-	this._funcInstances = this._funcInstances || luajs.gc.createArray();
+	this._localsUsedAsUpvalues = this._localsUsedAsUpvalues || shine.gc.createArray();
+	this._funcInstances = this._funcInstances || shine.gc.createArray();
 
 	
 	var me = this,
 		result = function () { 
-			var args = luajs.gc.createArray();
+			var args = shine.gc.createArray();
 			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);
 			return me.execute (args);
 		};
@@ -524,20 +551,20 @@ luajs.Closure = function (vm, file, data, globals, upvalues) {
 };
 
 
-luajs.Closure.prototype = {};//new luajs.EventEmitter ();
-luajs.Closure.prototype.constructor = luajs.Closure;
+shine.Closure.prototype = {};//new shine.EventEmitter ();
+shine.Closure.prototype.constructor = shine.Closure;
 
-luajs.Closure._graveyard = [];
+shine.Closure._graveyard = [];
 
 
-luajs.Closure.create = function (vm, file, data, globals, upvalues) {
-	var instance = luajs.Closure._graveyard.pop();
+shine.Closure.create = function (vm, file, data, globals, upvalues) {
+	var instance = shine.Closure._graveyard.pop();
 	//console.log (instance? 'reusing' : 'creating');
 	
 	if (instance) {
-		return luajs.Closure.apply(instance, arguments);
+		return shine.Closure.apply(instance, arguments);
 	} else {
-		return new luajs.Closure(vm, file, data, globals, upvalues);
+		return new shine.Closure(vm, file, data, globals, upvalues);
 	}
 };
 
@@ -549,21 +576,21 @@ luajs.Closure.create = function (vm, file, data, globals, upvalues) {
  * @param {Array} args Array containing arguments to use.
  * @returns {Array} Array of return values.
  */
-luajs.Closure.prototype.execute = function (args) {
+shine.Closure.prototype.execute = function (args) {
 	this._pc = 0;
 
-	//if (this._data && this._data.sourceName) luajs.stddebug.write ('Executing ' + this._data.sourceName + '...'); //? ' ' + this._data.sourceName : ' function') + '...<br><br>');
-	//luajs.stddebug.write ('\n');
+	//if (this._data && this._data.sourceName) shine.stddebug.write ('Executing ' + this._data.sourceName + '...'); //? ' ' + this._data.sourceName : ' function') + '...<br><br>');
+	//shine.stddebug.write ('\n');
 
 	// ASSUMPTION: Parameter values are automatically copied to R(0) onwards of the function on initialisation. This is based on observation and is neither confirmed nor denied in any documentation. (Different rules apply to v5.0-style VARARG functions)
-	this._params = luajs.gc.createArray().concat(args);
+	this._params = shine.gc.createArray().concat(args);
 	this._register.set(args.splice (0, this._data.paramCount));
 
 	if (this._data.is_vararg == 7) {	// v5.0 compatibility (LUA_COMPAT_VARARG)
 		var arg = [].concat (args),
 			length = arg.length;
 					
-		arg = new luajs.Table (arg);
+		arg = new shine.Table (arg);
 		arg.setMember ('n', length);
 		
 		this._register.push (arg);
@@ -573,15 +600,15 @@ luajs.Closure.prototype.execute = function (args) {
 		return this._run ();
 		
 	} catch (e) {
-		if (!((e || luajs.EMPTY_OBJ) instanceof luajs.Error)) {
+		if (!((e || shine.EMPTY_OBJ) instanceof shine.Error)) {
 			var stack = (e.stack || '');
 
-			e = new luajs.Error ('Error in host call: ' + e.message);
+			e = new shine.Error ('Error in host call: ' + e.message);
 			e.stack = stack;
 			e.luaStack = stack.split ('\n');
 		}
 
-		if (!e.luaStack) e.luaStack = luajs.gc.createArray();
+		if (!e.luaStack) e.luaStack = shine.gc.createArray();
 		e.luaStack.push ('at ' + (this._data.sourceName || 'function') + (this._data.linePositions? ' on line ' + this._data.linePositions[this._pc - 1] : ''));
 	
 		throw e;
@@ -595,7 +622,7 @@ luajs.Closure.prototype.execute = function (args) {
  * Continues execution of the function instance from its current position.
  * @returns {Array} Array of return values.
  */
-luajs.Closure.prototype._run = function () {
+shine.Closure.prototype._run = function () {
 	var instruction,
 		line,
 		retval,
@@ -604,23 +631,23 @@ luajs.Closure.prototype._run = function () {
 	this.terminated = false;
 	
 	
-	if (luajs.debug.status == 'resuming') {
-	 	if (luajs.debug.resumeStack.length) {
+	if (shine.debug.status == 'resuming') {
+	 	if (shine.debug.resumeStack.length) {
 			this._pc--;
 			
 		} else {
-			luajs.debug.status = 'running';
+			shine.debug.status = 'running';
 		}
 
-	} else if (luajs.Coroutine._running && luajs.Coroutine._running.status == 'resuming') {
-	 	if (luajs.Coroutine._running._resumeStack.length) {
+	} else if (shine.Coroutine._running && shine.Coroutine._running.status == 'resuming') {
+	 	if (shine.Coroutine._running._resumeStack.length) {
 			this._pc--;
 			
 		} else {
-			luajs.Coroutine._running.status = 'running';
-			//luajs.stddebug.write ('[coroutine resumed]\n');
+			shine.Coroutine._running.status = 'running';
+			//shine.stddebug.write ('[coroutine resumed]\n');
 	
-			yieldVars = luajs.Coroutine._running._yieldVars;
+			yieldVars = shine.Coroutine._running._yieldVars;
 		}
 	}	
 	
@@ -632,7 +659,7 @@ luajs.Closure.prototype._run = function () {
 			a = this._instructions[offset + 1],
 			b = this._instructions[offset + 2],
 			c = this._instructions[offset + 3],
-			retvals = luajs.gc.createArray();
+			retvals = shine.gc.createArray();
 
 		for (var i = 0, l = yieldVars.length; i < l; i++) retvals.push (yieldVars[i]);
 
@@ -651,7 +678,7 @@ luajs.Closure.prototype._run = function () {
 			}
 		}
 
-		luajs.gc.collect(retvals);
+		shine.gc.collect(retvals);
 	}
 
 
@@ -660,16 +687,16 @@ luajs.Closure.prototype._run = function () {
 
 		retval = this._executeInstruction (this._pc++, line);
 
-		if (luajs.Coroutine._running && luajs.Coroutine._running.status == 'suspending') {
-			luajs.Coroutine._running._resumeStack.push (this);
+		if (shine.Coroutine._running && shine.Coroutine._running.status == 'suspending') {
+			shine.Coroutine._running._resumeStack.push (this);
 
-			if (luajs.Coroutine._running._func._instance == this) {
-				retval = luajs.Coroutine._running._yieldVars;
+			if (shine.Coroutine._running._func._instance == this) {
+				retval = shine.Coroutine._running._yieldVars;
 
-				luajs.Coroutine._running.status = 'suspended';
-				luajs.Coroutine._remove ();
+				shine.Coroutine._running.status = 'suspended';
+				shine.Coroutine._remove ();
 
-				//luajs.stddebug.write ('[coroutine suspended]\n');
+				//shine.stddebug.write ('[coroutine suspended]\n');
 				
 				return retval;
 			}
@@ -677,8 +704,8 @@ luajs.Closure.prototype._run = function () {
 			return;
 		}
 
-		if (luajs.debug.status == 'suspending' && !retval) {
-			luajs.debug.resumeStack.push (this);			
+		if (shine.debug.status == 'suspending' && !retval) {
+			shine.debug.resumeStack.push (this);			
 			return retval;
 		}
 		
@@ -704,7 +731,7 @@ luajs.Closure.prototype._run = function () {
  * @param {number} line The line number on which to find the instruction (for debugging).
  * @returns {Array} Array of the values that make be returned from executing the instruction.
  */
-luajs.Closure.prototype._executeInstruction = function (pc, line) {
+shine.Closure.prototype._executeInstruction = function (pc, line) {
 	var offset = pc * 4,
 		opcode = this._instructions[offset],
 		op = this.constructor.OPERATIONS[opcode],
@@ -714,12 +741,12 @@ luajs.Closure.prototype._executeInstruction = function (pc, line) {
 
 	if (!op) throw new Error ('Operation not implemented! (' + opcode + ')');
 
-	// if (luajs.debug.status != 'resuming') {
+	// if (shine.debug.status != 'resuming') {
 	// 	var tab = '',
 	// 		opName = this.constructor.OPERATION_NAMES[opcode];
 			
 	// 	for (var i = 0; i < this._index; i++) tab += '\t';
-	// 	luajs.stddebug.write (tab + '[' + this._pc + ']\t' + line + '\t' + opName + '\t' + A + '\t' + B + (C !== undefined? '\t' + C : ''));
+	// 	shine.stddebug.write (tab + '[' + this._pc + ']\t' + line + '\t' + opName + '\t' + A + '\t' + B + (C !== undefined? '\t' + C : ''));
 	// }
 
 	return op.call (this, A, B, C);
@@ -733,7 +760,7 @@ luajs.Closure.prototype._executeInstruction = function (pc, line) {
  * @param {number} index Array containing arguments to use.
  * @returns {object} Value of the constant.
  */
-luajs.Closure.prototype._getConstant = function (index) {
+shine.Closure.prototype._getConstant = function (index) {
 	if (this._constants[index] === null) return;
 	return this._constants[index];
 };
@@ -746,7 +773,7 @@ luajs.Closure.prototype._getConstant = function (index) {
  * Returns whether or not the closure has retained child scopes.
  * @returns {boolean} Has retained child scopes.
  */
-luajs.Closure.prototype.hasRetainedScope = function () {
+shine.Closure.prototype.hasRetainedScope = function () {
 
 	if (this._localsUsedAsUpvalues.length) return true;
 	if (this._upvalues.length) return true;
@@ -769,7 +796,7 @@ luajs.Closure.prototype.hasRetainedScope = function () {
 /**
  * Dump memory associtated with closure.
  */
-luajs.Closure.prototype.dispose = function (force) {
+shine.Closure.prototype.dispose = function (force) {
 
 	if (force || !this.hasRetainedScope ()) {
 		delete this._vm;
@@ -785,21 +812,21 @@ luajs.Closure.prototype.dispose = function (force) {
 		// delete this._funcInstances;
 	
 //		delete this._listeners;
-		luajs.gc.collect(this._params);
+		shine.gc.collect(this._params);
 		delete this._params;
 	
 		delete this._constants;
 
 //		delete this._localsUsedAsUpvalues;
 
-		luajs.gc.collect(this._upvalues);
+		shine.gc.collect(this._upvalues);
 		delete this._upvalues;
 
 		this._register.reset();
 		this._funcInstances.length = 0;
 		this._localsUsedAsUpvalues.length = 0;
 
-		luajs.Closure._graveyard.push(this);
+		shine.Closure._graveyard.push(this);
 	//	console.log ('graveyard');
 	}
 	
@@ -855,7 +882,7 @@ luajs.Closure.prototype.dispose = function (force) {
 	function getglobal (a, b) {
 
 		if (this._getConstant (b) == '_G') {	// Special case
-			this._register.setItem(a, new luajs.Table (this._globals));
+			this._register.setItem(a, new shine.Table (this._globals));
 			
 		} else if (this._globals[this._getConstant (b)] !== undefined) {
 			this._register.setItem(a, this._globals[this._getConstant (b)]);
@@ -872,13 +899,13 @@ luajs.Closure.prototype.dispose = function (force) {
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
 		if (this._register.getItem(b) === undefined) {
-			throw new luajs.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
+			throw new shine.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
 
-		} else if ((this._register.getItem(b) || luajs.EMPTY_OBJ) instanceof luajs.Table) {
+		} else if ((this._register.getItem(b) || shine.EMPTY_OBJ) instanceof shine.Table) {
 			this._register.setItem(a, this._register.getItem(b).getMember(c));
 
-		} else if (typeof this._register.getItem(b) == 'string' && luajs.lib.string[c]) {
-			this._register.setItem(a, luajs.lib.string[c]);
+		} else if (typeof this._register.getItem(b) == 'string' && shine.lib.string[c]) {
+			this._register.setItem(a, shine.lib.string[c]);
 
 		} else {
 			this._register.setItem(a, this._register.getItem(b)[c]);
@@ -895,8 +922,8 @@ luajs.Closure.prototype.dispose = function (force) {
 
 		this._globals[varName] = newValue;
 
-		luajs.gc.decrRef(oldValue);
-		luajs.gc.incrRef(newValue);
+		shine.gc.decrRef(oldValue);
+		shine.gc.incrRef(newValue);
 	}
 
 
@@ -913,11 +940,11 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		if ((this._register.getItem(a) || luajs.EMPTY_OBJ) instanceof luajs.Table) {
+		if ((this._register.getItem(a) || shine.EMPTY_OBJ) instanceof shine.Table) {
 			this._register.getItem(a).setMember (b, c);
 		
 		} else if (this._register.getItem(a) === undefined) {
-			throw new luajs.Error ('Attempt to index a missing field (can\'t set "' + b + '" on a nil value)');
+			throw new shine.Error ('Attempt to index a missing field (can\'t set "' + b + '" on a nil value)');
 			
 		} else {
 			this._register.getItem(a)[b] = c;
@@ -928,8 +955,8 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function newtable (a, b, c) {
-		var t = new luajs.Table ();
-		t.__luajs.refCount = 0;
+		var t = new shine.Table ();
+		t.__shine.refCount = 0;
 		this._register.setItem(a, t);
 	}
 
@@ -941,13 +968,13 @@ luajs.Closure.prototype.dispose = function (force) {
 		this._register.setItem(a + 1, this._register.getItem(b));
 
 		if (this._register.getItem(b) === undefined) {
-			throw new luajs.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
+			throw new shine.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
 
-		} else if ((this._register.getItem(b) || luajs.EMPTY_OBJ) instanceof luajs.Table) {
+		} else if ((this._register.getItem(b) || shine.EMPTY_OBJ) instanceof shine.Table) {
 			this._register.setItem(a, this._register.getItem(b).getMember (c));
 
-		} else if (typeof this._register.getItem(b) == 'string' && luajs.lib.string[c]) {
-			this._register.setItem(a, luajs.lib.string[c]);
+		} else if (typeof this._register.getItem(b) == 'string' && shine.lib.string[c]) {
+			this._register.setItem(a, shine.lib.string[c]);
 
 		} else {
 			this._register.setItem(a, this._register.getItem(b)[c]);					
@@ -962,11 +989,11 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var coerce = luajs.utils.coerce,
+		var coerce = shine.utils.coerce,
 			mt, f, bn, cn;
 
-		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__add')))
-		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__add')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__add')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__add')))) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
@@ -983,11 +1010,11 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var coerce = luajs.utils.coerce,
+		var coerce = shine.utils.coerce,
 			mt, f;
 
-		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__sub')))
-		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__sub')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__sub')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__sub')))) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
@@ -1004,11 +1031,11 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var coerce = luajs.utils.coerce,
+		var coerce = shine.utils.coerce,
 			mt, f;
 
-		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mul')))
-		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__mul')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__mul')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__mul')))) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
@@ -1025,11 +1052,11 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var coerce = luajs.utils.coerce,
+		var coerce = shine.utils.coerce,
 			mt, f;
 
-		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__div')))
-		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__div')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__div')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__div')))) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
@@ -1046,11 +1073,11 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 		
-		var coerce = luajs.utils.coerce,
+		var coerce = shine.utils.coerce,
 			mt, f, result, absC;
 
-		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mod')))
-		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__mod')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__mod')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__mod')))) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
@@ -1062,7 +1089,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 			} else {
 				result = Math.abs(b) % (absC = Math.abs(c));
-				if (!(b < 0) ^ !(c < 0)) result = absC - result;
+				if (0 + !(b < 0) ^ 0 + !(c < 0)) result = absC - result;
 				if (c < 0) result *= -1;
 			}
 
@@ -1077,11 +1104,11 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var coerce = luajs.utils.coerce,
+		var coerce = shine.utils.coerce,
 			mt, f;
 
-		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__pow')))
-		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__pow')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__pow')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__pow')))) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
@@ -1097,11 +1124,11 @@ luajs.Closure.prototype.dispose = function (force) {
 	function unm (a, b) {
 		var mt, f;
 
-		if ((this._register.getItem(b) || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = this._register.getItem(b).__luajs.metatable) && (f = mt.getMember ('__unm'))) {
+		if ((this._register.getItem(b) || shine.EMPTY_OBJ) instanceof shine.Table && (mt = this._register.getItem(b).__shine.metatable) && (f = mt.getMember ('__unm'))) {
 			this._register.setItem(a, f.apply (null, [this._register.getItem(b)], true)[0]);
 
 		} else {
-			b = luajs.utils.coerce(this._register.getItem(b), 'number', 'attempt to perform arithmetic on a non-numeric value');
+			b = shine.utils.coerce(this._register.getItem(b), 'number', 'attempt to perform arithmetic on a non-numeric value');
 			this._register.setItem(a, -b);
 		}
 	}
@@ -1119,18 +1146,18 @@ luajs.Closure.prototype.dispose = function (force) {
 	function len (a, b) {
 		var length = 0;
 
-		if ((this._register.getItem(b) || luajs.EMPTY_OBJ) instanceof luajs.Table) {
+		if ((this._register.getItem(b) || shine.EMPTY_OBJ) instanceof shine.Table) {
 
 			//while (this._register.getItem(b)[length + 1] != undefined) length++;
 			//this._register.setItem(a, length);
-			this._register.setItem(a, luajs.lib.table.getn (this._register.getItem(b)));
+			this._register.setItem(a, shine.lib.table.getn (this._register.getItem(b)));
 
 		} else if (typeof this._register.getItem(b) == 'object') {				
 			for (var i in this._register.getItem(b)) if (this._register.getItem(b).hasOwnProperty (i)) length++;
 			this._register.setItem(a, length);
 
 		} else if (this._register.getItem(b) == undefined) {
-			throw new luajs.Error ('attempt to get length of a nil value');
+			throw new shine.Error ('attempt to get length of a nil value');
 
 		} else if (this._register.getItem(b).length === undefined) {
 			this._register.setItem(a, undefined);
@@ -1149,12 +1176,12 @@ luajs.Closure.prototype.dispose = function (force) {
 			mt, f;
 
 		for (var i = c - 1; i >= b; i--) {
-			if (((this._register.getItem(i) || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = this._register.getItem(i).__luajs.metatable) && (f = mt.getMember ('__concat')))
-			|| ((text || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = text.__luajs.metatable) && (f = mt.getMember ('__concat')))) {
+			if (((this._register.getItem(i) || shine.EMPTY_OBJ) instanceof shine.Table && (mt = this._register.getItem(i).__shine.metatable) && (f = mt.getMember ('__concat')))
+			|| ((text || shine.EMPTY_OBJ) instanceof shine.Table && (mt = text.__shine.metatable) && (f = mt.getMember ('__concat')))) {
 				text = f.apply (null, [this._register.getItem(i), text], true)[0];
 
 			} else {
-				if (!(typeof this._register.getItem(i) === 'string' || typeof this._register.getItem(i) === 'number') || !(typeof text === 'string' || typeof text === 'number')) throw new luajs.Error ('Attempt to concatenate a non-string or non-numeric value');
+				if (!(typeof this._register.getItem(i) === 'string' || typeof this._register.getItem(i) === 'number') || !(typeof text === 'string' || typeof text === 'number')) throw new shine.Error ('Attempt to concatenate a non-string or non-numeric value');
 				text = this._register.getItem(i) + text;
 			}
 		}
@@ -1178,7 +1205,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 		var mtb, mtc, f, result;
 
-		if (b !== c && (b || luajs.EMPTY_OBJ) instanceof luajs.Table && (c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__eq'))) {
+		if (b !== c && (b || shine.EMPTY_OBJ) instanceof shine.Table && (c || shine.EMPTY_OBJ) instanceof shine.Table && (mtb = b.__shine.metatable) && (mtc = c.__shine.metatable) && mtb === mtc && (f = mtb.getMember ('__eq'))) {
 			result = !!f.apply (null, [b, c], true)[0];			
 		} else {
 			result = (b === c);
@@ -1194,18 +1221,18 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var typeB = (typeof b != 'object' && typeof b) || ((b || luajs.EMPTY_OBJ) instanceof luajs.Table && 'table') || 'userdata',
-			typeC = (typeof c != 'object' && typeof b) || ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && 'table') || 'userdata',
+		var typeB = (typeof b != 'object' && typeof b) || ((b || shine.EMPTY_OBJ) instanceof shine.Table && 'table') || 'userdata',
+			typeC = (typeof c != 'object' && typeof b) || ((c || shine.EMPTY_OBJ) instanceof shine.Table && 'table') || 'userdata',
 			f, result, mtb, mtc;
 
 		if (typeB !== typeC) {
-			throw new luajs.Error ('attempt to compare ' + typeB + ' with ' + typeC);
+			throw new shine.Error ('attempt to compare ' + typeB + ' with ' + typeC);
 			
 		} else if (typeB == 'table') {
-			if ((mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__lt'))) {
+			if ((mtb = b.__shine.metatable) && (mtc = c.__shine.metatable) && mtb === mtc && (f = mtb.getMember ('__lt'))) {
 				result = f.apply (null, [b, c], true)[0];
 			} else {
-				throw new luajs.Error ('attempt to compare two table values');
+				throw new shine.Error ('attempt to compare two table values');
 			}
 
 		} else {
@@ -1222,18 +1249,18 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var typeB = (typeof b != 'object' && typeof b) || ((b || luajs.EMPTY_OBJ) instanceof luajs.Table && 'table') || 'userdata',
-			typeC = (typeof c != 'object' && typeof b) || ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && 'table') || 'userdata',
+		var typeB = (typeof b != 'object' && typeof b) || ((b || shine.EMPTY_OBJ) instanceof shine.Table && 'table') || 'userdata',
+			typeC = (typeof c != 'object' && typeof b) || ((c || shine.EMPTY_OBJ) instanceof shine.Table && 'table') || 'userdata',
 			f, result, mtb, mtc;
 
 		if (typeB !== typeC) {
-			throw new luajs.Error ('attempt to compare ' + typeB + ' with ' + typeC);
+			throw new shine.Error ('attempt to compare ' + typeB + ' with ' + typeC);
 			
 		} else if (typeB == 'table') {
-			if ((mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__le'))) {
+			if ((mtb = b.__shine.metatable) && (mtc = c.__shine.metatable) && mtb === mtc && (f = mtb.getMember ('__le'))) {
 				result = f.apply (null, [b, c], true)[0];
 			} else {
-				throw new luajs.Error ('attempt to compare two table values');
+				throw new shine.Error ('attempt to compare two table values');
 			}
 
 		} else {
@@ -1270,24 +1297,24 @@ luajs.Closure.prototype.dispose = function (force) {
 
 	function call (a, b, c) {
 
-		var args = luajs.gc.createArray(), 
+		var args = shine.gc.createArray(), 
 			i, l,
 			retvals,
 			funcToResume,
 			f, o, mt;
 
 
-		if (luajs.debug.status == 'resuming') {
-			funcToResume = luajs.debug.resumeStack.pop ();
+		if (shine.debug.status == 'resuming') {
+			funcToResume = shine.debug.resumeStack.pop ();
 			
-			if ((funcToResume || luajs.EMPTY_OBJ) instanceof luajs.Coroutine) {
+			if ((funcToResume || shine.EMPTY_OBJ) instanceof shine.Coroutine) {
 				retvals = funcToResume.resume ();
 			} else {
 				retvals = funcToResume._run ();
 			}
 			
-		} else if (luajs.Coroutine._running && luajs.Coroutine._running.status == 'resuming') {
-			funcToResume = luajs.Coroutine._running._resumeStack.pop ()
+		} else if (shine.Coroutine._running && shine.Coroutine._running.status == 'resuming') {
+			funcToResume = shine.Coroutine._running._resumeStack.pop ()
 			retvals = funcToResume._run ();
 			
 		} else {
@@ -1309,25 +1336,25 @@ luajs.Closure.prototype.dispose = function (force) {
 		if (!funcToResume) {
 			o = this._register.getItem(a);
 
-			if ((o || luajs.EMPTY_OBJ) instanceof luajs.Function) {
+			if ((o || shine.EMPTY_OBJ) instanceof shine.Function) {
 				retvals = o.apply (null, args, true);
 
 			} else if (o && o.apply) {
 				retvals = o.apply (null, args);
 
-			} else if (o && (o || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = o.__luajs.metatable) && (f = mt.getMember ('__call')) && f.apply) {
+			} else if (o && (o || shine.EMPTY_OBJ) instanceof shine.Table && (mt = o.__shine.metatable) && (f = mt.getMember ('__call')) && f.apply) {
 				args.unshift (o);
 				retvals = f.apply (null, args, true);
 
 			} else {
-	 			throw new luajs.Error ('Attempt to call non-function');
+	 			throw new shine.Error ('Attempt to call non-function');
 			}
 		}
 		
-		luajs.gc.collect(args);
+		shine.gc.collect(args);
 
-		if (!((retvals || luajs.EMPTY_OBJ) instanceof Array)) retvals = [retvals];
-		if (luajs.Coroutine._running && luajs.Coroutine._running.status == 'suspending') return;
+		if (!((retvals || shine.EMPTY_OBJ) instanceof Array)) retvals = [retvals];
+		if (shine.Coroutine._running && shine.Coroutine._running.status == 'suspending') return;
 
 
 		if (c === 0) {
@@ -1361,7 +1388,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function return_ (a, b) {
-		var retvals = luajs.gc.createArray(),
+		var retvals = shine.gc.createArray(),
 			val,
 			i, l;
 
@@ -1375,7 +1402,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		} else {
 			for (i = 0; i < b - 1; i++) {
 				retvals.push (val = this._register.getItem(a + i));
-				luajs.gc.incrRef(val);
+				shine.gc.incrRef(val);
 			}
 		}
 
@@ -1427,7 +1454,7 @@ luajs.Closure.prototype.dispose = function (force) {
 			retvals = this._register.getItem(a).apply (null, args),
 			index;
 
-		if (!((retvals || luajs.EMPTY_OBJ) instanceof Array)) retvals = [retvals];
+		if (!((retvals || shine.EMPTY_OBJ) instanceof Array)) retvals = [retvals];
 		if (retvals[0] && retvals[0] === '' + (index = parseInt (retvals[0], 10))) retvals[0] = index;
 		
 		for (var i = 0; i < c; i++) this._register.setItem(a + i + 3, retvals[i]);
@@ -1474,7 +1501,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 	function closure (a, bx) {
 		var me = this,
-			upvalues = luajs.gc.createArray(),
+			upvalues = shine.gc.createArray(),
 			opcode;
 
 		while ((opcode = this._instructions[this._pc * 4]) !== undefined && (opcode === 0 || opcode === 4) && this._instructions[this._pc * 4 + 1] === 0) {	// move, getupval
@@ -1487,7 +1514,7 @@ luajs.Closure.prototype.dispose = function (force) {
 					C = me._instructions[offset + 3],
 					upvalue;
 
-				// luajs.stddebug.write ('-> ' + me.constructor.OPERATION_NAMES[op] + '\t' + A + '\t' + B + '\t' + C);
+				// shine.stddebug.write ('-> ' + me.constructor.OPERATION_NAMES[op] + '\t' + A + '\t' + B + '\t' + C);
 
 				
 				if (op === 0) {	// move
@@ -1538,7 +1565,7 @@ luajs.Closure.prototype.dispose = function (force) {
 			this._pc++;
 		}
 
-		var func = new luajs.Function (this._vm, this._file, this._functions[bx], this._globals, upvalues);
+		var func = new shine.Function (this._vm, this._file, this._functions[bx], this._globals, upvalues);
 		//this._funcInstances.push (func);
 		this._register.setItem(a, func);
 	}
@@ -1562,8 +1589,8 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 
-	luajs.Closure.OPERATIONS = [move, loadk, loadbool, loadnil, getupval, getglobal, gettable, setglobal, setupval, settable, newtable, self, add, sub, mul, div, mod, pow, unm, not, len, concat, jmp, eq, lt, le, test, testset, call, tailcall, return_, forloop, forprep, tforloop, setlist, close, closure, vararg];
-	luajs.Closure.OPERATION_NAMES = ["move", "loadk", "loadbool", "loadnil", "getupval", "getglobal", "gettable", "setglobal", "setupval", "settable", "newtable", "self", "add", "sub", "mul", "div", "mod", "pow", "unm", "not", "len", "concat", "jmp", "eq", "lt", "le", "test", "testset", "call", "tailcall", "return", "forloop", "forprep", "tforloop", "setlist", "close", "closure", "vararg"];
+	shine.Closure.OPERATIONS = [move, loadk, loadbool, loadnil, getupval, getglobal, gettable, setglobal, setupval, settable, newtable, self, add, sub, mul, div, mod, pow, unm, not, len, concat, jmp, eq, lt, le, test, testset, call, tailcall, return_, forloop, forprep, tforloop, setlist, close, closure, vararg];
+	shine.Closure.OPERATION_NAMES = ["move", "loadk", "loadbool", "loadnil", "getupval", "getglobal", "gettable", "setglobal", "setupval", "settable", "newtable", "self", "add", "sub", "mul", "div", "mod", "pow", "unm", "not", "len", "concat", "jmp", "eq", "lt", "le", "test", "testset", "call", "tailcall", "return", "forloop", "forprep", "tforloop", "setlist", "close", "closure", "vararg"];
 
 })();
 
@@ -1575,39 +1602,39 @@ luajs.Closure.prototype.dispose = function (force) {
  * @copyright Gamesys Limited 2013
 */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 /**
  * Represents a function definition.
  * @constructor
- * @extends luajs.EventEmitter
- * @param {luajs.File} file The file in which the function is declared.
+ * @extends shine.EventEmitter
+ * @param {shine.File} file The file in which the function is declared.
  * @param {object} data Object containing the Luac data for the function.
  * @param {object} globals The global variables for the environment in which the function is declared.
  * @param {object} [upvalues] The upvalues passed from the parent closure.
  */
-luajs.Function = function (vm, file, data, globals, upvalues) {
-	//luajs.EventEmitter.call (this);
+shine.Function = function (vm, file, data, globals, upvalues) {
+	//shine.EventEmitter.call (this);
 
 	this._vm = vm;
 	this._file = file;
 	this._data = data;
 	this._globals = globals;
-	this._upvalues = upvalues || luajs.gc.createObject();
-	this._index = luajs.Function._index++;
-	this.instances = luajs.gc.createArray();
+	this._upvalues = upvalues || shine.gc.createObject();
+	this._index = shine.Function._index++;
+	this.instances = shine.gc.createArray();
 	this._retainCount = 0;
 
 	// Convert instructions to byte array (where possible);
- 	//if (this._data.instructions instanceof Array) this._data.instructions = new luajs.InstructionSet(data.instructions);
+ 	//if (this._data.instructions instanceof Array) this._data.instructions = new shine.InstructionSet(data.instructions);
  	this._convertInstructions();
 
 	this.constructor._instances.push(this);
 };
 
 
-luajs.Function.prototype = {}; //new luajs.EventEmitter ();
-luajs.Function.prototype.constructor = luajs.Function;
+shine.Function.prototype = {}; //new shine.EventEmitter ();
+shine.Function.prototype.constructor = shine.Function;
 
 
 /**
@@ -1615,7 +1642,7 @@ luajs.Function.prototype.constructor = luajs.Function;
  * @type Number
  * @static
  */
-luajs.Function._index = 0;
+shine.Function._index = 0;
 
 
 
@@ -1625,17 +1652,17 @@ luajs.Function._index = 0;
  * @type Array
  * @static
  */
-luajs.Function._instances = [];
+shine.Function._instances = [];
 
 
 
 
 /**
  * Creates a new function instance from the definition.
- * @returns {luajs.Closure} An instance of the function definition.
+ * @returns {shine.Closure} An instance of the function definition.
  */
-luajs.Function.prototype.getInstance = function () {
-	return luajs.Closure.create (this._vm, this._file, this._data, this._globals, this._upvalues); //new luajs.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
+shine.Function.prototype.getInstance = function () {
+	return shine.Closure.create (this._vm, this._file, this._data, this._globals, this._upvalues); //new shine.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
 };
 
 
@@ -1644,7 +1671,7 @@ luajs.Function.prototype.getInstance = function () {
 /**
  * Converts the function's instructions from the format in file into ArrayBuffer or Array in place.
  */
-luajs.Function.prototype._convertInstructions = function () {
+shine.Function.prototype._convertInstructions = function () {
 	var instructions = this._data.instructions,
 		buffer,
 		result,
@@ -1689,8 +1716,8 @@ luajs.Function.prototype._convertInstructions = function () {
  * Calls the function, implicitly creating a new instance and passing on the arguments provided.
  * @returns {Array} Array of the return values from the call.
  */
-luajs.Function.prototype.call = function () {
-	var args = luajs.gc.createArray(),
+shine.Function.prototype.call = function () {
+	var args = shine.gc.createArray(),
 		l = arguments.length,
 		i;
 		
@@ -1707,20 +1734,20 @@ luajs.Function.prototype.call = function () {
  * @param {Array} args Array containing arguments to use.
  * @returns {Array} Array of the return values from the call.
  */
-luajs.Function.prototype.apply = function (obj, args, internal) {
-	if ((obj || luajs.EMPTY_OBJ) instanceof Array && !args) {
+shine.Function.prototype.apply = function (obj, args, internal) {
+	if ((obj || shine.EMPTY_OBJ) instanceof Array && !args) {
 		args = obj;
 		obj = undefined;
 	}
 
-	var func = internal? this.getInstance () : luajs.lib.coroutine.wrap (this);
+	var func = internal? this.getInstance () : shine.lib.coroutine.wrap (this);
 	
 	try {
 		return func.apply (obj, args);
 //		return this.getInstance ().apply (obj, args);
 
 	} catch (e) {
-		luajs.Error.catchExecutionError (e);
+		shine.Error.catchExecutionError (e);
 	}
 };
 
@@ -1731,7 +1758,7 @@ luajs.Function.prototype.apply = function (obj, args, internal) {
  * Creates a unique description of the function.
  * @returns {string} Description.
  */
-luajs.Function.prototype.toString = function () {
+shine.Function.prototype.toString = function () {
 	return 'function: 0x' + this._index.toString (16);
 };
 
@@ -1741,7 +1768,7 @@ luajs.Function.prototype.toString = function () {
 /**
  * Saves this function from disposal.
  */
-luajs.Function.prototype.retain = function () {
+shine.Function.prototype.retain = function () {
 	this._retainCount++;
 };
 
@@ -1751,7 +1778,7 @@ luajs.Function.prototype.retain = function () {
 /**
  * Releases this function to be disposed.
  */
-luajs.Function.prototype.release = function () {
+shine.Function.prototype.release = function () {
 	if (!--this._retainCount && this._readyToDispose) this.dispose();
 };
 
@@ -1762,7 +1789,7 @@ luajs.Function.prototype.release = function () {
  * Test if the function has been marked as retained.
  * @returns {boolean} Whether or not the function is marked as retained.
  */
-luajs.Function.prototype.isRetained = function () {
+shine.Function.prototype.isRetained = function () {
 	if (this._retainCount) return true;
 	
 	for (var i in this.instances) {
@@ -1778,7 +1805,7 @@ luajs.Function.prototype.isRetained = function () {
 /**
  * Dump memory associated with function.
  */
-luajs.Function.prototype.dispose = function (force) {
+shine.Function.prototype.dispose = function (force) {
 	this._readyToDispose = true;
 	
 	if (force) {
@@ -1811,57 +1838,53 @@ luajs.Function.prototype.dispose = function (force) {
 
 /**
  * @fileOverview Coroutine class.
-<<<<<<< HEAD
- * @author <a href="http://paulcuth.me.uk">Paul Cuthbertson</a>
-=======
  * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
->>>>>>> master
  * @copyright Gamesys Limited 2013
  */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 
 
 /**
  * Represents a single coroutine (thread).
  * @constructor
- * @extends luajs.EventEmitter
- * @param {luajs.Closure} closure The closure that is to be executed in the thread.
+ * @extends shine.EventEmitter
+ * @param {shine.Closure} closure The closure that is to be executed in the thread.
  */
-luajs.Coroutine = function (closure) {
-	luajs.EventEmitter.call (this);
+shine.Coroutine = function (closure) {
+	shine.EventEmitter.call (this);
 
 	this._func = closure.getInstance ();
-	this._index = luajs.Coroutine._index++;
+	this._index = shine.Coroutine._index++;
 	this._started = false;
 	this._yieldVars = undefined;
-	this._resumeStack = this._resumeStack || luajs.gc.createArray();
+	this._resumeStack = this._resumeStack || shine.gc.createArray();
 	this.status = 'suspended';
 
-	luajs.stddebug.write ('[coroutine created]\n');
+	shine.stddebug.write ('[coroutine created]\n');
 };
 
 
-luajs.Coroutine.prototype = new luajs.EventEmitter ();
-luajs.Coroutine.prototype.constructor = luajs.Function;
+shine.Coroutine.prototype = new shine.EventEmitter ();
+shine.Coroutine.prototype.constructor = shine.Function;
 
 
-luajs.Coroutine._index = 0;
-luajs.Coroutine._stack = [];
-luajs.Coroutine._graveyard = [];
+shine.Coroutine._index = 0;
+shine.Coroutine._stack = [];
+shine.Coroutine._graveyard = [];
 
 
-luajs.Coroutine.create = function (closure) {
-	var instance = luajs.Coroutine._graveyard.pop();
+shine.Coroutine.create = function (closure) {
+	var instance = shine.Coroutine._graveyard.pop();
 	//console.log (instance? 'reusing' : 'creating');
 	
 	if (instance) {
-		luajs.Coroutine.apply(instance, arguments);
+		shine.Coroutine.apply(instance, arguments);
 		return instance;
 		
 	} else {
-		return new luajs.Coroutine(closure);
+		return new shine.Coroutine(closure);
 	}
 };
 
@@ -1871,11 +1894,11 @@ luajs.Coroutine.create = function (closure) {
 /**
  * Adds a new coroutine to the top of the run stack.
  * @static
- * @param {luajs.Coroutine} co A running coroutine.
+ * @param {shine.Coroutine} co A running coroutine.
  */
-luajs.Coroutine._add = function (co) {
-	luajs.Coroutine._stack.push (luajs.Coroutine._running);
-	luajs.Coroutine._running = co;
+shine.Coroutine._add = function (co) {
+	shine.Coroutine._stack.push (shine.Coroutine._running);
+	shine.Coroutine._running = co;
 };
 
 
@@ -1885,8 +1908,8 @@ luajs.Coroutine._add = function (co) {
  * Removes a coroutine from the run stack.
  * @static
  */
-luajs.Coroutine._remove = function () {
-	luajs.Coroutine._running = luajs.Coroutine._stack.pop ();
+shine.Coroutine._remove = function () {
+	shine.Coroutine._running = shine.Coroutine._stack.pop ();
 };
 
 
@@ -1896,18 +1919,18 @@ luajs.Coroutine._remove = function () {
  * Rusumes a suspended coroutine.
  * @returns {Array} Return values, either after terminating or from a yield.
  */
-luajs.Coroutine.prototype.resume = function () {
+shine.Coroutine.prototype.resume = function () {
 	var retval;
 
 	try {
-		if (this.status == 'dead') throw new luajs.Error ('cannot resume dead coroutine');
+		if (this.status == 'dead') throw new shine.Error ('cannot resume dead coroutine');
 
-		luajs.Coroutine._add (this);
+		shine.Coroutine._add (this);
 		
-		if (luajs.debug.status == 'resuming') {
-			var funcToResume = luajs.debug.resumeStack.pop ();
+		if (shine.debug.status == 'resuming') {
+			var funcToResume = shine.debug.resumeStack.pop ();
 			
-			if ((funcToResume || luajs.EMPTY_OBJ) instanceof luajs.Coroutine) {
+			if ((funcToResume || shine.EMPTY_OBJ) instanceof shine.Coroutine) {
 				retval = funcToResume.resume ();
 			} else {
 				retval = this._func._instance._run ();
@@ -1915,24 +1938,24 @@ luajs.Coroutine.prototype.resume = function () {
 
 		} else if (!this._started) {
 			this.status = 'running';
-			luajs.stddebug.write ('[coroutine started]\n');
+			shine.stddebug.write ('[coroutine started]\n');
 
 			this._started = true;
 			retval = this._func.apply (null, arguments, true);
 
 		} else {
 			this.status = 'resuming';
-			luajs.stddebug.write ('[coroutine resuming]\n');
+			shine.stddebug.write ('[coroutine resuming]\n');
 
-			var args = luajs.gc.createArray();
+			var args = shine.gc.createArray();
 			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 
 			this._yieldVars = args;
 			retval = this._resumeStack.pop ()._run ();
 		}	
 	
-		if (luajs.debug.status == 'suspending') {
-			luajs.debug.resumeStack.push (this);
+		if (shine.debug.status == 'suspending') {
+			shine.debug.resumeStack.push (this);
 			return;
 		}
 		
@@ -1946,8 +1969,8 @@ luajs.Coroutine.prototype.resume = function () {
 	}
 
 	if (this.status == 'dead') {
-		luajs.Coroutine._remove ();
-		luajs.stddebug.write ('[coroutine terminated]\n');
+		shine.Coroutine._remove ();
+		shine.stddebug.write ('[coroutine terminated]\n');
 		this._dispose();
 	}
 
@@ -1961,7 +1984,7 @@ luajs.Coroutine.prototype.resume = function () {
  * Returns a unique identifier for the thread.
  * @returns {string} Description.
  */
-luajs.Coroutine.prototype.toString = function () {
+shine.Coroutine.prototype.toString = function () {
 	return 'thread: 0x' + this._index.toString (16);
 };
 
@@ -1971,7 +1994,7 @@ luajs.Coroutine.prototype.toString = function () {
 /**
  * Dumps memory used by the coroutine.
  */
-luajs.Coroutine.prototype._dispose = function () {
+shine.Coroutine.prototype._dispose = function () {
 
 	delete this._func;
 	delete this._index;
@@ -1983,7 +2006,7 @@ luajs.Coroutine.prototype._dispose = function () {
 
 	this._resumeStack.length = 0;
 
-	luajs.Coroutine._graveyard.push(this);
+	shine.Coroutine._graveyard.push(this);
 };
 
 
@@ -1994,7 +2017,7 @@ luajs.Coroutine.prototype._dispose = function () {
  * @copyright Gamesys Limited 2013
  */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 
 
@@ -2003,21 +2026,21 @@ var luajs = luajs || {};
  * Represents a table in Lua.
  * @param {Object} obj Initial values to set up in the new table.
  */
-luajs.Table = function (obj) {
+shine.Table = function (obj) {
 
-	var isArr = ((obj || luajs.EMPTY_OBJ) instanceof Array),
+	var isArr = ((obj || shine.EMPTY_OBJ) instanceof Array),
 		meta,
 		key,
 		value,
 		i;
 
-	obj = obj || luajs.gc.createObject();
+	obj = obj || shine.gc.createObject();
 
-	this.__luajs = meta = luajs.gc.createObject();
+	this.__shine = meta = shine.gc.createObject();
 	meta.type = 'table';
-	meta.index = ++luajs.Table.count;
-	meta.keys = luajs.gc.createArray();
-	meta.values = luajs.gc.createArray();
+	meta.index = ++shine.Table.count;
+	meta.keys = shine.gc.createArray();
+	meta.values = shine.gc.createArray();
 	meta.numValues = [undefined];
 
 
@@ -2030,13 +2053,13 @@ luajs.Table = function (obj) {
 
 			if (typeof getQualifiedClassName !== 'undefined') {
 				// ActionScript
-				iterate = ((getQualifiedClassName(value) == "Object") && (!(value instanceof luajs.Table)) && (!(value instanceof luajs.Coroutine)) && (!(value instanceof luajs.Function)) && (!(value instanceof luajs.Closure) )) || (getQualifiedClassName(value) == "Array");
+				iterate = ((getQualifiedClassName(value) == "Object") && (!(value instanceof shine.Table)) && (!(value instanceof shine.Coroutine)) && (!(value instanceof shine.Function)) && (!(value instanceof shine.Closure) )) || (getQualifiedClassName(value) == "Array");
 			} else {
 				// JavaScript
 				iterate = (typeof value == 'object' && value.constructor === Object) || value instanceof Array;
 			}
 			
-			this.setMember(key, iterate? new luajs.Table (value) : value);
+			this.setMember(key, iterate? new shine.Table (value) : value);
 		}
 	}
 	
@@ -2048,7 +2071,7 @@ luajs.Table = function (obj) {
  * @type Number
  * @static
  */
-luajs.Table.count = 0;
+shine.Table.count = 0;
 
 
 
@@ -2058,7 +2081,7 @@ luajs.Table.count = 0;
  * @param {Object} key The member's key.
  * @returns {Object} The value of the member sought.
  */
-luajs.Table.prototype.getMember = function (key) {
+shine.Table.prototype.getMember = function (key) {
 	var index,
 		value;
 
@@ -2068,21 +2091,21 @@ luajs.Table.prototype.getMember = function (key) {
 			break;
 
 		case 'number':
-			value = this.__luajs.numValues[key];
+			value = this.__shine.numValues[key];
 			if (value !== undefined) return value;
 
 		default:
-			index = this.__luajs.keys.indexOf (key);
-			if (index >= 0) return this.__luajs.values[index];
+			index = this.__shine.keys.indexOf (key);
+			if (index >= 0) return this.__shine.values[index];
 	}
 	
-	var mt = this.__luajs.metatable;
+	var mt = this.__shine.metatable;
 
 	if (mt && mt.__index) {
 		switch (mt.__index.constructor) {
-			case luajs.Table: return mt.__index.getMember (key);
+			case shine.Table: return mt.__index.getMember (key);
 			case Function: return mt.__index (this, key);
-			case luajs.Function: return mt.__index.apply (this, [this, key])[0];
+			case shine.Function: return mt.__index.apply (this, [this, key])[0];
 		}
 	}		
 };
@@ -2095,17 +2118,17 @@ luajs.Table.prototype.getMember = function (key) {
  * @param {Object} key The member's key.
  * @returns {Object} The value of the member sought.
  */
-luajs.Table.prototype.setMember = function (key, value) {
-	var mt = this.__luajs.metatable,
+shine.Table.prototype.setMember = function (key, value) {
+	var mt = this.__shine.metatable,
 		oldValue,
 		keys,
 		index;
 
 	if (this[key] === undefined && mt && mt.__newindex) {
 		switch (mt.__newindex.constructor) {
-			case luajs.Table: return mt.__newindex.setMember (key, value);
+			case shine.Table: return mt.__newindex.setMember (key, value);
 			case Function: return mt.__newindex (this, key, value);
-			case luajs.Function: return mt.__newindex.apply (this, [this, key, value])[0];
+			case shine.Function: return mt.__newindex.apply (this, [this, key, value])[0];
 		}
 	}
 
@@ -2117,13 +2140,13 @@ luajs.Table.prototype.setMember = function (key, value) {
 
 
 		case 'number':
-			oldValue = this.__luajs.numValues[key];
-			this.__luajs.numValues[key] = value;
+			oldValue = this.__shine.numValues[key];
+			this.__shine.numValues[key] = value;
 			break;
 
 
 		default:
-			keys = this.__luajs.keys;
+			keys = this.__shine.keys;
 			index = keys.indexOf(key);
 			
 			if (index < 0) {
@@ -2131,12 +2154,12 @@ luajs.Table.prototype.setMember = function (key, value) {
 				keys[index] = key;
 			}
 			
-			oldValue = this.__luajs.values[index];
-			this.__luajs.values[index] = value;
+			oldValue = this.__shine.values[index];
+			this.__shine.values[index] = value;
 	}
 
-	luajs.gc.decrRef(oldValue);
-	luajs.gc.incrRef(value);
+	shine.gc.decrRef(oldValue);
+	shine.gc.incrRef(value);
 };
 
 
@@ -2146,13 +2169,13 @@ luajs.Table.prototype.setMember = function (key, value) {
  * Returns a unique identifier for the table.
  * @returns {string} Description.
  */
-luajs.Table.prototype.toString = function () {
+shine.Table.prototype.toString = function () {
 	var mt;
 	
-	if (this.constructor != luajs.Table) return 'userdata';
-	if (this.__luajs && (mt = this.__luajs.metatable) && mt.__tostring) return mt.__tostring.call (undefined, this);
+	if (this.constructor != shine.Table) return 'userdata';
+	if (this.__shine && (mt = this.__shine.metatable) && mt.__tostring) return mt.__tostring.call (undefined, this);
 
-	return 'table: 0x' + this.__luajs.index.toString (16);
+	return 'table: 0x' + this.__shine.index.toString (16);
 };
 
 
@@ -2163,7 +2186,7 @@ luajs.Table.prototype.toString = function () {
  * @copyright Gamesys Limited 2013
  */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 
 
@@ -2172,7 +2195,7 @@ var luajs = luajs || {};
  * @constructor
  * @param {string} message Error message.
  */
-luajs.Error = function (message) {
+shine.Error = function (message) {
 	//Error.call (this, message); //AS3 no likey
 	//this.message = message;
 
@@ -2182,14 +2205,14 @@ luajs.Error = function (message) {
 
 	err.constructor = this.constructor;
 	err.__proto__ = this;    
-	err.name = 'luajs.Error';
+	err.name = 'shine.Error';
 
 	return err;
 };
 
 
-luajs.Error.prototype = new Error ();
-luajs.Error.prototype.constructor = luajs.Error;
+shine.Error.prototype = new Error ();
+shine.Error.prototype.constructor = shine.Error;
 
 
 
@@ -2197,14 +2220,14 @@ luajs.Error.prototype.constructor = luajs.Error;
 /**
  * Handles error reporting in a consistent manner.
  * @static
- * @param {Error|luajs.Error} e Error that was thown.
+ * @param {Error|shine.Error} e Error that was thown.
  */
-luajs.Error.catchExecutionError = function (e) {
+shine.Error.catchExecutionError = function (e) {
 	if (!e) return;
 
-	if ((e || luajs.EMPTY_OBJ) instanceof luajs.Error) {
+	if ((e || shine.EMPTY_OBJ) instanceof shine.Error) {
 		if (!e.luaMessage) e.luaMessage = e.message;
-		e.message = e.luaMessage + '\n    ' + (e.luaStack || luajs.gc.createArray()).join('\n    ');
+		e.message = e.luaMessage + '\n    ' + (e.luaStack || shine.gc.createArray()).join('\n    ');
 	}
 
 	throw e;
@@ -2217,85 +2240,15 @@ luajs.Error.catchExecutionError = function (e) {
  * Coerces the error to a string for logging.
  * @return {string} String representation of error.
  */
-luajs.Error.prototype.toString = function () {
-	return 'Luajs Error: ' + this.message;
+shine.Error.prototype.toString = function () {
+	return 'Moonshine Error: ' + this.message;
 };/**
- * @fileOverview File class.
- * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
- * @copyright Gamesys Limited 2013
- */
-
-var luajs = luajs || {};
-
-
-
-/**
- * Represents a Luac data file.
- * @constructor
- * @extends luajs.EventEmitter
- * @param {string} url Address of the decompiled Luac file.
- */
-luajs.File = function (url) {
-	luajs.EventEmitter.call (this);
-
-	this._url = url;
-	this.data = undefined;
-};
-
-
-luajs.File.prototype = new luajs.EventEmitter ();
-luajs.File.prototype.constructor = luajs.File;
-
-
-
-
-/**
- * Retrieves the Luac file from the url.
- */
-luajs.File.prototype.load = function () {
-	var me = this;
-
-	function success (data) {
-		me.data = JSON.parse(data);
-		me._trigger ('loaded', me.data);
-	}
-
-	function error (code) {
-		//throw new luajs.Error('Unable to load file: ' + me._url + ' (' + code + ')');
-		me._trigger ('error', code);
-	}
-	
-	luajs.utils.get(this._url, success, error);
-};
-
-
-
-
-/**
- * Retrieved the corresponding Lua file, if exists.
- * @todo
- */
-luajs.File.prototype.loadLua = function () {
-};
-
-
-
-
-/**
- * Dump memory associated with file.
- */
-luajs.File.prototype.dispose = function () {
-	delete this._url;
-	delete this.data;
-};
-
-/**
  * @fileOverview The Lua standard library.
  * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
  * @copyright Gamesys Limited 2013
 */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 
 
@@ -2388,10 +2341,10 @@ var luajs = luajs || {};
 			filename = pathData + filename;
 		}
 
-		file = new luajs.File (filename);
+		file = new shine.File (filename);
 
 		file.bind ('loaded', function (data) {
-			var func = new luajs.Function (vm, file, file.data, vm._globals);
+			var func = new shine.Function (vm, file, file.data, vm._globals);
 			vm._trigger ('module-loaded', file, func);
 			
 			callback(func);
@@ -2409,11 +2362,11 @@ var luajs = luajs || {};
 
 
 
-	luajs.lib = {
+	shine.lib = {
 	
 		
 		assert: function (v, m) {
-			if (v === false || v === undefined) throw new luajs.Error (m || 'Assertion failed!');
+			if (v === false || v === undefined) throw new shine.Error (m || 'Assertion failed!');
 			return [v, m];
 		},
 	
@@ -2435,7 +2388,7 @@ var luajs = luajs || {};
 		
 		
 		error: function (message) {	
-			throw new luajs.Error (message);
+			throw new shine.Error (message);
 		},
 	
 	
@@ -2453,23 +2406,23 @@ var luajs = luajs || {};
 		 * @param {object} table The table from which to obtain the metatable.
 		 */
 		getmetatable: function (table) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in getmetatable(). Table expected');
-			return table.__luajs.metatable;
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in getmetatable(). Table expected');
+			return table.__shine.metatable;
 		},
 		
 	
 	
 	
 		ipairs: function (table) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in ipairs(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in ipairs(). Table expected');
 			
 			var iterator = function (table, index) {
-				if (index === undefined) throw new luajs.Error ('Bad argument #2 to ipairs() iterator');
+				if (index === undefined) throw new shine.Error ('Bad argument #2 to ipairs() iterator');
 
 				var nextIndex = index + 1;
 
-				if (!table.__luajs.numValues.hasOwnProperty (nextIndex)) return undefined;
-				return [nextIndex, table.__luajs.numValues[nextIndex]];
+				if (!table.__shine.numValues.hasOwnProperty (nextIndex)) return undefined;
+				return [nextIndex, table.__shine.numValues[nextIndex]];
 			};
 	
 			return [iterator, table, 0];
@@ -2479,7 +2432,7 @@ var luajs = luajs || {};
 	
 		
 		load: function (func, chunkname) {
-			var file = new luajs.File,
+			var file = new shine.File,
 				chunk = '', piece, lastPiece;
 
 			while ((piece = func()) && piece != lastPiece) {
@@ -2487,14 +2440,14 @@ var luajs = luajs || {};
 			}
 
 			file._data = JSON.parse(chunk);
-			return new luajs.Function(this, file, file._data, this._globals, luajs.gc.createArray());
+			return new shine.Function(this, file, file._data, this._globals, shine.gc.createArray());
 		},
 	
 	
 	
 		
 		loadfile: function (filename) {
-			var thread = luajs.lib.coroutine.yield(),
+			var thread = shine.lib.coroutine.yield(),
 				callback = function (result) {
 					thread.resume(result);
 				};
@@ -2507,7 +2460,7 @@ var luajs = luajs || {};
 		
 		loadstring: function (string, chunkname) {
 			var f = function () { return string; };
-			return luajs.lib.load.call(this, f, chunkname);
+			return shine.lib.load.call(this, f, chunkname);
 		},
 	
 	
@@ -2521,7 +2474,7 @@ var luajs = luajs || {};
 		next: function (table, index) {	
 			// SLOOOOOOOW...
 			var found = (index === undefined),
-				numValues = table.__luajs.numValues,
+				numValues = table.__shine.numValues,
 				i, l;
 
 			if (found || typeof index == 'number') {
@@ -2537,7 +2490,7 @@ var luajs = luajs || {};
 			}
 			
 			for (i in table) {
-				if (table.hasOwnProperty (i) && !(i in luajs.Table.prototype) && i !== '__luajs') {
+				if (table.hasOwnProperty (i) && !(i in shine.Table.prototype) && i !== '__shine') {
 					if (!found) {
 						if (i == index) found = true;
 	
@@ -2547,20 +2500,20 @@ var luajs = luajs || {};
 				}
 			}
 	
-			for (i in table.__luajs.keys) {
-				if (table.__luajs.keys.hasOwnProperty(i)) {
-					var key = table.__luajs.keys[i];
+			for (i in table.__shine.keys) {
+				if (table.__shine.keys.hasOwnProperty(i)) {
+					var key = table.__shine.keys[i];
 	
 					if (!found) {
 						if (key === index) found = true;
 		
-					} else if (table.__luajs.values[i] !== undefined) {
-						return [key, table.__luajs.values[i]];
+					} else if (table.__shine.values[i] !== undefined) {
+						return [key, table.__shine.values[i]];
 					}
 				}
 			}
 		
-			return luajs.gc.createArray();
+			return shine.gc.createArray();
 		},
 	
 	
@@ -2571,15 +2524,15 @@ var luajs = luajs || {};
 		 * @param {object} table The table to be iterated over.
 		 */
 		pairs: function (table) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in pairs(). Table expected');
-			return [luajs.lib.next, table];
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in pairs(). Table expected');
+			return [shine.lib.next, table];
 		},
 	
 		
 	
 	
 		pcall: function (func) {
-			var args = luajs.gc.createArray(),
+			var args = shine.gc.createArray(),
 				result;
 				
 			for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);
@@ -2588,18 +2541,18 @@ var luajs = luajs || {};
 				if (typeof func == 'function') {
 					result = func.apply (null, args);
 					
-				} else if ((func || luajs.EMPTY_OBJ) instanceof luajs.Function) {
+				} else if ((func || shine.EMPTY_OBJ) instanceof shine.Function) {
 					result = func.apply (null, args, true);
 
 				} else {
-					throw new luajs.Error ('Attempt to call non-function');
+					throw new shine.Error ('Attempt to call non-function');
 				}
 	
 			} catch (e) {
 				return [false, e.message];
 			}
 			
-			if (!((result || luajs.EMPTY_OBJ) instanceof Array)) result = [result];
+			if (!((result || shine.EMPTY_OBJ) instanceof Array)) result = [result];
 			result.unshift (true);
 			
 			return result;
@@ -2610,28 +2563,28 @@ var luajs = luajs || {};
 	
 		print: function () {
 	
-			var output = luajs.gc.createArray(),
+			var output = shine.gc.createArray(),
 				item;
 			
 			for (var i = 0, l = arguments.length; i< l; i++) {
 				item = arguments[i];
 				
-				if ((item || luajs.EMPTY_OBJ) instanceof luajs.Table) {
-					output.push ('table: 0x' + item.__luajs.index.toString (16));
+				if ((item || shine.EMPTY_OBJ) instanceof shine.Table) {
+					output.push ('table: 0x' + item.__shine.index.toString (16));
 					
-				} else if ((item || luajs.EMPTY_OBJ) instanceof Function) {
+				} else if ((item || shine.EMPTY_OBJ) instanceof Function) {
 					output.push ('JavaScript function: ' + item.toString ());
 									
 				} else if (item === undefined) {
 					output.push ('nil');
 					
 				} else {
-					output.push (luajs.lib.tostring(item));
+					output.push (shine.lib.tostring(item));
 				}
 //	console.log ('print>>', item);
 			}
 	
-			return luajs.stdout.write (output.join ('\t'));
+			return shine.stdout.write (output.join ('\t'));
 		},
 	
 	
@@ -2645,7 +2598,7 @@ var luajs = luajs || {};
 	
 	
 		rawget: function (table, index) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in rawget(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in rawget(). Table expected');
 			return table[index];
 		},
 	
@@ -2653,8 +2606,8 @@ var luajs = luajs || {};
 	
 	
 		rawset: function (table, index, value) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in rawset(). Table expected');
-			if (index == undefined) throw new luajs.Error ('Bad argument #2 in rawset(). Nil not allowed');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in rawset(). Table expected');
+			if (index == undefined) throw new shine.Error ('Bad argument #2 in rawset(). Nil not allowed');
 	
 			table[index] = value;
 			return table;
@@ -2665,7 +2618,7 @@ var luajs = luajs || {};
 
 		require: function (modname) {
 			var thread,
-				packageLib = luajs.lib['package'],
+				packageLib = shine.lib['package'],
 				vm = this,
 				module,
 				preload,
@@ -2684,7 +2637,7 @@ var luajs = luajs || {};
 			if (preload = packageLib.preload[modname]) return load(preload);
 
 			paths = packageLib.path.replace(/;;/g, ';').split(';');
-			thread = luajs.lib.coroutine.yield();
+			thread = shine.lib.coroutine.yield();
 
 
 			function loadNextPath () {
@@ -2712,7 +2665,7 @@ var luajs = luajs || {};
 
 	
 		select: function (index) {
-			var args = luajs.gc.createArray();
+			var args = shine.gc.createArray();
 			
 			if (index == '#') {
 				return arguments.length - 1;
@@ -2722,7 +2675,7 @@ var luajs = luajs || {};
 				return args;
 				
 			} else {
-				throw new luajs.Error ('Bad argument #1 in select(). Number or "#" expected');
+				throw new shine.Error ('Bad argument #1 in select(). Number or "#" expected');
 			}
 		},
 		
@@ -2735,12 +2688,12 @@ var luajs = luajs || {};
 		 * @param {object} metatable The metatable to attach.
 		 */
 		setmetatable: function (table, metatable) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in setmetatable(). Table expected');	
-			if (!(metatable === undefined || (metatable || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #2 in setmetatable(). Nil or table expected');	
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in setmetatable(). Table expected');	
+			if (!(metatable === undefined || (metatable || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #2 in setmetatable(). Nil or table expected');	
 
-			luajs.gc.decrRef(table.__luajs.metatable);
-			table.__luajs.metatable = metatable;
-			luajs.gc.incrRef(metatable);
+			shine.gc.decrRef(table.__shine.metatable);
+			table.__shine.metatable = metatable;
+			shine.gc.incrRef(metatable);
 
 			return table;
 		},
@@ -2792,8 +2745,8 @@ var luajs = luajs || {};
 					return t;
 				 
 				case 'object': 
-					if (v.constructor === luajs.Table) return 'table';
-					if ((v || luajs.EMPTY_OBJ) instanceof luajs.Function) return 'function';
+					if (v.constructor === shine.Table) return 'table';
+					if ((v || shine.EMPTY_OBJ) instanceof shine.Function) return 'function';
 				
 					return 'userdata';
 			}
@@ -2802,8 +2755,8 @@ var luajs = luajs || {};
 		
 	
 		unpack: function (table, i, j) {
-			// v5.2: luajs.warn ('unpack is deprecated. Use table.unpack instead.');
-			return luajs.lib.table.unpack (table, i, j);
+			// v5.2: shine.warn ('unpack is deprecated. Use table.unpack instead.');
+			return shine.lib.table.unpack (table, i, j);
 		},
 		
 		
@@ -2821,7 +2774,7 @@ var luajs = luajs || {};
 				if (typeof func == 'function') {
 					result = func.apply ();
 					
-				} else if ((func || luajs.EMPTY_OBJ) instanceof luajs.Function) {
+				} else if ((func || shine.EMPTY_OBJ) instanceof shine.Function) {
 					result = func.apply (null, undefined, true);
 
 				} else {
@@ -2832,14 +2785,14 @@ var luajs = luajs || {};
 				
 			} catch (e) {
 				result = err.apply (null, undefined, true);
-				if (((result || luajs.EMPTY_OBJ) instanceof Array)) result = result[0];
+				if (((result || shine.EMPTY_OBJ) instanceof Array)) result = result[0];
 	
 				success = false;
 			}
 
-			if (invalid) throw new luajs.Error ('Attempt to call non-function');
+			if (invalid) throw new shine.Error ('Attempt to call non-function');
 			
-			if (!((result || luajs.EMPTY_OBJ) instanceof Array)) result = [result];
+			if (!((result || shine.EMPTY_OBJ) instanceof Array)) result = [result];
 			result.unshift (success);
 			
 			return result;
@@ -2851,19 +2804,19 @@ var luajs = luajs || {};
 	
 	
 	
-	luajs.lib.coroutine = {
+	shine.lib.coroutine = {
 
 		
 		create: function (closure) {
-			//return new luajs.Coroutine (closure);
-			return luajs.Coroutine.create (closure);
+			//return new shine.Coroutine (closure);
+			return shine.Coroutine.create (closure);
 		},
 		
 		
 		
 		
 		resume: function (thread) {
-			var args = luajs.gc.createArray();
+			var args = shine.gc.createArray();
 			for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 
 			return thread.resume.apply (thread, args);
@@ -2873,7 +2826,7 @@ var luajs = luajs || {};
 		
 		
 		running: function () {
-			return luajs.Coroutine._running;
+			return shine.Coroutine._running;
 		},
 		
 	
@@ -2887,13 +2840,13 @@ var luajs = luajs || {};
 		
 		
 		wrap: function (closure) {
-			var co = luajs.lib.coroutine.create (closure);
+			var co = shine.lib.coroutine.create (closure);
 			
 			var result = function () {			
 				var args = [co];
 				for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 	
-				var retvals = luajs.lib.coroutine.resume.apply (null, args),
+				var retvals = shine.lib.coroutine.resume.apply (null, args),
 					success = retvals.shift ();
 					
 				if (success) return retvals;
@@ -2909,11 +2862,11 @@ var luajs = luajs || {};
 		
 		yield: function () {
 			// If running in main thread, throw error.
-			if (!luajs.Coroutine._running) throw new luajs.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
-			if (luajs.Coroutine._running.status != 'running') throw new luajs.Error ('attempt to yield non-running coroutine in host');
+			if (!shine.Coroutine._running) throw new shine.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
+			if (shine.Coroutine._running.status != 'running') throw new shine.Error ('attempt to yield non-running coroutine in host');
 
-			var args = luajs.gc.createArray(),
-				running = luajs.Coroutine._running;
+			var args = shine.gc.createArray(),
+				running = shine.Coroutine._running;
 
 			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 	
@@ -2926,7 +2879,7 @@ var luajs = luajs || {};
 						i, 
 						l = arguments.length,
 						f = function () { 
-							luajs.lib.coroutine.resume.apply (undefined, args); 
+							shine.lib.coroutine.resume.apply (undefined, args); 
 						};
 
 					for (i = 0; i < l; i++) args.push (arguments[i]);
@@ -2946,7 +2899,7 @@ var luajs = luajs || {};
 
 	
 
-	luajs.lib.debug = {
+	shine.lib.debug = {
 
 		debug: function () {
 			// Not implemented
@@ -3021,7 +2974,7 @@ var luajs = luajs || {};
 
 
 
-	luajs.lib.io = {
+	shine.lib.io = {
 		
 		
 		write: function () {
@@ -3030,12 +2983,12 @@ var luajs = luajs || {};
 			for (var i in arguments) {
 				if (arguments.hasOwnProperty(i)) {
 					var arg = arguments[i];
-					if (['string', 'number'].indexOf (typeof arg) == -1) throw new luajs.Error ('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
+					if (['string', 'number'].indexOf (typeof arg) == -1) throw new shine.Error ('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
 					output += arg;
 				}
 			}
 			
-			luajs.stdout.write (output);
+			shine.stdout.write (output);
 		}
 		
 		
@@ -3044,7 +2997,7 @@ var luajs = luajs || {};
 	
 	
 		
-	luajs.lib.math = {
+	shine.lib.math = {
 	
 	
 		abs: function (x) {
@@ -3160,7 +3113,7 @@ var luajs = luajs || {};
 		
 		
 		log10: function (x) {
-			// v5.2: luajs.warn ('math.log10 is deprecated. Use math.log with 10 as its second argument, instead.');
+			// v5.2: shine.warn ('math.log10 is deprecated. Use math.log with 10 as its second argument, instead.');
 			return Math.log (x) / Math.log (10);
 		},
 		
@@ -3206,7 +3159,7 @@ var luajs = luajs || {};
 		
 		
 		pow: function (x, y) {
-			var coerce = luajs.utils.coerce;
+			var coerce = shine.utils.coerce;
 			x = coerce(x, 'number', "bad argument #1 to 'pow' (number expected)")
 			y = coerce(y, 'number', "bad argument #2 to 'pow' (number expected)")
 			return Math.pow (x, y);
@@ -3216,7 +3169,7 @@ var luajs = luajs || {};
 		
 		
 		rad: function (x) {
-			x = luajs.utils.coerce(x, 'number', "bad argument #1 to 'rad' (number expected)")
+			x = shine.utils.coerce(x, 'number', "bad argument #1 to 'rad' (number expected)")
 			return (Math.PI / 180) * x;
 		},
 	
@@ -3230,17 +3183,17 @@ var luajs = luajs || {};
 			if (min === undefined && max === undefined) return getRandom();
 	
 	
-			if (typeof min !== 'number') throw new luajs.Error ("bad argument #1 to 'random' (number expected)");
+			if (typeof min !== 'number') throw new shine.Error ("bad argument #1 to 'random' (number expected)");
 	
 			if (max === undefined) {
 				max = min;
 				min = 1;
 	
 			} else if (typeof max !== 'number') {
-				throw new luajs.Error ("bad argument #2 to 'random' (number expected)");
+				throw new shine.Error ("bad argument #2 to 'random' (number expected)");
 			}
 	
-			if (min > max) throw new luajs.Error ("bad argument #2 to 'random' (interval is empty)");
+			if (min > max) throw new shine.Error ("bad argument #2 to 'random' (interval is empty)");
 			return Math.floor (getRandom() * (max - min + 1) + min);
 		},
 	
@@ -3248,7 +3201,7 @@ var luajs = luajs || {};
 	
 	
 		randomseed: function (x) {
-			if (typeof x !== 'number') throw new luajs.Error ("bad argument #1 to 'randomseed' (number expected)");
+			if (typeof x !== 'number') throw new shine.Error ("bad argument #1 to 'randomseed' (number expected)");
 			randomSeed = x;
 		},
 	
@@ -3293,7 +3246,7 @@ var luajs = luajs || {};
 	
 	
 	
-	luajs.lib.os = {
+	shine.lib.os = {
 	
 	
 		clock: function () {
@@ -3374,7 +3327,7 @@ var luajs = luajs || {};
 					return (d.getTimezoneOffset () !== jan.getTimezoneOffset ());
 				};
 				
-				return new luajs.Table ({
+				return new shine.Table ({
 					year: parseInt (handlers['%Y'](date), 10),
 					month: parseInt (handlers['%m'](date), 10),
 					day: parseInt (handlers['%d'](date), 10),
@@ -3406,7 +3359,7 @@ var luajs = luajs || {};
 	
 	
 		execute: function () {
-			if (arguments.length) throw new luajs.Error ('shell is not available. You should always check first by calling os.execute with no parameters');
+			if (arguments.length) throw new shine.Error ('shell is not available. You should always check first by calling os.execute with no parameters');
 			return 0;
 		},
 	
@@ -3461,9 +3414,9 @@ var luajs = luajs || {};
 			} else {	
 				var day, month, year, hour, min, sec;
 				
-				if (!(day = table.getMember ('day'))) throw new luajs.Error ("Field 'day' missing in date table");
-				if (!(month = table.getMember ('month'))) throw new luajs.Error ("Field 'month' missing in date table");
-				if (!(year = table.getMember ('year'))) throw new luajs.Error ("Field 'year' missing in date table");
+				if (!(day = table.getMember ('day'))) throw new shine.Error ("Field 'day' missing in date table");
+				if (!(month = table.getMember ('month'))) throw new shine.Error ("Field 'month' missing in date table");
+				if (!(year = table.getMember ('year'))) throw new shine.Error ("Field 'year' missing in date table");
 				hour = table.getMember ('hour') || 12;
 				min = table.getMember ('min') || 0;
 				sec = table.getMember ('sec') || 0;
@@ -3488,12 +3441,12 @@ var luajs = luajs || {};
 
 
 
-	luajs.lib['package'] = {
+	shine.lib['package'] = {
 
 		cpath: undefined,
 
 
-		loaded: new luajs.Table(),
+		loaded: new shine.Table(),
 
 
 		loadlib: function (libname, funcname) {
@@ -3516,14 +3469,14 @@ var luajs = luajs || {};
 
 
 
-	luajs.lib.string = {
+	shine.lib.string = {
 		
 		
 		'byte': function (s, i, j) {
 			i = i || 1;
 			j = j || i;
 			
-			var result = luajs.gc.createArray(),
+			var result = shine.gc.createArray(),
 				length = s.length,
 				index;
 			
@@ -3552,8 +3505,8 @@ var luajs = luajs || {};
 		
 		
 		find: function (s, pattern, init, plain) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'find' (string expected, got " + typeof s + ")");
-			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'find' (string expected, got " + typeof pattern + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'find' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new shine.Error ("bad argument #2 to 'find' (string expected, got " + typeof pattern + ")");
 
 			s = '' + s;
 			init = init || 1;
@@ -3745,9 +3698,9 @@ var luajs = luajs || {};
 		
 		
 		gsub: function (s, pattern, repl, n) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'gsub' (string expected, got " + typeof s + ")");
-			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'gsub' (string expected, got " + typeof pattern + ")");
-			if (n !== undefined && (n = luajs.utils.coerce(n, 'number')) === undefined) throw new luajs.Error ("bad argument #4 to 'gsub' (number expected, got " + typeof n + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'gsub' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new shine.Error ("bad argument #2 to 'gsub' (string expected, got " + typeof pattern + ")");
+			if (n !== undefined && (n = shine.utils.coerce(n, 'number')) === undefined) throw new shine.Error ("bad argument #4 to 'gsub' (number expected, got " + typeof n + ")");
 
 			s = '' + s;
 			pattern = translatePattern ('' + pattern);
@@ -3761,12 +3714,12 @@ var luajs = luajs || {};
 
 			while ((n === undefined || count < n) && s && (match = s.match (pattern))) {
 
-				if (typeof repl == 'function' || (repl || luajs.EMPTY_OBJ) instanceof luajs.Function) {
+				if (typeof repl == 'function' || (repl || shine.EMPTY_OBJ) instanceof shine.Function) {
 					str = repl.apply (null, [match[0]], true);
 					if (str instanceof Array) str = str[0];
 					if (str === undefined) str = match[0];
 
-				} else if ((repl || luajs.EMPTY_OBJ) instanceof luajs.Table) {
+				} else if ((repl || shine.EMPTY_OBJ) instanceof shine.Table) {
 					str = repl.getMember (match[0]);
 					
 				} else if (typeof repl == 'object') {
@@ -3796,7 +3749,7 @@ var luajs = luajs || {};
 		
 		
 		len: function (s) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'len' (string expected, got " + typeof s + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'len' (string expected, got " + typeof s + ")");
 			return ('' + s).length;
 		},
 		
@@ -3804,7 +3757,7 @@ var luajs = luajs || {};
 		
 		
 		lower: function (s) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'lower' (string expected, got " + typeof s + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'lower' (string expected, got " + typeof s + ")");
 			return ('' + s).toLowerCase ();
 		},
 		
@@ -3812,8 +3765,8 @@ var luajs = luajs || {};
 		
 		
 		match: function (s, pattern, init) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'match' (string expected, got " + typeof s + ")");
-			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'match' (string expected, got " + typeof pattern + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'match' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new shine.Error ("bad argument #2 to 'match' (string expected, got " + typeof pattern + ")");
 
 			init = init? init - 1 : 0;
 			s = ('' + s).substr (init);
@@ -3853,7 +3806,7 @@ var luajs = luajs || {};
 		
 		
 		sub: function (s, i, j) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'sub' (string expected, got " + typeof s + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'sub' (string expected, got " + typeof s + ")");
 			s = '' + s;
 			i = i || 1;
 			j = j || s.length;
@@ -3882,17 +3835,17 @@ var luajs = luajs || {};
 	
 	
 	
-	luajs.lib.table = {
+	shine.lib.table = {
 		
 		
 		concat: function (table, sep, i, j) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.concat(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in table.concat(). Table expected');
 	
 			sep = sep || '';
 			i = i || 1;
-			j = j || luajs.lib.table.maxn (table);
+			j = j || shine.lib.table.maxn (table);
 
-			var result = luajs.gc.createArray().concat(table.__luajs.numValues).splice (i, j - i + 1);
+			var result = shine.gc.createArray().concat(table.__shine.numValues).splice (i, j - i + 1);
 			return result.join (sep);
 		},
 		
@@ -3900,10 +3853,10 @@ var luajs = luajs || {};
 	
 	
 		getn: function (table) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.getn(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in table.getn(). Table expected');
 
-			var vals = table.__luajs.numValues, 
-				keys = luajs.gc.createArray(),
+			var vals = table.__shine.numValues, 
+				keys = shine.gc.createArray(),
 				i, 
 				j = 0;
 
@@ -3941,28 +3894,28 @@ var luajs = luajs || {};
 		 * @param {object} obj The value to insert.
 		 */
 		insert: function (table, index, obj) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.insert(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in table.insert(). Table expected');
 	
 			if (obj == undefined) {
 				obj = index;
 				// index = 1;
 				// while (table.getMember(index) !== undefined) index++;
-				index = table.__luajs.numValues.length;
+				index = table.__shine.numValues.length;
 			}
 	
 			var oldValue = table.getMember(index);
 			table.setMember(index, obj);
 	
-			if (oldValue) luajs.lib.table.insert (table, index + 1, oldValue);
+			if (oldValue) shine.lib.table.insert (table, index + 1, oldValue);
 		},	
 		
 		
 		
 		
 		maxn: function (table) {
-			// v5.2: luajs.warn ('table.maxn is deprecated');
+			// v5.2: shine.warn ('table.maxn is deprecated');
 			
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.maxn(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in table.maxn(). Table expected');
 	
 			// // length = 0;
 			// // while (table[length + 1] != undefined) length++;
@@ -3976,7 +3929,7 @@ var luajs = luajs || {};
 			// for (i in table) if ((index = 0 + parseInt (i, 10)) == i && table[i] !== null && index > result) result = index;
 			// return result; 
 
-			return table.__luajs.numValues.length - 1;
+			return table.__shine.numValues.length - 1;
 		},
 		
 		
@@ -3988,10 +3941,10 @@ var luajs = luajs || {};
 		 * @param {object} index The position of the element to remove.
 		 */
 		remove: function (table, index) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.remove(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in table.remove(). Table expected');
 	
-			var max = luajs.lib.table.getn(table),
-				vals = table.__luajs.numValues,
+			var max = shine.lib.table.getn(table),
+				vals = table.__shine.numValues,
 				result;
 
 			if (index > max) return;
@@ -4001,7 +3954,7 @@ var luajs = luajs || {};
 			while (index < max && vals[index] === undefined) delete vals[index++];
 			// table[index] = table[index + 1];	
 			
-			// luajs.lib.table.remove (table, index + 1);
+			// shine.lib.table.remove (table, index + 1);
 			// if (table[index] === undefined) delete table[index];
 	
 			return result;
@@ -4011,13 +3964,13 @@ var luajs = luajs || {};
 		
 		
 		sort: function (table, comp) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ("Bad argument #1 to 'sort' (table expected)");
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ("Bad argument #1 to 'sort' (table expected)");
 	
 			var sortFunc, 
-				arr = table.__luajs.numValues;
+				arr = table.__shine.numValues;
 		
 			if (comp) {
-				if (!((comp || luajs.EMPTY_OBJ) instanceof luajs.Function)) throw new luajs.Error ("Bad argument #2 to 'sort' (function expected)");
+				if (!((comp || shine.EMPTY_OBJ) instanceof shine.Function)) throw new shine.Error ("Bad argument #2 to 'sort' (function expected)");
 	
 				sortFunc = function (a, b) {
 					return comp.apply (null, [a, b], true)[0]? -1 : 1;
@@ -4037,12 +3990,12 @@ var luajs = luajs || {};
 
 
 		unpack: function (table, i, j) {
-			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in unpack(). Table expected');	
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in unpack(). Table expected');	
 	
 			i = i || 1;
-			if (j === undefined) j = luajs.lib.table.getn (table);
+			if (j === undefined) j = shine.lib.table.getn (table);
 			
-			var vals = luajs.gc.createArray(),
+			var vals = shine.gc.createArray(),
 				index;
 	
 			for (index = i; index <= j; index++) vals.push (table.getMember (index));
@@ -4056,23 +4009,66 @@ var luajs = luajs || {};
 	
 	
 })();/**
+ * @fileOverview Output streams.
+ * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
+ * @copyright Gamesys Limited 2013
+ */
+
+var shine = shine || {};
+
+
+
+
+shine.stdout = {};
+
+shine.stdout.write = function (message) {
+	// Overwrite this in host application
+	if (console && console.log) {
+		console.log (message);
+	} else if (trace) {
+		trace (message);
+	}
+}
+
+
+
+
+shine.stddebug = {};
+
+shine.stddebug.write = function (message) {
+	// Moonshine bytecode debugging output
+}
+
+
+
+
+shine.stderr = {};
+
+shine.stderr.write = function (message, level) {
+	level = level || 'error';
+	if (console && console[level]) console[level] (message);
+}
+
+
+
+/**
  * @fileOverview Utility functions.
  * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
  * @copyright Gamesys Limited 2013
  */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 
 // TODO: Remove this!
-luajs.debug = {};
+shine.debug = {};
 
 
 (function () {
 	var FLOATING_POINT_PATTERN = /^[-+]?[0-9]*\.?([0-9]+([eE][-+]?[0-9]+)?)?$/;
 
 
-	luajs.utils = {
+	shine.utils = {
 
 
 		coerce: function (val, type, errorMessage) {
@@ -4088,7 +4084,7 @@ luajs.debug = {};
 				case 'number':
 					if (val === Infinity || val === -Infinity || (typeof val == 'number' && window.isNaN(val))) return val;
 					if (('' + val).match(FLOATING_POINT_PATTERN)) n = parseFloat(val);
-					if (n === undefined && errorMessage) throw new luajs.Error(errorMessage);
+					if (n === undefined && errorMessage) throw new shine.Error(errorMessage);
 					return n;
 
 				default:
@@ -4100,19 +4096,19 @@ luajs.debug = {};
 
 
 		toObject: function (table) {
-			var isArr = luajs.lib.table.getn (table) > 0,
-				result = luajs.gc['create' + (isArr? 'Array' : 'Object')](),
-				numValues = table.__luajs.numValues,
+			var isArr = shine.lib.table.getn (table) > 0,
+				result = shine.gc['create' + (isArr? 'Array' : 'Object')](),
+				numValues = table.__shine.numValues,
 				i,
 				l = numValues.length;
 
 			for (i = 1; i < l; i++) {
-				result[i - 1] = ((numValues[i] || luajs.EMPTY_OBJ) instanceof luajs.Table)? luajs.utils.toObject(numValues[i]) : numValues[i];
+				result[i - 1] = ((numValues[i] || shine.EMPTY_OBJ) instanceof shine.Table)? shine.utils.toObject(numValues[i]) : numValues[i];
 			}
 
 			for (i in table) {
-				if (table.hasOwnProperty (i) && !(i in luajs.Table.prototype) && i !== '__luajs') {
-					result[i] = ((table[i] || luajs.EMPTY_OBJ) instanceof luajs.Table)? luajs.utils.toObject (table[i]) : table[i];
+				if (table.hasOwnProperty (i) && !(i in shine.Table.prototype) && i !== '__shine') {
+					result[i] = ((table[i] || shine.EMPTY_OBJ) instanceof shine.Table)? shine.utils.toObject (table[i]) : table[i];
 				}
 			}
 			
@@ -4136,7 +4132,7 @@ luajs.debug = {};
 					}
 				}
 				
-				return new luajs.Table (obj);
+				return new shine.Table (obj);
 			};
 
 			return convertToTable (JSON.parse (json));
@@ -4159,7 +4155,7 @@ luajs.debug = {};
 	            }
 	        }
 
-	        xhr.send(luajs.EMPTY_OBJ);
+	        xhr.send(shine.EMPTY_OBJ);
 	    }
 
 	
@@ -4167,46 +4163,14 @@ luajs.debug = {};
 
 
 })();
-/**
- * @fileOverview Output streams.
- * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
- * @copyright Gamesys Limited 2013
- */
 
-var luajs = luajs || {};
+			shine.debug = {};
 
+			Moonshine.Table = shine.Table;
+			Moonshine.utils = shine.utils;
+			Moonshine.lib = shine.lib;
 
-
-
-luajs.stdout = {};
-
-luajs.stdout.write = function (message) {
-	// Overwrite this in host application
-	if (console && console.log) {
-		console.log (message);
-	} else if (trace) {
-		trace (message);
+			VM = new shine.VM(env);
+		}
 	}
 }
-
-
-
-
-luajs.stddebug = {};
-
-luajs.stddebug.write = function (message) {
-	// Luajs bytecode debugging output
-}
-
-
-
-
-luajs.stderr = {};
-
-luajs.stderr.write = function (message, level) {
-	level = level || 'error';
-	if (console && console[level]) console[level] (message);
-}
-
-
-

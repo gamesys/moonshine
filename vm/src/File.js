@@ -4,26 +4,26 @@
  * @copyright Gamesys Limited 2013
  */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 
 
 /**
  * Represents a Luac data file.
  * @constructor
- * @extends luajs.EventEmitter
+ * @extends shine.EventEmitter
  * @param {string} url Address of the decompiled Luac file.
  */
-luajs.File = function (url) {
-	luajs.EventEmitter.call (this);
+shine.File = function (url) {
+	shine.EventEmitter.call (this);
 
 	this._url = url;
 	this.data = undefined;
 };
 
 
-luajs.File.prototype = new luajs.EventEmitter ();
-luajs.File.prototype.constructor = luajs.File;
+shine.File.prototype = new shine.EventEmitter ();
+shine.File.prototype.constructor = shine.File;
 
 
 
@@ -31,7 +31,7 @@ luajs.File.prototype.constructor = luajs.File;
 /**
  * Retrieves the Luac file from the url.
  */
-luajs.File.prototype.load = function () {
+shine.File.prototype.load = function () {
 	var me = this;
 
 	function success (data) {
@@ -40,11 +40,11 @@ luajs.File.prototype.load = function () {
 	}
 
 	function error (code) {
-		//throw new luajs.Error('Unable to load file: ' + me._url + ' (' + code + ')');
+		//throw new shine.Error('Unable to load file: ' + me._url + ' (' + code + ')');
 		me._trigger ('error', code);
 	}
 	
-	luajs.utils.get(this._url, success, error);
+	shine.utils.get(this._url, success, error);
 };
 
 
@@ -54,7 +54,7 @@ luajs.File.prototype.load = function () {
  * Retrieved the corresponding Lua file, if exists.
  * @todo
  */
-luajs.File.prototype.loadLua = function () {
+shine.File.prototype.loadLua = function () {
 };
 
 
@@ -63,7 +63,7 @@ luajs.File.prototype.loadLua = function () {
 /**
  * Dump memory associated with file.
  */
-luajs.File.prototype.dispose = function () {
+shine.File.prototype.dispose = function () {
 	delete this._url;
 	delete this.data;
 };

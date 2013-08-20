@@ -4,18 +4,18 @@
  * @copyright Gamesys Limited 2013
  */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 
 // TODO: Remove this!
-luajs.debug = {};
+shine.debug = {};
 
 
 (function () {
 	var FLOATING_POINT_PATTERN = /^[-+]?[0-9]*\.?([0-9]+([eE][-+]?[0-9]+)?)?$/;
 
 
-	luajs.utils = {
+	shine.utils = {
 
 
 		coerce: function (val, type, errorMessage) {
@@ -31,7 +31,7 @@ luajs.debug = {};
 				case 'number':
 					if (val === Infinity || val === -Infinity || (typeof val == 'number' && window.isNaN(val))) return val;
 					if (('' + val).match(FLOATING_POINT_PATTERN)) n = parseFloat(val);
-					if (n === undefined && errorMessage) throw new luajs.Error(errorMessage);
+					if (n === undefined && errorMessage) throw new shine.Error(errorMessage);
 					return n;
 
 				default:
@@ -43,19 +43,19 @@ luajs.debug = {};
 
 
 		toObject: function (table) {
-			var isArr = luajs.lib.table.getn (table) > 0,
-				result = luajs.gc['create' + (isArr? 'Array' : 'Object')](),
-				numValues = table.__luajs.numValues,
+			var isArr = shine.lib.table.getn (table) > 0,
+				result = shine.gc['create' + (isArr? 'Array' : 'Object')](),
+				numValues = table.__shine.numValues,
 				i,
 				l = numValues.length;
 
 			for (i = 1; i < l; i++) {
-				result[i - 1] = ((numValues[i] || luajs.EMPTY_OBJ) instanceof luajs.Table)? luajs.utils.toObject(numValues[i]) : numValues[i];
+				result[i - 1] = ((numValues[i] || shine.EMPTY_OBJ) instanceof shine.Table)? shine.utils.toObject(numValues[i]) : numValues[i];
 			}
 
 			for (i in table) {
-				if (table.hasOwnProperty (i) && !(i in luajs.Table.prototype) && i !== '__luajs') {
-					result[i] = ((table[i] || luajs.EMPTY_OBJ) instanceof luajs.Table)? luajs.utils.toObject (table[i]) : table[i];
+				if (table.hasOwnProperty (i) && !(i in shine.Table.prototype) && i !== '__shine') {
+					result[i] = ((table[i] || shine.EMPTY_OBJ) instanceof shine.Table)? shine.utils.toObject (table[i]) : table[i];
 				}
 			}
 			
@@ -79,7 +79,7 @@ luajs.debug = {};
 					}
 				}
 				
-				return new luajs.Table (obj);
+				return new shine.Table (obj);
 			};
 
 			return convertToTable (JSON.parse (json));
@@ -102,7 +102,7 @@ luajs.debug = {};
 	            }
 	        }
 
-	        xhr.send(luajs.EMPTY_OBJ);
+	        xhr.send(shine.EMPTY_OBJ);
 	    }
 
 	

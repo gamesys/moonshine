@@ -4,7 +4,7 @@
  * @copyright Gamesys Limited 2013
  */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 
 
@@ -13,7 +13,7 @@ var luajs = luajs || {};
  * @constructor
  * @param {string} message Error message.
  */
-luajs.Error = function (message) {
+shine.Error = function (message) {
 	//Error.call (this, message); //AS3 no likey
 	//this.message = message;
 
@@ -23,14 +23,14 @@ luajs.Error = function (message) {
 
 	err.constructor = this.constructor;
 	err.__proto__ = this;    
-	err.name = 'luajs.Error';
+	err.name = 'shine.Error';
 
 	return err;
 };
 
 
-luajs.Error.prototype = new Error ();
-luajs.Error.prototype.constructor = luajs.Error;
+shine.Error.prototype = new Error ();
+shine.Error.prototype.constructor = shine.Error;
 
 
 
@@ -38,14 +38,14 @@ luajs.Error.prototype.constructor = luajs.Error;
 /**
  * Handles error reporting in a consistent manner.
  * @static
- * @param {Error|luajs.Error} e Error that was thown.
+ * @param {Error|shine.Error} e Error that was thown.
  */
-luajs.Error.catchExecutionError = function (e) {
+shine.Error.catchExecutionError = function (e) {
 	if (!e) return;
 
-	if ((e || luajs.EMPTY_OBJ) instanceof luajs.Error) {
+	if ((e || shine.EMPTY_OBJ) instanceof shine.Error) {
 		if (!e.luaMessage) e.luaMessage = e.message;
-		e.message = e.luaMessage + '\n    ' + (e.luaStack || luajs.gc.createArray()).join('\n    ');
+		e.message = e.luaMessage + '\n    ' + (e.luaStack || shine.gc.createArray()).join('\n    ');
 	}
 
 	throw e;
@@ -58,6 +58,6 @@ luajs.Error.catchExecutionError = function (e) {
  * Coerces the error to a string for logging.
  * @return {string} String representation of error.
  */
-luajs.Error.prototype.toString = function () {
-	return 'Luajs Error: ' + this.message;
+shine.Error.prototype.toString = function () {
+	return 'Moonshine Error: ' + this.message;
 };

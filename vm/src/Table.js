@@ -4,7 +4,7 @@
  * @copyright Gamesys Limited 2013
  */
 
-var luajs = luajs || {};
+var shine = shine || {};
 
 
 
@@ -13,21 +13,21 @@ var luajs = luajs || {};
  * Represents a table in Lua.
  * @param {Object} obj Initial values to set up in the new table.
  */
-luajs.Table = function (obj) {
+shine.Table = function (obj) {
 
-	var isArr = ((obj || luajs.EMPTY_OBJ) instanceof Array),
+	var isArr = ((obj || shine.EMPTY_OBJ) instanceof Array),
 		meta,
 		key,
 		value,
 		i;
 
-	obj = obj || luajs.gc.createObject();
+	obj = obj || shine.gc.createObject();
 
-	this.__luajs = meta = luajs.gc.createObject();
+	this.__shine = meta = shine.gc.createObject();
 	meta.type = 'table';
-	meta.index = ++luajs.Table.count;
-	meta.keys = luajs.gc.createArray();
-	meta.values = luajs.gc.createArray();
+	meta.index = ++shine.Table.count;
+	meta.keys = shine.gc.createArray();
+	meta.values = shine.gc.createArray();
 	meta.numValues = [undefined];
 
 
@@ -40,13 +40,13 @@ luajs.Table = function (obj) {
 
 			if (typeof getQualifiedClassName !== 'undefined') {
 				// ActionScript
-				iterate = ((getQualifiedClassName(value) == "Object") && (!(value instanceof luajs.Table)) && (!(value instanceof luajs.Coroutine)) && (!(value instanceof luajs.Function)) && (!(value instanceof luajs.Closure) )) || (getQualifiedClassName(value) == "Array");
+				iterate = ((getQualifiedClassName(value) == "Object") && (!(value instanceof shine.Table)) && (!(value instanceof shine.Coroutine)) && (!(value instanceof shine.Function)) && (!(value instanceof shine.Closure) )) || (getQualifiedClassName(value) == "Array");
 			} else {
 				// JavaScript
 				iterate = (typeof value == 'object' && value.constructor === Object) || value instanceof Array;
 			}
 			
-			this.setMember(key, iterate? new luajs.Table (value) : value);
+			this.setMember(key, iterate? new shine.Table (value) : value);
 		}
 	}
 	
@@ -58,7 +58,7 @@ luajs.Table = function (obj) {
  * @type Number
  * @static
  */
-luajs.Table.count = 0;
+shine.Table.count = 0;
 
 
 
@@ -68,7 +68,7 @@ luajs.Table.count = 0;
  * @param {Object} key The member's key.
  * @returns {Object} The value of the member sought.
  */
-luajs.Table.prototype.getMember = function (key) {
+shine.Table.prototype.getMember = function (key) {
 	var index,
 		value;
 
@@ -78,21 +78,21 @@ luajs.Table.prototype.getMember = function (key) {
 			break;
 
 		case 'number':
-			value = this.__luajs.numValues[key];
+			value = this.__shine.numValues[key];
 			if (value !== undefined) return value;
 
 		default:
-			index = this.__luajs.keys.indexOf (key);
-			if (index >= 0) return this.__luajs.values[index];
+			index = this.__shine.keys.indexOf (key);
+			if (index >= 0) return this.__shine.values[index];
 	}
 	
-	var mt = this.__luajs.metatable;
+	var mt = this.__shine.metatable;
 
 	if (mt && mt.__index) {
 		switch (mt.__index.constructor) {
-			case luajs.Table: return mt.__index.getMember (key);
+			case shine.Table: return mt.__index.getMember (key);
 			case Function: return mt.__index (this, key);
-			case luajs.Function: return mt.__index.apply (this, [this, key])[0];
+			case shine.Function: return mt.__index.apply (this, [this, key])[0];
 		}
 	}		
 };
@@ -105,17 +105,17 @@ luajs.Table.prototype.getMember = function (key) {
  * @param {Object} key The member's key.
  * @returns {Object} The value of the member sought.
  */
-luajs.Table.prototype.setMember = function (key, value) {
-	var mt = this.__luajs.metatable,
+shine.Table.prototype.setMember = function (key, value) {
+	var mt = this.__shine.metatable,
 		oldValue,
 		keys,
 		index;
 
 	if (this[key] === undefined && mt && mt.__newindex) {
 		switch (mt.__newindex.constructor) {
-			case luajs.Table: return mt.__newindex.setMember (key, value);
+			case shine.Table: return mt.__newindex.setMember (key, value);
 			case Function: return mt.__newindex (this, key, value);
-			case luajs.Function: return mt.__newindex.apply (this, [this, key, value])[0];
+			case shine.Function: return mt.__newindex.apply (this, [this, key, value])[0];
 		}
 	}
 
@@ -127,13 +127,13 @@ luajs.Table.prototype.setMember = function (key, value) {
 
 
 		case 'number':
-			oldValue = this.__luajs.numValues[key];
-			this.__luajs.numValues[key] = value;
+			oldValue = this.__shine.numValues[key];
+			this.__shine.numValues[key] = value;
 			break;
 
 
 		default:
-			keys = this.__luajs.keys;
+			keys = this.__shine.keys;
 			index = keys.indexOf(key);
 			
 			if (index < 0) {
@@ -141,12 +141,12 @@ luajs.Table.prototype.setMember = function (key, value) {
 				keys[index] = key;
 			}
 			
-			oldValue = this.__luajs.values[index];
-			this.__luajs.values[index] = value;
+			oldValue = this.__shine.values[index];
+			this.__shine.values[index] = value;
 	}
 
-	luajs.gc.decrRef(oldValue);
-	luajs.gc.incrRef(value);
+	shine.gc.decrRef(oldValue);
+	shine.gc.incrRef(value);
 };
 
 
@@ -156,13 +156,13 @@ luajs.Table.prototype.setMember = function (key, value) {
  * Returns a unique identifier for the table.
  * @returns {string} Description.
  */
-luajs.Table.prototype.toString = function () {
+shine.Table.prototype.toString = function () {
 	var mt;
 	
-	if (this.constructor != luajs.Table) return 'userdata';
-	if (this.__luajs && (mt = this.__luajs.metatable) && mt.__tostring) return mt.__tostring.call (undefined, this);
+	if (this.constructor != shine.Table) return 'userdata';
+	if (this.__shine && (mt = this.__shine.metatable) && mt.__tostring) return mt.__tostring.call (undefined, this);
 
-	return 'table: 0x' + this.__luajs.index.toString (16);
+	return 'table: 0x' + this.__shine.index.toString (16);
 };
 
 

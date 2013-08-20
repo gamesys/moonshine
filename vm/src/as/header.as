@@ -2,7 +2,7 @@ package {
 	import flash.utils.getQualifiedClassName;
 	import flash.utils.setTimeout;
 
-	public class Luajs {
+	public class Moonshine {
 		private var VM : Object;
 		public static var Table : Object;
 		public static var utils : Object;
@@ -13,7 +13,7 @@ package {
 			VM.execute(false, file);
 		}
 
-		public function Luajs(env : Object) {
+		public function Moonshine(env : Object) {
 			var console : Object;
 
 			var window : Object = {};
@@ -23,3 +23,5 @@ package {
 			var JSON : Object;
 			var ArrayBuffer : Object;
 			var Int32Array : Object;
+			var XMLHttpRequest : Function = function () {};
+
