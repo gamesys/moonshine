@@ -16,15 +16,15 @@ var luajs = luajs || {};
  * @param {object} [upvalues] The upvalues passed from the parent closure.
  */
 luajs.Function = function (vm, file, data, globals, upvalues) {
-	luajs.EventEmitter.call (this);
+	//luajs.EventEmitter.call (this);
 
 	this._vm = vm;
 	this._file = file;
 	this._data = data;
 	this._globals = globals;
-	this._upvalues = upvalues || {};
+	this._upvalues = upvalues || luajs.gc.createObject();
 	this._index = luajs.Function._index++;
-	this.instances = [];
+	this.instances = luajs.gc.createArray();
 	this._retainCount = 0;
 
 	// Convert instructions to byte array (where possible);
@@ -34,7 +34,7 @@ luajs.Function = function (vm, file, data, globals, upvalues) {
 };
 
 
-luajs.Function.prototype = new luajs.EventEmitter ();
+luajs.Function.prototype = {}; //new luajs.EventEmitter ();
 luajs.Function.prototype.constructor = luajs.Function;
 
 
@@ -74,7 +74,7 @@ luajs.Function.prototype.getInstance = function () {
  * @returns {Array} Array of the return values from the call.
  */
 luajs.Function.prototype.call = function () {
-	var args = [],
+	var args = luajs.gc.createArray(),
 		l = arguments.length,
 		i;
 		
@@ -92,7 +92,7 @@ luajs.Function.prototype.call = function () {
  * @returns {Array} Array of the return values from the call.
  */
 luajs.Function.prototype.apply = function (obj, args, internal) {
-	if ((obj || {}) instanceof Array && !args) {
+	if ((obj || luajs.EMPTY_OBJ) instanceof Array && !args) {
 		args = obj;
 		obj = undefined;
 	}
@@ -179,12 +179,14 @@ luajs.Function.prototype.dispose = function (force) {
 	delete this._data;
 	delete this._globals;
 	delete this._upvalues;
-	delete this._listeners;
+
 	delete this.instances;	
 	delete this._readyToDispose;
-	
+
+	//for (var i in this._listeners) delete this._listeners[i];
+
 	this.constructor._instances.splice (this.constructor._instances.indexOf(this), 1);
-	
+
 	return true;
 };
 

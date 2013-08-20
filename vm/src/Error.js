@@ -45,7 +45,7 @@ luajs.Error.catchExecutionError = function (e) {
 
 	if ((e || luajs.EMPTY_OBJ) instanceof luajs.Error) {
 		if (!e.luaMessage) e.luaMessage = e.message;
-		e.message = e.luaMessage + '\n    ' + (e.luaStack || []).join('\n    ');
+		e.message = e.luaMessage + '\n    ' + (e.luaStack || luajs.gc.createArray()).join('\n    ');
 	}
 
 	throw e;

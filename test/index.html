@@ -7,9 +7,11 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
 		<script src="/frameworks/jquery/jquery.min.js"></script>
 		
+		<script src="../vm/src/gc.js"></script>
 		<script src="../vm/src/EventEmitter.js"></script>
 		<script src="../vm/src/VM.js"></script>
 		<script src="../vm/src/InstructionSet.js"></script>
+		<script src="../vm/src/Register.js"></script>
 		<script src="../vm/src/Closure.js"></script>
 		<script src="../vm/src/Function.js"></script>
 		<script src="../vm/src/Coroutine.js"></script>
@@ -68,11 +70,12 @@
 				luajs.stdout.write = function (message) {
 					elOutput.innerHTML += escapeHTML (message) + '\n';
 				};
-					
+
+
 				function getTimestamp () {
 					return Date.now();
 				}
-
+					
 				// luajs.stddebug.write = function (message) {
 				// 	debugText += escapeHTML (message) + '\n';
 				// };

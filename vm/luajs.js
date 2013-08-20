@@ -1,4 +1,103 @@
 
+
+
+var luajs = luajs || {};
+
+
+luajs.EMPTY_OBJ = {};
+
+
+
+
+luajs.gc = { 
+
+
+	objects: [],
+	arrays: [],
+	collected: 0,
+	reused: 0,
+
+
+
+
+	cacheArray: function (arr) {
+		arr.length = 0;
+		this.arrays.push(arr);
+		luajs.gc.collected++;
+	},
+
+
+
+
+	cacheObject: function (obj) {
+		for (var i in obj) if (obj.hasOwnProperty(i)) delete obj[i];
+		this.objects.push(obj);
+		luajs.gc.collected++;
+	},
+
+
+
+
+	createObject: function () { 
+		if (luajs.gc.objects.length) luajs.gc.reused++;
+		return luajs.gc.objects.pop() || {};
+	},
+
+
+
+
+	createArray: function () {
+		if (luajs.gc.arrays.length) luajs.gc.reused++;
+		return luajs.gc.arrays.pop() || [];
+	},
+
+
+
+
+	decrRef: function (val) {
+		if (!val || !(val instanceof luajs.Table) || val.__luajs.refCount === undefined) return;
+		if (--val.__luajs.refCount == 0) this.collect(val);
+	},
+
+
+
+
+	incrRef: function (val) {
+		if (!val || !(val instanceof luajs.Table) || val.__luajs.refCount === undefined) return;
+		val.__luajs.refCount++;
+	},
+
+
+
+
+	collect: function (val) {
+		if (val === undefined || val === null) return;
+		if (val instanceof Array) return this.cacheArray(val);
+		if (typeof val == 'object' && val.constructor == Object) return this.cacheObject(val);
+
+		if (!(val instanceof luajs.Table) || val.__luajs.refCount === undefined) return;
+
+		var i, l, 
+			meta = val.__luajs;
+
+		for (i = 0, l = meta.values.length; i < l; i++) this.decrRef(meta.values[i]);
+		for (i = 0, l = meta.numValues.length; i < l; i++) this.decrRef(meta.numValues[i]);
+
+		this.cacheArray(meta.keys);
+		this.cacheArray(meta.values);
+
+		delete meta.keys;
+		delete meta.values;
+
+		this.cacheObject(meta);
+		delete val.__luajs;
+
+		for (i in val) if (val.hasOwnProperty(i)) this.decrRef(val[i]);
+	}
+
+
+};
+
 /**
  * @fileOverview EventEmitter class.
  * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
@@ -6,6 +105,7 @@
  */
 
 var luajs = luajs || {};
+
 
 
 
@@ -31,7 +131,7 @@ luajs.EventEmitter.prototype._trigger = function (name, data) {
 		i;
 		
 	if (!listeners) return;
-	if (!((data || {}) instanceof Array)) data = [data];
+	if (!((data || luajs.EMPTY_OBJ) instanceof Array)) data = [data];
 	
 	for (i in listeners) {
 		if (listeners.hasOwnProperty(i)) {
@@ -104,9 +204,40 @@ luajs.VM.prototype.constructor = luajs.VM;
  * Resets all global variables to their original values.
  */
 luajs.VM.prototype._resetGlobals = function () {
-	this._globals = {};
-	for (var i in luajs.lib) if (luajs.lib.hasOwnProperty(i)) this._globals[i] = luajs.lib[i];
+	this._globals = this._bindLib(luajs.lib);
+
+	// Load standard lib into package.loaded:
+	for (var i in this._globals) if (this._globals.hasOwnProperty(i) && this._globals[i] instanceof luajs.Table) this._globals['package'].loaded[i] = this._globals[i];
+	this._globals['package'].loaded._G = this._globals;
+
+	// Load environment vars
 	for (var i in this._env) if (this._env.hasOwnProperty(i)) this._globals[i] = this._env[i];
+};
+
+
+
+
+/**
+ * Returns a copy of an object, with all functions bound to the VM. (recursive)
+ */
+luajs.VM.prototype._bindLib = function (lib) {
+	var result = luajs.gc.createObject();
+
+	for (var i in lib) {
+		if (lib.hasOwnProperty(i)) {
+			if (lib[i] && lib[i].constructor === Object) {
+				result[i] = this._bindLib(lib[i]);
+
+			} else if (typeof lib[i] == 'function') {
+				result[i] = lib[i].bind(this);
+
+			} else {
+				result[i] = lib[i];
+			}
+		}
+	}
+
+	return new luajs.Table(result);
 };
 
 
@@ -166,25 +297,28 @@ luajs.VM.prototype.execute = function (coConfig, file) {
 	var me = this,
 		files = file? [file] : this._files,
 		index,
-		file;
-		
+		file,
+		thread;
+
+
 	if (!files.length) throw new Error ('No files loaded.'); 
 	
 	for (index in files) {
 		if (files.hasOwnProperty(index)) {
+
 			file = files[index];		
 			if (!file.data) throw new Error ('Tried to execute file before data loaded.');
 		
 		
-			this._thread = new luajs.Function (this, file, file.data, this._globals);	
-			this._trigger ('executing', [this._thread, coConfig]);
+			thread = this._thread = new luajs.Function (this, file, file.data, this._globals);
+			this._trigger ('executing', [thread, coConfig]);
 			
 			try {
 				if (!coConfig) {
-					this._thread.call ();
+					thread.call ();
 					
 				} else {
-					var co = luajs.lib.coroutine.wrap (this._thread),
+					var co = luajs.lib.coroutine.wrap (thread),
 						resume = function () {
 							co ();
 							if (coConfig.uiOnly && co._coroutine.status != 'dead') window.setTimeout (resume, 1);
@@ -233,7 +367,7 @@ luajs.VM.prototype.dispose = function () {
 
 
 	// Clear static stacks -- Very dangerous for environments that contain multiple VMs!
-	while (luajs.Function._instances.length) luajs.Function._instances.pop().dispose(true);
+	while (luajs.Function._instances.length) luajs.Function._instances.dispose(true);
 	luajs.Closure._graveyard.splice(0, luajs.Closure._graveyard.length);
 	luajs.Coroutine._graveyard.splice(0, luajs.Coroutine._graveyard.length);
 
@@ -304,8 +438,100 @@ luajs.VM.prototype.dispose = function () {
 
 })();
 
+
+
+
+luajs.Register = function () {
+	luajs.Register.count++;
+	this._register = luajs.gc.createArray();
+}
+luajs.Register.count = 0;
+
+
+luajs.Register._graveyard = [];
+
+
+
+luajs.Register.create = function () {
+	var o = luajs.Register._graveyard.pop();
+	return o || new luajs.Register(arguments);
+}
+
+
+
+
+luajs.Register.prototype.getLength = function () {
+	return this._register.length;
+}
+
+
+
+
+luajs.Register.prototype.getItem = function (index) {
+	return this._register[index];
+}
+
+
+
+
+luajs.Register.prototype.setItem = function (index, value) {
+	var item = this._register[index];
+	luajs.gc.decrRef(item);
+
+	item = this._register[index] = value;
+	luajs.gc.incrRef(item);
+}
+
+
+
+
+luajs.Register.prototype.set = function (arr) {
+	for (var i = 0, l = arr.length; i < l; i++) this.setItem(i, arr[i]);
+}
+
+
+
+
+luajs.Register.prototype.push = function () {
+	this._register.push.apply(this._register, arguments);
+}
+
+
+
+
+luajs.Register.prototype.splice = function () {
+	this._register.splice.apply(this._register, arguments);
+}
+
+
+
+
+luajs.Register.prototype.reset = function () {
+	for (var i = 0, l = this._register.length; i < l; i++) luajs.gc.decrRef(this._register[i]);
+	this._register.length = 0;
+}
+
+
+
+
+luajs.Register.prototype.clearItem = function (index) {
+	delete this._register[index];
+}
+
+
+
+
+luajs.Register.prototype.dispose = function (index) {
+	this._register.reset();
+	this.constructor._graveyard.push(this);
+}
+
+
+
+
 /**
  * @fileOverview Closure class.
+ * @author <a href="http://paulcuth.me.uk">Paul Cuthbertson</a>
  * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
  * @copyright Gamesys Limited 2013
  */
@@ -326,32 +552,33 @@ var luajs = luajs || {};
 luajs.Closure = function (vm, file, data, globals, upvalues) {
 	var me = this;
 	
-	luajs.EventEmitter.call (this);
+	//luajs.EventEmitter.call (this);
 
 	this._vm = vm;
 	this._globals = globals;
 	this._file = file;
 	this._data = data;
 
-	this._upvalues = upvalues || {};
+	this._upvalues = upvalues || luajs.gc.createObject();
 	this._constants = data.constants;
 	this._functions = data.functions;
-	this._instructions = new luajs.InstructionSet(data.instructions);
+	this._instructions = data.instructions;
 
-	this._register = [];
+	this._register = this._register || luajs.Register.create();
 	this._pc = 0;
-	this._localsUsedAsUpvalues = [];
-	this._funcInstances = [];
+	this._localsUsedAsUpvalues = this._localsUsedAsUpvalues || luajs.gc.createArray();
+	this._funcInstances = this._funcInstances || luajs.gc.createArray();
 
 	
 	var me = this,
 		result = function () { 
-			var args = [];
+			var args = luajs.gc.createArray();
 			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);
 			return me.execute (args);
 		};
 		
 	result._instance = this;
+
 	result.dispose = function () {
 		me.dispose ();
 		delete this.dispose;
@@ -361,7 +588,7 @@ luajs.Closure = function (vm, file, data, globals, upvalues) {
 };
 
 
-luajs.Closure.prototype = new luajs.EventEmitter ();
+luajs.Closure.prototype = {};//new luajs.EventEmitter ();
 luajs.Closure.prototype.constructor = luajs.Closure;
 
 luajs.Closure._graveyard = [];
@@ -393,8 +620,8 @@ luajs.Closure.prototype.execute = function (args) {
 	//luajs.stddebug.write ('\n');
 
 	// ASSUMPTION: Parameter values are automatically copied to R(0) onwards of the function on initialisation. This is based on observation and is neither confirmed nor denied in any documentation. (Different rules apply to v5.0-style VARARG functions)
-	this._params = [].concat (args);
-	this._register = [].concat (args.splice (0, this._data.paramCount));
+	this._params = luajs.gc.createArray().concat(args);
+	this._register.set(args.splice (0, this._data.paramCount));
 
 	if (this._data.is_vararg == 7) {	// v5.0 compatibility (LUA_COMPAT_VARARG)
 		var arg = [].concat (args),
@@ -410,7 +637,7 @@ luajs.Closure.prototype.execute = function (args) {
 		return this._run ();
 		
 	} catch (e) {
-		if (!((e || {}) instanceof luajs.Error)) {
+		if (!((e || luajs.EMPTY_OBJ) instanceof luajs.Error)) {
 			var stack = (e.stack || '');
 
 			e = new luajs.Error ('Error in host call: ' + e.message);
@@ -418,7 +645,7 @@ luajs.Closure.prototype.execute = function (args) {
 			e.luaStack = stack.split ('\n');
 		}
 
-		if (!e.luaStack) e.luaStack = [];
+		if (!e.luaStack) e.luaStack = luajs.gc.createArray();
 		e.luaStack.push ('at ' + (this._data.sourceName || 'function') + ' on line ' + this._data.linePositions[this._pc - 1])
 	
 		throw e;
@@ -468,7 +695,7 @@ luajs.Closure.prototype._run = function () {
 		var a = this._instructions.get(this._pc - 1, 'A'),
 			b = this._instructions.get(this._pc - 1, 'B'),
 			c = this._instructions.get(this._pc - 1, 'C'),
-			retvals = [];
+			retvals = luajs.gc.createArray();
 
 		for (var i = 0, l = yieldVars.length; i < l; i++) retvals.push (yieldVars[i]);
 
@@ -476,21 +703,23 @@ luajs.Closure.prototype._run = function () {
 			l = retvals.length;
 		
 			for (i = 0; i < l; i++) {
-				this._register[a + i] = retvals[i];
+				this._register.setItem(a + i, retvals[i]);
 			}
 
 			this._register.splice (a + l);
 		
 		} else {
 			for (i = 0; i < c - 1; i++) {
-				this._register[a + i] = retvals[i];
+				this._register.setItem(a + i, retvals[i]);
 			}
 		}
+
+		luajs.gc.collect(retvals);
 	}
 
 
 	while (this._instructions.get(this._pc, 'op') !== undefined) {
-		line = this._data.linePositions[this._pc];
+		line = this._data.linePositions && this._data.linePositions[this._pc];
 
 		retval = this._executeInstruction (this._pc++, line);
 
@@ -613,16 +842,24 @@ luajs.Closure.prototype.dispose = function (force) {
 		delete this._functions;
 		delete this._instructions;
 	
-		delete this._register;
+		// delete this._register;
 		delete this._pc;
-		delete this._funcInstances;
+		// delete this._funcInstances;
 	
-		delete this._listeners;
+//		delete this._listeners;
+		luajs.gc.collect(this._params);
 		delete this._params;
 	
 		delete this._constants;
-		delete this._localsUsedAsUpvalues;
+
+//		delete this._localsUsedAsUpvalues;
+
+		luajs.gc.collect(this._upvalues);
 		delete this._upvalues;
+
+		this._register.reset();
+		this._funcInstances.length = 0;
+		this._localsUsedAsUpvalues.length = 0;
 
 		luajs.Closure._graveyard.push(this);
 	//	console.log ('graveyard');
@@ -641,21 +878,21 @@ luajs.Closure.prototype.dispose = function (force) {
 	
 
 	function move (a, b) {
-		this._register[a] = this._register[b];
+		this._register.setItem(a, this._register.getItem(b));
 	}
 
 			
 
 
 	function loadk (a, bx) {
-		this._register[a] = this._getConstant (bx);
+		this._register.setItem(a, this._getConstant (bx));
 	}
 
 
 
 
 	function loadbool (a, b, c) {
-		this._register[a] = !!b;
+		this._register.setItem(a, !!b);
 		if (c) this._pc++;
 	}
 		
@@ -663,14 +900,15 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function loadnil (a, b) {
-		for (var i = a; i <= b; i++) this._register[i] = undefined;
+		for (var i = a; i <= b; i++) this._register.setItem(i, undefined);
 	}
 
 
 
 
 	function getupval (a, b) {
-		this._register[a] = this._upvalues[b].getValue ();
+		if (this._upvalues[b] === undefined) return;
+		this._register.setItem(a, this._upvalues[b].getValue ());
 	}
 
 		
@@ -679,13 +917,13 @@ luajs.Closure.prototype.dispose = function (force) {
 	function getglobal (a, b) {
 
 		if (this._getConstant (b) == '_G') {	// Special case
-			this._register[a] = new luajs.Table (this._globals);
+			this._register.setItem(a, new luajs.Table (this._globals));
 			
 		} else if (this._globals[this._getConstant (b)] !== undefined) {
-			this._register[a] = this._globals[this._getConstant (b)];
+			this._register.setItem(a, this._globals[this._getConstant (b)]);
 
 		} else {
-			this._register[a] = undefined;
+			this._register.setItem(a, undefined);
 		}
 	}
 
@@ -693,19 +931,19 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function gettable (a, b, c) {
-		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
+		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		if (this._register[b] === undefined) {
+		if (this._register.getItem(b) === undefined) {
 			throw new luajs.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
 
-		} else if ((this._register[b] || {}) instanceof luajs.Table) {
-			this._register[a] = this._register[b].getMember (c);
+		} else if ((this._register.getItem(b) || luajs.EMPTY_OBJ) instanceof luajs.Table) {
+			this._register.setItem(a, this._register.getItem(b).getMember(c));
 
-		} else if (typeof this._register[b] == 'string' && luajs.lib.string[c]) {
-			this._register[a] = luajs.lib.string[c];
+		} else if (typeof this._register.getItem(b) == 'string' && luajs.lib.string[c]) {
+			this._register.setItem(a, luajs.lib.string[c]);
 
 		} else {
-			this._register[a] = this._register[b][c];
+			this._register.setItem(a, this._register.getItem(b)[c]);
 		}
 	}
 
@@ -713,31 +951,38 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function setglobal(a, b) {
-		this._globals[this._getConstant (b)] = this._register[a];
+		var varName = this._getConstant(b),
+			oldValue = this._globals[varName],
+			newValue = this._register.getItem(a);
+
+		this._globals[varName] = newValue;
+
+		luajs.gc.decrRef(oldValue);
+		luajs.gc.incrRef(newValue);
 	}
 
 
 
 
 	function setupval (a, b) {
-		this._upvalues[b].setValue (this._register[a]);
+		this._upvalues[b].setValue (this._register.getItem(a));
 	}
 
 
 
 
 	function settable (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
-		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
+		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		if ((this._register[a] || {}) instanceof luajs.Table) {
-			this._register[a].setMember (b, c);
+		if ((this._register.getItem(a) || luajs.EMPTY_OBJ) instanceof luajs.Table) {
+			this._register.getItem(a).setMember (b, c);
 		
-		} else if (this._register[a] === undefined) {
+		} else if (this._register.getItem(a) === undefined) {
 			throw new luajs.Error ('Attempt to index a missing field (can\'t set "' + b + '" on a nil value)');
 			
 		} else {
-			this._register[a][b] = c;
+			this._register.getItem(a)[b] = c;
 		}
 	}
 
@@ -745,27 +990,29 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function newtable (a, b, c) {
-		this._register[a] = new luajs.Table ();
+		var t = new luajs.Table ();
+		t.__luajs.refCount = 0;
+		this._register.setItem(a, t);
 	}
 
 
 
 
 	function self (a, b, c) {
-		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
-		this._register[a + 1] = this._register[b];
+		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
+		this._register.setItem(a + 1, this._register.getItem(b));
 
-		if (this._register[b] === undefined) {
+		if (this._register.getItem(b) === undefined) {
 			throw new luajs.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
 
-		} else if ((this._register[b] || {}) instanceof luajs.Table) {
-			this._register[a] = this._register[b].getMember (c);
+		} else if ((this._register.getItem(b) || luajs.EMPTY_OBJ) instanceof luajs.Table) {
+			this._register.setItem(a, this._register.getItem(b).getMember (c));
 
-		} else if (typeof this._register[b] == 'string' && luajs.lib.string[c]) {
-			this._register[a] = luajs.lib.string[c];
+		} else if (typeof this._register.getItem(b) == 'string' && luajs.lib.string[c]) {
+			this._register.setItem(a, luajs.lib.string[c]);
 
 		} else {
-			this._register[a] = this._register[b][c];					
+			this._register.setItem(a, this._register.getItem(b)[c]);					
 		}
 	}
 
@@ -774,19 +1021,19 @@ luajs.Closure.prototype.dispose = function (force) {
 
 	function add (a, b, c) {
 		//TODO: Extract the following RK(x) logic into a separate method.
-		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
-		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
+		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
 		var toFloat = luajs.utils.toFloat,
 			mt, f, bn, cn;
 
-		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__add')))
-		|| ((c || {}) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__add')))) {
-			this._register[a] = f.apply ([b, c])[0];
+		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__add')))
+		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__add')))) {
+			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
 			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = parseFloat (b) + parseFloat (c);
+			this._register.setItem(a, parseFloat (b) + parseFloat (c));
 		}
 	}
 
@@ -794,19 +1041,19 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function sub (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
-		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
+		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
 		var toFloat = luajs.utils.toFloat,
 			mt, f;
 
-		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__sub')))
-		|| ((c || {}) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__sub')))) {
-			this._register[a] = f.apply ([b, c])[0];
+		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__sub')))
+		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__sub')))) {
+			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
 			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = parseFloat (b) - parseFloat (c);
+			this._register.setItem(a, parseFloat (b) - parseFloat (c));
 		}
 	}
 
@@ -814,19 +1061,19 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function mul (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
-		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
+		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
 		var toFloat = luajs.utils.toFloat,
 			mt, f;
 
-		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mul')))
-		|| ((c || {}) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__mul')))) {
-			this._register[a] = f.apply ([b, c])[0];
+		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mul')))
+		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__mul')))) {
+			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
 			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = parseFloat (b) * parseFloat (c);
+			this._register.setItem(a, parseFloat (b) * parseFloat (c));
 		}
 	}
 
@@ -834,19 +1081,19 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function div (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
-		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
+		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
 		var toFloat = luajs.utils.toFloat,
 			mt, f;
 
-		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__div')))
-		|| ((c || {}) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__div')))) {
-			this._register[a] = f.apply ([b, c])[0];
+		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__div')))
+		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__div')))) {
+			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
 			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = parseFloat (b) / parseFloat (c);
+			this._register.setItem(a, parseFloat (b) / parseFloat (c));
 		}
 	}
 
@@ -854,19 +1101,19 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function mod (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
-		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
+		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 		
 		var toFloat = luajs.utils.toFloat,
 			mt, f;
 
-		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mod')))
-		|| ((c || {}) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__mod')))) {
-			this._register[a] = f.apply ([b, c])[0];
+		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mod')))
+		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__mod')))) {
+			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
 			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = parseFloat (b) % parseFloat (c);
+			this._register.setItem(a, parseFloat (b) % parseFloat (c));
 		}
 	}
 
@@ -874,19 +1121,19 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function pow (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
-		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
+		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
 		var toFloat = luajs.utils.toFloat,
 			mt, f;
 
-		if (((b || {}) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__pow')))
-		|| ((c || {}) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__pow')))) {
-			this._register[a] = f.apply ([b, c])[0];
+		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__pow')))
+		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__pow')))) {
+			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
 			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = Math.pow (parseFloat (b), parseFloat (c));
+			this._register.setItem(a, Math.pow (parseFloat (b), parseFloat (c)));
 		}
 	}
 
@@ -896,13 +1143,13 @@ luajs.Closure.prototype.dispose = function (force) {
 	function unm (a, b) {
 		var mt, f;
 
-		if ((this._register[b] || {}) instanceof luajs.Table && (mt = this._register[b].__luajs.metatable) && (f = mt.getMember ('__unm'))) {
-			this._register[a] = f.apply ([this._register[b]])[0];
+		if ((this._register.getItem(b) || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = this._register.getItem(b).__luajs.metatable) && (f = mt.getMember ('__unm'))) {
+			this._register.setItem(a, f.apply (null, [this._register.getItem(b)], true)[0]);
 
 		} else {
-			b = this._register[b];
+			b = this._register.getItem(b);
 			if (luajs.utils.toFloat (b) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register[a] = -parseFloat (b);
+			this._register.setItem(a, -parseFloat (b));
 		}
 	}
 
@@ -910,7 +1157,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function not (a, b) {
-		this._register[a] = !this._register[b];
+		this._register.setItem(a, !this._register.getItem(b));
 	}
 
 
@@ -919,24 +1166,24 @@ luajs.Closure.prototype.dispose = function (force) {
 	function len (a, b) {
 		var length = 0;
 
-		if ((this._register[b] || {}) instanceof luajs.Table) {
+		if ((this._register.getItem(b) || luajs.EMPTY_OBJ) instanceof luajs.Table) {
 
-			//while (this._register[b][length + 1] != undefined) length++;
-			//this._register[a] = length;
-			this._register[a] = luajs.lib.table.getn (this._register[b]);
+			//while (this._register.getItem(b)[length + 1] != undefined) length++;
+			//this._register.setItem(a, length);
+			this._register.setItem(a, luajs.lib.table.getn (this._register.getItem(b)));
 
-		} else if (typeof this._register[b] == 'object') {				
-			for (var i in this._register[b]) if (this._register[b].hasOwnProperty (i)) length++;
-			this._register[a] = length;
+		} else if (typeof this._register.getItem(b) == 'object') {				
+			for (var i in this._register.getItem(b)) if (this._register.getItem(b).hasOwnProperty (i)) length++;
+			this._register.setItem(a, length);
 
-		} else if (this._register[b] == undefined) {
+		} else if (this._register.getItem(b) == undefined) {
 			throw new luajs.Error ('attempt to get length of a nil value');
 
-		} else if (this._register[b].length === undefined) {
-			this._register[a] = undefined;
+		} else if (this._register.getItem(b).length === undefined) {
+			this._register.setItem(a, undefined);
 			
 		} else {
-			this._register[a] = this._register[b].length;
+			this._register.setItem(a, this._register.getItem(b).length);
 		}
 	}
 
@@ -945,21 +1192,21 @@ luajs.Closure.prototype.dispose = function (force) {
 
 	function concat (a, b, c) {
 
-		var text = this._register[c],
+		var text = this._register.getItem(c),
 			mt, f;
 
 		for (var i = c - 1; i >= b; i--) {
-			if (((this._register[i] || {}) instanceof luajs.Table && (mt = this._register[i].__luajs.metatable) && (f = mt.getMember ('__concat')))
-			|| ((text || {}) instanceof luajs.Table && (mt = text.__luajs.metatable) && (f = mt.getMember ('__concat')))) {
-				text = f.apply ([this._register[i], text])[0];
+			if (((this._register.getItem(i) || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = this._register.getItem(i).__luajs.metatable) && (f = mt.getMember ('__concat')))
+			|| ((text || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = text.__luajs.metatable) && (f = mt.getMember ('__concat')))) {
+				text = f.apply (null, [this._register.getItem(i), text], true)[0];
 
 			} else {
-				if (!(typeof this._register[i] === 'string' || typeof this._register[i] === 'number') || !(typeof text === 'string' || typeof text === 'number')) throw new luajs.Error ('Attempt to concatenate a non-string or non-numeric value');
-				text = this._register[i] + text;
+				if (!(typeof this._register.getItem(i) === 'string' || typeof this._register.getItem(i) === 'number') || !(typeof text === 'string' || typeof text === 'number')) throw new luajs.Error ('Attempt to concatenate a non-string or non-numeric value');
+				text = this._register.getItem(i) + text;
 			}
 		}
 
-		this._register[a] = text;
+		this._register.setItem(a, text);
 	}
 
 
@@ -973,13 +1220,13 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function eq (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
-		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
+		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
 		var mtb, mtc, f, result;
 
-		if (b !== c && (b || {}) instanceof luajs.Table && (c || {}) instanceof luajs.Table && (mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__eq'))) {
-			result = !!f.apply ([b, c])[0];			
+		if (b !== c && (b || luajs.EMPTY_OBJ) instanceof luajs.Table && (c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__eq'))) {
+			result = !!f.apply (null, [b, c], true)[0];			
 		} else {
 			result = (b === c);
 		}
@@ -991,11 +1238,11 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function lt (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
-		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
+		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var typeB = (typeof b != 'object' && typeof b) || ((b || {}) instanceof luajs.Table && 'table') || 'userdata',
-			typeC = (typeof c != 'object' && typeof b) || ((c || {}) instanceof luajs.Table && 'table') || 'userdata',
+		var typeB = (typeof b != 'object' && typeof b) || ((b || luajs.EMPTY_OBJ) instanceof luajs.Table && 'table') || 'userdata',
+			typeC = (typeof c != 'object' && typeof b) || ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && 'table') || 'userdata',
 			f, result, mtb, mtc;
 
 		if (typeB !== typeC) {
@@ -1003,7 +1250,7 @@ luajs.Closure.prototype.dispose = function (force) {
 			
 		} else if (typeB == 'table') {
 			if ((mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__lt'))) {
-				result = f.apply ([b, c])[0];
+				result = f.apply (null, [b, c], true)[0];
 			} else {
 				throw new luajs.Error ('attempt to compare two table values');
 			}
@@ -1019,11 +1266,11 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function le (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register[b];
-		c = (c >= 256)? this._getConstant (c - 256) : this._register[c];
+		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var typeB = (typeof b != 'object' && typeof b) || ((b || {}) instanceof luajs.Table && 'table') || 'userdata',
-			typeC = (typeof c != 'object' && typeof b) || ((c || {}) instanceof luajs.Table && 'table') || 'userdata',
+		var typeB = (typeof b != 'object' && typeof b) || ((b || luajs.EMPTY_OBJ) instanceof luajs.Table && 'table') || 'userdata',
+			typeC = (typeof c != 'object' && typeof b) || ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && 'table') || 'userdata',
 			f, result, mtb, mtc;
 
 		if (typeB !== typeC) {
@@ -1031,7 +1278,7 @@ luajs.Closure.prototype.dispose = function (force) {
 			
 		} else if (typeB == 'table') {
 			if ((mtb = b.__luajs.metatable) && (mtc = c.__luajs.metatable) && mtb === mtc && (f = mtb.getMember ('__le'))) {
-				result = f.apply ([b, c])[0];
+				result = f.apply (null, [b, c], true)[0];
 			} else {
 				throw new luajs.Error ('attempt to compare two table values');
 			}
@@ -1047,10 +1294,10 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function test (a, b, c) {
-		if (this._register[a] === 0 || this._register[a] === '') {
+		if (this._register.getItem(a) === 0 || this._register.getItem(a) === '') {
 			if (!c) this._pc++;
 		} else {
-			if (!this._register[a] !== !c) this._pc++;
+			if (!this._register.getItem(a) !== !c) this._pc++;
 		}
 	}
 
@@ -1058,8 +1305,8 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function testset (a, b, c) {
-		if (!this._register[b] === !c) {
-			this._register[a] = this._register[b];
+		if (!this._register.getItem(b) === !c) {
+			this._register.setItem(a, this._register.getItem(b));
 		} else {
 			this._pc++;
 		}
@@ -1070,7 +1317,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 	function call (a, b, c) {
 
-		var args = [], 
+		var args = luajs.gc.createArray(), 
 			i, l,
 			retvals,
 			funcToResume,
@@ -1080,7 +1327,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		if (luajs.debug.status == 'resuming') {
 			funcToResume = luajs.debug.resumeStack.pop ();
 			
-			if ((funcToResume || {}) instanceof luajs.Coroutine) {
+			if ((funcToResume || luajs.EMPTY_OBJ) instanceof luajs.Coroutine) {
 				retvals = funcToResume.resume ();
 			} else {
 				retvals = funcToResume._run ();
@@ -1092,39 +1339,41 @@ luajs.Closure.prototype.dispose = function (force) {
 			
 		} else {
 			if (b === 0) {
-				l = this._register.length;
+				l = this._register.getLength();
 			
 				for (i = a + 1; i < l; i++) {
-					args.push (this._register[i]);
+					args.push (this._register.getItem(i));
 				}
 
 			} else {
 				for (i = 0; i < b - 1; i++) {
-					args.push (this._register[a + i + 1]);
+					args.push (this._register.getItem(a + i + 1));
 				}
 			}
 		}
 
 
 		if (!funcToResume) {
-			o = this._register[a];
+			o = this._register.getItem(a);
 
-			if ((o || {}) instanceof luajs.Function) {
-				retvals = o.apply ({}, args, true);
+			if ((o || luajs.EMPTY_OBJ) instanceof luajs.Function) {
+				retvals = o.apply (null, args, true);
 
 			} else if (o && o.apply) {
-				retvals = o.apply ({}, args);
+				retvals = o.apply (null, args);
 
-			} else if (o && (o || {}) instanceof luajs.Table && (mt = o.__luajs.metatable) && (f = mt.getMember ('__call')) && f.apply) {
+			} else if (o && (o || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = o.__luajs.metatable) && (f = mt.getMember ('__call')) && f.apply) {
 				args.unshift (o);
-				retvals = f.apply ({}, args, true);
+				retvals = f.apply (null, args, true);
 
 			} else {
 	 			throw new luajs.Error ('Attempt to call non-function');
 			}
 		}
 		
-		if (!((retvals || {}) instanceof Array)) retvals = [retvals];
+		luajs.gc.collect(args);
+
+		if (!((retvals || luajs.EMPTY_OBJ) instanceof Array)) retvals = [retvals];
 		if (luajs.Coroutine._running && luajs.Coroutine._running.status == 'suspending') return;
 
 
@@ -1132,14 +1381,14 @@ luajs.Closure.prototype.dispose = function (force) {
 			l = retvals.length;
 			
 			for (i = 0; i < l; i++) {
-				this._register[a + i] = retvals[i];
+				this._register.setItem(a + i, retvals[i]);
 			}
 
 			this._register.splice (a + l);
 			
 		} else {
 			for (i = 0; i < c - 1; i++) {
-				this._register[a + i] = retvals[i];
+				this._register.setItem(a + i, retvals[i]);
 			}
 		}
 		
@@ -1159,35 +1408,40 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function return_ (a, b) {
-		var retvals = [],
-			i;
+		var retvals = luajs.gc.createArray(),
+			val,
+			i, l;
 
 		if (b === 0) {
-			l = this._register.length;
+			l = this._register.getLength();
 			
 			for (i = a; i < l; i++) {
-				retvals.push (this._register[i]);
+				retvals.push (this._register.getItem(i));
 			}
 
 		} else {
 			for (i = 0; i < b - 1; i++) {
-				retvals.push (this._register[a + i]);
+				retvals.push (val = this._register.getItem(a + i));
+				luajs.gc.incrRef(val);
 			}
 		}
 
 
-		for (var i = 0, l = this._localsUsedAsUpvalues.length; i < l; i++) {
-			var local = this._localsUsedAsUpvalues[i];
+		// for (var i = 0, l = this._localsUsedAsUpvalues.length; i < l; i++) {
+		// 	var local = this._localsUsedAsUpvalues[i];
 
-			local.upvalue.value = this._register[local.registerIndex];
-			local.upvalue.open = false;
+		// 	local.upvalue.value = this._register.getItem(local.registerIndex);
+		// 	local.upvalue.open = false;
 
-			this._localsUsedAsUpvalues.splice (i--, 1);
-			l--;
-			delete this._register[local.registerIndex];
-		}
+		// 	this._localsUsedAsUpvalues.splice (i--, 1);
+		// 	l--;
+		// 	this._register.clearItem(local.registerIndex);
+		// }
+		close.call(this, 0);
 		
+//		this._register.reset();
 		this.dead = true;
+		
 		return retvals;
 	}
 
@@ -1195,11 +1449,11 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function forloop (a, sbx) {
-		this._register[a] += this._register[a + 2];
-		var parity = this._register[a + 2] / Math.abs (this._register[a + 2]);
+		this._register.setItem(a, this._register.getItem(a) + this._register.getItem(a + 2));
+		var parity = this._register.getItem(a + 2) / Math.abs (this._register.getItem(a + 2));
 		
-		if ((parity === 1 && this._register[a] <= this._register[a + 1]) || (parity !== 1 && this._register[a] >= this._register[a + 1])) {	//TODO This could be nicer
-			this._register[a + 3] = this._register[a];
+		if ((parity === 1 && this._register.getItem(a) <= this._register.getItem(a + 1)) || (parity !== 1 && this._register.getItem(a) >= this._register.getItem(a + 1))) {	//TODO This could be nicer
+			this._register.setItem(a + 3, this._register.getItem(a));
 			this._pc += sbx;
 		}
 	}
@@ -1208,7 +1462,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function forprep (a, sbx) {
-		this._register[a] -= this._register[a + 2];
+		this._register.setItem(a, this._register.getItem(a) - this._register.getItem(a + 2));
 		this._pc += sbx; 
 	}
 
@@ -1216,17 +1470,17 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function tforloop (a, b, c) {
-		var args = [this._register[a + 1], this._register[a + 2]],
-			retvals = this._register[a].apply ({}, args),
+		var args = [this._register.getItem(a + 1), this._register.getItem(a + 2)],
+			retvals = this._register.getItem(a).apply (null, args),
 			index;
 
-		if (!((retvals || {}) instanceof Array)) retvals = [retvals];
+		if (!((retvals || luajs.EMPTY_OBJ) instanceof Array)) retvals = [retvals];
 		if (retvals[0] && retvals[0] === '' + (index = parseInt (retvals[0], 10))) retvals[0] = index;
 		
-		for (var i = 0; i < c; i++) this._register[a + i + 3] = retvals[i];
+		for (var i = 0; i < c; i++) this._register.setItem(a + i + 3, retvals[i]);
 
-		if (this._register[a + 3] !== undefined) {
-			this._register[a + 2] = this._register[a + 3];
+		if (this._register.getItem(a + 3) !== undefined) {
+			this._register.setItem(a + 2, this._register.getItem(a + 3));
 		} else {
 			this._pc++;
 		}
@@ -1236,11 +1490,11 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function setlist (a, b, c) {
-		var length = b || this._register.length - a - 1,
+		var length = b || this._register.getLength() - a - 1,
 		i;
 		
 		for (i = 0; i < length; i++) {
-			this._register[a].setMember (50 * (c - 1) + i + 1, this._register[a + i + 1]);
+			this._register.getItem(a).setMember (50 * (c - 1) + i + 1, this._register.getItem(a + i + 1));
 		}
 	}
 
@@ -1252,12 +1506,12 @@ luajs.Closure.prototype.dispose = function (force) {
 			var local = this._localsUsedAsUpvalues[i];
 
 			if (local && local.registerIndex >= a) {
-				local.upvalue.value = this._register[local.registerIndex];
+				local.upvalue.value = this._register.getItem(local.registerIndex);
 				local.upvalue.open = false;
 
 				this._localsUsedAsUpvalues.splice (i--, 1);
 				l--;
-				delete this._register[local.registerIndex];
+				this._register.clearItem(local.registerIndex);
 			}
 		}
 	}
@@ -1267,7 +1521,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 	function closure (a, bx) {
 		var me = this,
-			upvalues = [],
+			upvalues = luajs.gc.createArray(),
 			opcode;
 
 		while ((opcode = this._instructions.get(this._pc, 'op')) !== undefined && (opcode === 0 || opcode === 4) && this._instructions.get(this._pc, 'A') === 0) {	// move, getupval
@@ -1296,10 +1550,10 @@ luajs.Closure.prototype.dispose = function (force) {
 						upvalue = {
 							open: true,
 							getValue: function () {
-								return this.open? me._register[B] : this.value;
+								return this.open? me._register.getItem(B) : this.value;
 							},
 							setValue: function (val) {
-								this.open? me._register[B] = val : this.value = val;
+								this.open? me._register.setItem(B, val) : this.value = val;
 							},
 							name: me._functions[bx].upvalues[upvalues.length]
 						};
@@ -1310,7 +1564,6 @@ luajs.Closure.prototype.dispose = function (force) {
 						});
 					}
 
-					
 					upvalues.push (upvalue);
 					
 
@@ -1334,23 +1587,23 @@ luajs.Closure.prototype.dispose = function (force) {
 
 		var func = new luajs.Function (this._vm, this._file, this._functions[bx], this._globals, upvalues);
 		//this._funcInstances.push (func);
-		this._register[a] = func;
+		this._register.setItem(a, func);
 	}
 
 
 
 
 	function vararg (a, b) {
-		var i,
+		var i, l,
 			limit = b === 0? this._params.length - this._data.paramCount : b - 1;
 		
 		for (i = 0; i < limit; i++) {
-			this._register[a + i] = this._params[this._data.paramCount + i];
+			this._register.setItem(a + i, this._params[this._data.paramCount + i]);
 		}
 
 		// Assumption: Clear the remaining items in the register.
-		for (i = a + limit; i < this._register.length; i++) {
-			delete this._register[i];
+		for (i = a + limit, l = this._register.getLength(); i < l; i++) {
+			this._register.clearItem(i);
 		}
 	}
 
@@ -1381,22 +1634,25 @@ var luajs = luajs || {};
  * @param {object} [upvalues] The upvalues passed from the parent closure.
  */
 luajs.Function = function (vm, file, data, globals, upvalues) {
-	luajs.EventEmitter.call (this);
+	//luajs.EventEmitter.call (this);
 
 	this._vm = vm;
 	this._file = file;
 	this._data = data;
 	this._globals = globals;
-	this._upvalues = upvalues || {};
+	this._upvalues = upvalues || luajs.gc.createObject();
 	this._index = luajs.Function._index++;
-	this.instances = [];
+	this.instances = luajs.gc.createArray();
 	this._retainCount = 0;
+
+	// Convert instructions to byte array (where possible);
+ 	if (this._data.instructions instanceof Array) this._data.instructions = new luajs.InstructionSet(data.instructions);
 
 	this.constructor._instances.push(this);
 };
 
 
-luajs.Function.prototype = new luajs.EventEmitter ();
+luajs.Function.prototype = {}; //new luajs.EventEmitter ();
 luajs.Function.prototype.constructor = luajs.Function;
 
 
@@ -1436,7 +1692,7 @@ luajs.Function.prototype.getInstance = function () {
  * @returns {Array} Array of the return values from the call.
  */
 luajs.Function.prototype.call = function () {
-	var args = [],
+	var args = luajs.gc.createArray(),
 		l = arguments.length,
 		i;
 		
@@ -1454,7 +1710,7 @@ luajs.Function.prototype.call = function () {
  * @returns {Array} Array of the return values from the call.
  */
 luajs.Function.prototype.apply = function (obj, args, internal) {
-	if ((obj || {}) instanceof Array && !args) {
+	if ((obj || luajs.EMPTY_OBJ) instanceof Array && !args) {
 		args = obj;
 		obj = undefined;
 	}
@@ -1541,12 +1797,14 @@ luajs.Function.prototype.dispose = function (force) {
 	delete this._data;
 	delete this._globals;
 	delete this._upvalues;
-	delete this._listeners;
+
 	delete this.instances;	
 	delete this._readyToDispose;
-	
-	//this.constructor._instances.splice (this.constructor._instances.indexOf(this), 1);
-	
+
+	//for (var i in this._listeners) delete this._listeners[i];
+
+	this.constructor._instances.splice (this.constructor._instances.indexOf(this), 1);
+
 	return true;
 };
 
@@ -1555,7 +1813,11 @@ luajs.Function.prototype.dispose = function (force) {
 
 /**
  * @fileOverview Coroutine class.
+<<<<<<< HEAD
+ * @author <a href="http://paulcuth.me.uk">Paul Cuthbertson</a>
+=======
  * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
+>>>>>>> master
  * @copyright Gamesys Limited 2013
  */
 
@@ -1576,7 +1838,7 @@ luajs.Coroutine = function (closure) {
 	this._index = luajs.Coroutine._index++;
 	this._started = false;
 	this._yieldVars = undefined;
-	this._resumeStack = [];
+	this._resumeStack = this._resumeStack || luajs.gc.createArray();
 	this.status = 'suspended';
 
 	luajs.stddebug.write ('[coroutine created]\n');
@@ -1647,7 +1909,7 @@ luajs.Coroutine.prototype.resume = function () {
 		if (luajs.debug.status == 'resuming') {
 			var funcToResume = luajs.debug.resumeStack.pop ();
 			
-			if ((funcToResume || {}) instanceof luajs.Coroutine) {
+			if ((funcToResume || luajs.EMPTY_OBJ) instanceof luajs.Coroutine) {
 				retval = funcToResume.resume ();
 			} else {
 				retval = this._func._instance._run ();
@@ -1658,13 +1920,13 @@ luajs.Coroutine.prototype.resume = function () {
 			luajs.stddebug.write ('[coroutine started]\n');
 
 			this._started = true;
-			retval = this._func.apply ({}, arguments);
+			retval = this._func.apply (null, arguments, true);
 
 		} else {
 			this.status = 'resuming';
 			luajs.stddebug.write ('[coroutine resuming]\n');
 
-			var args = [];
+			var args = luajs.gc.createArray();
 			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 
 			this._yieldVars = args;
@@ -1686,6 +1948,7 @@ luajs.Coroutine.prototype.resume = function () {
 	}
 
 	if (this.status == 'dead') {
+		luajs.Coroutine._remove ();
 		luajs.stddebug.write ('[coroutine terminated]\n');
 		this._dispose();
 	}
@@ -1712,15 +1975,15 @@ luajs.Coroutine.prototype.toString = function () {
  */
 luajs.Coroutine.prototype._dispose = function () {
 
-	// delete this._func;
-	// delete this._index;
-	// delete this._listeners;
+	delete this._func;
+	delete this._index;
+	delete this._listeners;
 	// delete this._resumeStack;
-	// delete this._started;
-	// delete this._yieldVars
-	// delete this.status
+	delete this._started;
+	delete this._yieldVars
+	delete this.status
 
-	this._resumeStack.splice(0, this._resumeStack.length);
+	this._resumeStack.length = 0;
 
 	luajs.Coroutine._graveyard.push(this);
 };
@@ -1744,20 +2007,21 @@ var luajs = luajs || {};
  */
 luajs.Table = function (obj) {
 
-	var isArr = ((obj || {}) instanceof Array),
+	var isArr = ((obj || luajs.EMPTY_OBJ) instanceof Array),
+		meta,
 		key,
 		value,
 		i;
 
-	obj = obj || {};
+	obj = obj || luajs.gc.createObject();
 
-	this.__luajs = { 
-		type: 'table',
-		index: ++luajs.Table.count,
-		keys: [],
-		values: [],
-		numValues: [undefined]
-	};
+	this.__luajs = meta = luajs.gc.createObject();
+	meta.type = 'table';
+	meta.index = ++luajs.Table.count;
+	meta.keys = luajs.gc.createArray();
+	meta.values = luajs.gc.createArray();
+	meta.numValues = [undefined];
+
 
 	for (i in obj) {
 		if (obj.hasOwnProperty(i)) {
@@ -1835,6 +2099,7 @@ luajs.Table.prototype.getMember = function (key) {
  */
 luajs.Table.prototype.setMember = function (key, value) {
 	var mt = this.__luajs.metatable,
+		oldValue,
 		keys,
 		index;
 
@@ -1848,11 +2113,13 @@ luajs.Table.prototype.setMember = function (key, value) {
 
 	switch (typeof key) {
 		case 'string':
+			oldValue = this[key];
 			this[key] = value;
 			break;
 
 
 		case 'number':
+			oldValue = this.__luajs.numValues[key];
 			this.__luajs.numValues[key] = value;
 			break;
 
@@ -1866,8 +2133,12 @@ luajs.Table.prototype.setMember = function (key, value) {
 				keys[index] = key;
 			}
 			
+			oldValue = this.__luajs.values[index];
 			this.__luajs.values[index] = value;
 	}
+
+	luajs.gc.decrRef(oldValue);
+	luajs.gc.incrRef(value);
 };
 
 
@@ -1932,8 +2203,8 @@ luajs.Error.prototype.constructor = luajs.Error;
  */
 luajs.Error.catchExecutionError = function (e) {
 	if (!e) return;
-	//if ((e || {}) instanceof luajs.Error && console) throw new Error ('[luajs] ' + e.message + '\n    ' + (e.luaStack || []).join ('\n    '));
-	if (e instanceof luajs.Error) e.message = e.message + '\n    ' + (e.luaStack || []).join('\n    ');
+	//if ((e || luajs.EMPTY_OBJ) instanceof luajs.Error && console) throw new Error ('[luajs] ' + e.message + '\n    ' + (e.luaStack || []).join ('\n    '));
+	if ((e || luajs.EMPTY_OBJ) instanceof luajs.Error) e.message = e.message + '\n    ' + (e.luaStack || []).join('\n    ');
 	
 	throw e;
 };
@@ -1982,12 +2253,18 @@ luajs.File.prototype.constructor = luajs.File;
  */
 luajs.File.prototype.load = function () {
 	var me = this;
+
+	function success (data) {
+		me.data = JSON.parse(data);
+		me._trigger ('loaded', me.data);
+	}
+
+	function error (code) {
+		//throw new luajs.Error('Unable to load file: ' + me._url + ' (' + code + ')');
+		me._trigger ('error', code);
+	}
 	
-	// TODO: Remove dependency on jQuery here!
-	jQuery.getJSON (this._url, function (data) { 
-		me.data = data;
-		me._trigger ('loaded', data);
-	});
+	luajs.utils.get(this._url, success, error);
 };
 
 
@@ -2094,8 +2371,40 @@ var luajs = luajs || {};
 		}			
 
 		return pattern;	
-	};
+	}
 	
+
+
+
+	function loadfile (filename, callback) {
+		var vm = this,
+			file,
+			pathData;
+
+		if (filename.substr(0, 1) != '/') {
+			pathData = (this._thread._file._url || '').match(/^(.*\/).*?$/);
+			pathData = (pathData && pathData[1]) || '';
+			filename = pathData + filename;
+		}
+
+		file = new luajs.File (filename);
+
+		file.bind ('loaded', function (data) {
+			var func = new luajs.Function (vm, file, file.data, vm._globals);
+			vm._trigger ('module-loaded', file, func);
+			
+			callback(func);
+		});
+
+		file.bind ('error', function (code) {
+			vm._trigger ('module-load-error', file, code);
+			callback();
+		});
+
+		this._trigger ('loading-module', file);
+		file.load ();
+	}
+
 
 
 
@@ -2143,7 +2452,7 @@ var luajs = luajs || {};
 		 * @param {object} table The table from which to obtain the metatable.
 		 */
 		getmetatable: function (table) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in getmetatable(). Table expected');
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in getmetatable(). Table expected');
 			return table.__luajs.metatable;
 		},
 		
@@ -2151,7 +2460,7 @@ var luajs = luajs || {};
 	
 	
 		ipairs: function (table) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in ipairs(). Table expected');
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in ipairs(). Table expected');
 			
 			var iterator = function (table, index) {
 				if (index === undefined) throw new luajs.Error ('Bad argument #2 to ipairs() iterator');
@@ -2169,21 +2478,35 @@ var luajs = luajs || {};
 	
 		
 		load: function (func, chunkname) {
-			return [undefined, 'Unimplemented'];
+			var file = new luajs.File,
+				chunk = '', piece, lastPiece;
+
+			while ((piece = func()) && piece != lastPiece) {
+				chunk += (lastPiece = piece);
+			}
+
+			file._data = JSON.parse(chunk);
+			return new luajs.Function(this, file, file._data, this._globals, luajs.gc.createArray());
 		},
 	
 	
 	
 		
 		loadfile: function (filename) {
-			return [undefined, 'Unimplemented'];
+			var thread = luajs.lib.coroutine.yield(),
+				callback = function (result) {
+					thread.resume(result);
+				};
+
+			loadfile.call(this, filename, callback);
 		},
 	
 	
 	
 		
-		loadstring: function (func, chunkname) {
-			return [undefined, 'Unimplemented'];
+		loadstring: function (string, chunkname) {
+			var f = function () { return string; };
+			return luajs.lib.load.call(this, f, chunkname);
 		},
 	
 	
@@ -2236,7 +2559,7 @@ var luajs = luajs || {};
 				}
 			}
 		
-			return [];
+			return luajs.gc.createArray();
 		},
 	
 	
@@ -2246,8 +2569,8 @@ var luajs = luajs || {};
 		 * Implementation of Lua's pairs function.
 		 * @param {object} table The table to be iterated over.
 		 */
-		pairs: function (table) {	
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in pairs(). Table expected');
+		pairs: function (table) {
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in pairs(). Table expected');
 			return [luajs.lib.next, table];
 		},
 	
@@ -2255,18 +2578,18 @@ var luajs = luajs || {};
 	
 	
 		pcall: function (func) {
-			var args = [],
+			var args = luajs.gc.createArray(),
 				result;
 				
 			for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);
 	
 			try {			
 				if (typeof func == 'function') {
-					result = func.apply ({}, args);
+					result = func.apply (null, args);
 					
-				} else if ((func || {}) instanceof luajs.Function) {
-					result = func.apply (args);
-				
+				} else if ((func || luajs.EMPTY_OBJ) instanceof luajs.Function) {
+					result = func.apply (null, args, true);
+
 				} else {
 					throw new luajs.Error ('Attempt to call non-function');
 				}
@@ -2275,7 +2598,7 @@ var luajs = luajs || {};
 				return [false, e.message];
 			}
 			
-			if (!((result || {}) instanceof Array)) result = [result];
+			if (!((result || luajs.EMPTY_OBJ) instanceof Array)) result = [result];
 			result.unshift (true);
 			
 			return result;
@@ -2286,16 +2609,16 @@ var luajs = luajs || {};
 	
 		print: function () {
 	
-			var output = [],
+			var output = luajs.gc.createArray(),
 				item;
 			
 			for (var i = 0, l = arguments.length; i< l; i++) {
 				item = arguments[i];
 				
-				if ((item || {}) instanceof luajs.Table) {
+				if ((item || luajs.EMPTY_OBJ) instanceof luajs.Table) {
 					output.push ('table: 0x' + item.__luajs.index.toString (16));
 					
-				} else if ((item || {}) instanceof Function) {
+				} else if ((item || luajs.EMPTY_OBJ) instanceof Function) {
 					output.push ('JavaScript function: ' + item.toString ());
 									
 				} else if (item === undefined) {
@@ -2321,7 +2644,7 @@ var luajs = luajs || {};
 	
 	
 		rawget: function (table, index) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in rawget(). Table expected');
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in rawget(). Table expected');
 			return table[index];
 		},
 	
@@ -2329,18 +2652,66 @@ var luajs = luajs || {};
 	
 	
 		rawset: function (table, index, value) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in rawset(). Table expected');
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in rawset(). Table expected');
 			if (index == undefined) throw new luajs.Error ('Bad argument #2 in rawset(). Nil not allowed');
 	
 			table[index] = value;
 			return table;
 		},
 	
+
+
+
+		require: function (modname) {
+			var thread,
+				packageLib = luajs.lib['package'],
+				vm = this,
+				module,
+				preload,
+				paths,
+				path;
+
+			function load (preloadFunc) {
+				packageLib.loaded[modname] = true;
+				module = preloadFunc.call(null, modname)[0];
+
+				if (module !== undefined) packageLib.loaded[modname] = module;
+				return packageLib.loaded[modname];
+			}
+
+			if (module = packageLib.loaded[modname]) return module;
+			if (preload = packageLib.preload[modname]) return load(preload);
+
+			paths = packageLib.path.replace(/;;/g, ';').split(';');
+			thread = luajs.lib.coroutine.yield();
+
+
+			function loadNextPath () {
+				path = paths.shift()
+
+				if (!path) {
+					thread.resume();
+			
+				} else {
+					path = path.replace(/\?/g, modname);
+
+					loadfile.call(vm, path, function (preload) {
+						if (preload) {
+							thread.resume(load(preload));
+						} else {
+							loadNextPath();
+						}
+					});
+				}
+			}
+
+			loadNextPath();
+		},	
 	
-	
+
 	
 		select: function (index) {
-			var args = [];
+			var args = luajs.gc.createArray();
 			
 			if (index == '#') {
 				return arguments.length - 1;
@@ -2363,10 +2734,13 @@ var luajs = luajs || {};
 		 * @param {object} metatable The metatable to attach.
 		 */
 		setmetatable: function (table, metatable) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in setmetatable(). Table expected');	
-			if (!(metatable === undefined || (metatable || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #2 in setmetatable(). Nil or table expected');	
-			
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in setmetatable(). Table expected');	
+			if (!(metatable === undefined || (metatable || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #2 in setmetatable(). Nil or table expected');	
+
+			luajs.gc.decrRef(table.__luajs.metatable);
 			table.__luajs.metatable = metatable;
+			luajs.gc.incrRef(metatable);
+
 			return table;
 		},
 		
@@ -2418,7 +2792,7 @@ var luajs = luajs || {};
 				 
 				case 'object': 
 					if (v.constructor === luajs.Table) return 'table';
-					if ((v || {}) instanceof luajs.Function) return 'function';
+					if ((v || luajs.EMPTY_OBJ) instanceof luajs.Function) return 'function';
 				
 					return 'userdata';
 			}
@@ -2440,20 +2814,31 @@ var luajs = luajs || {};
 		
 		
 		xpcall: function (func, err) {
-			var result, success;
+			var result, success, invalid;
 				
 			try {
-				result = func.apply ({});
+				if (typeof func == 'function') {
+					result = func.apply ();
+					
+				} else if ((func || luajs.EMPTY_OBJ) instanceof luajs.Function) {
+					result = func.apply (null, undefined, true);
+
+				} else {
+					invalid = true;
+				}
+
 				success = true;
 				
 			} catch (e) {
-				result = err.apply ({});
-				if (((result || {}) instanceof Array)) result = result[0];
+				result = err.apply (null, undefined, true);
+				if (((result || luajs.EMPTY_OBJ) instanceof Array)) result = result[0];
 	
 				success = false;
 			}
+
+			if (invalid) throw new luajs.Error ('Attempt to call non-function');
 			
-			if (!((result || {}) instanceof Array)) result = [result];
+			if (!((result || luajs.EMPTY_OBJ) instanceof Array)) result = [result];
 			result.unshift (success);
 			
 			return result;
@@ -2465,534 +2850,199 @@ var luajs = luajs || {};
 	
 	
 	
-	luajs.lib.string = {
+	luajs.lib.coroutine = {
+
 		
-		
-		'byte': function (s, i, j) {
-			i = i || 1;
-			j = j || i;
-			
-			var result = [],
-				length = s.length,
-				index;
-			
-			for (index = i; index <= length && index <= j ; index++) result.push (s.charCodeAt (index - 1) || undefined);
-			return result;
+		create: function (closure) {
+			//return new luajs.Coroutine (closure);
+			return luajs.Coroutine.create (closure);
 		},
 		
 		
 		
 		
-		'char': function () {
-			var result = '';
-			for (var i = 0, l = arguments.length; i < l; i++) result += String.fromCharCode (arguments[i]);
+		resume: function (thread) {
+			var args = luajs.gc.createArray();
+			for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);	
+
+			return thread.resume.apply (thread, args);
+		},
+		
+		
+		
+		
+		running: function () {
+			return luajs.Coroutine._running;
+		},
+		
 	
-			return result;			
+		
+		
+		status: function (closure) {
+			return closure.status;
 		},
 		
+	
 		
 		
-		
-		dump: function (func) {
-			console.log (func);
-			return JSON.stringify(func);
-		},
-		
-		
-		
-		
-		find: function (s, pattern, init, plain) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'find' (string expected, got " + typeof s + ")");
-			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'find' (string expected, got " + typeof pattern + ")");
-
-			s = '' + s;
-			init = init || 1;
-
-			var index, reg, match;
-
-			// Regex
-			if (plain === undefined || !plain) {
-				pattern = translatePattern (pattern);
-				reg = new RegExp (pattern);
-				index = s.substr(init - 1).search (reg);
-				
-				if (index < 0) return;
-				
-				match = s.substr(init - 1).match (reg);
-				return [index + init, index + init + match[0].length - 1, match[1]];
-			}
+		wrap: function (closure) {
+			var co = luajs.lib.coroutine.create (closure);
 			
-			// Plain
-			index = s.indexOf (pattern, init - 1);
-			return (index === -1)? undefined : [index + 1, index + pattern.length];
+			var result = function () {			
+				var args = [co];
+				for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
+	
+				var retvals = luajs.lib.coroutine.resume.apply (null, args),
+					success = retvals.shift ();
+					
+				if (success) return retvals;
+				throw retvals[0];
+			};
+			
+			result._coroutine = co;
+			return result;
 		},
 		
+	
 		
 		
-		
-		format: function (formatstring) {
-			// Temp fix
-			
-			/**
-			*
-			*  Javascript sprintf
-			*  http://www.webtoolkit.info/
-			*
-			*
-			**/
-			 
-			var sprintfWrapper = {
-			 
-				init : function () {
-			 
-					if (typeof arguments == "undefined") { return null; }
-					if (arguments.length < 1) { return null; }
-					if (typeof arguments[0] != "string") { return null; }
-					if (typeof RegExp == "undefined") { return null; }
+		yield: function () {
+			// If running in main thread, throw error.
+			if (!luajs.Coroutine._running) throw new luajs.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
+			if (luajs.Coroutine._running.status != 'running') throw new luajs.Error ('attempt to yield non-running coroutine in host');
 
-					var string = arguments[0];
-					var exp = new RegExp(/(%([%]|(\-)?(\+|\x20)?(0)?(\d+)?(\.(\d)?)?([bcdfosxX])))/g);
-					var matches = new Array();
-					var strings = new Array();
-					var convCount = 0;
-					var stringPosStart = 0;
-					var stringPosEnd = 0;
-					var matchPosEnd = 0;
-					var newString = '';
-					var match = null;
-			 
-					while (match = exp.exec(string)) {
-						if (match[9]) { convCount += 1; }
-			 
-						stringPosStart = matchPosEnd;
-						stringPosEnd = exp.lastIndex - match[0].length;
-						strings[strings.length] = string.substring(stringPosStart, stringPosEnd);
-			 
-						matchPosEnd = exp.lastIndex;
-						matches[matches.length] = {
-							match: match[0],
-							left: match[3] ? true : false,
-							sign: match[4] || '',
-							pad: match[5] || ' ',
-							min: match[6] || 0,
-							precision: match[8],
-							code: match[9] || '%',
-							negative: parseInt(arguments[convCount]) < 0 ? true : false,
-							argument: String(arguments[convCount])
+			var args = luajs.gc.createArray(),
+				running = luajs.Coroutine._running;
+
+			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
+	
+			running._yieldVars = args;
+			running.status = 'suspending';
+
+			return {
+				resume: function () {
+					var args = [running],
+						i, 
+						l = arguments.length,
+						f = function () { 
+							luajs.lib.coroutine.resume.apply (undefined, args); 
 						};
-					}
-					strings[strings.length] = string.substring(matchPosEnd);
-			 
-					if (matches.length == 0) { return string; }
-					if ((arguments.length - 1) < convCount) { return null; }
-			 
-					var code = null,
-						match = null,
-						i = null,
-						substitution;
-					
-			 
-					for (i=0; i<matches.length; i++) {
-			 
-						if (matches[i].code == '%') { substitution = '%' }
-						else if (matches[i].code == 'b') {
-							matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(2));
-							substitution = sprintfWrapper.convert(matches[i], true);
-						}
-						else if (matches[i].code == 'c') {
-							matches[i].argument = String(String.fromCharCode(Math.abs(parseInt(matches[i].argument))));
-							substitution = sprintfWrapper.convert(matches[i], true);
-						}
-						else if (matches[i].code == 'd') {
-							matches[i].argument = String(Math.abs(parseInt(matches[i].argument)));
-							substitution = sprintfWrapper.convert(matches[i]);
-						}
-						else if (matches[i].code == 'f') {
-							matches[i].argument = String(Math.abs(parseFloat(matches[i].argument)).toFixed(matches[i].precision ? matches[i].precision : 6));
-							substitution = sprintfWrapper.convert(matches[i]);
-						}
-						else if (matches[i].code == 'o') {
-							matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(8));
-							substitution = sprintfWrapper.convert(matches[i]);
-						}
-						else if (matches[i].code == 's') {
-							matches[i].argument = matches[i].argument.substring(0, matches[i].precision ? matches[i].precision : matches[i].argument.length)
-							substitution = sprintfWrapper.convert(matches[i], true);
-						}
-						else if (matches[i].code == 'x') {
-							matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(16));
-							substitution = sprintfWrapper.convert(matches[i]);
-						}
-						else if (matches[i].code == 'X') {
-							matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(16));
-							substitution = sprintfWrapper.convert(matches[i]).toUpperCase();
-						}
-						else {
-							substitution = matches[i].match;
-						}
-			 
-						newString += strings[i];
-						newString += substitution;
-			 
-					}
-					newString += strings[i];
-			 
-					return newString;
-			 
-				},
-			 
-				convert : function(match, nosign){
-					if (nosign) {
-						match.sign = '';
+
+					for (i = 0; i < l; i++) args.push (arguments[i]);
+
+					if (running.status == 'suspending') {
+						window.setTimeout (f, 1);
 					} else {
-						match.sign = match.negative ? '-' : match.sign;
-					}
-					var l = match.min - match.argument.length + 1 - match.sign.length;
-					var pad = new Array(l < 0 ? 0 : l).join(match.pad);
-					if (!match.left) {
-						if (match.pad == "0" || nosign) {
-							return match.sign + pad + match.argument;
-						} else {
-							return pad + match.sign + match.argument;
-						}
-					} else {
-						if (match.pad == "0" || nosign) {
-							return match.sign + match.argument + pad.replace(/0/g, ' ');
-						} else {
-							return match.sign + match.argument + pad;
-						}
+						f ();
 					}
 				}
 			}
-			 
-			return sprintfWrapper.init.apply ({}, arguments);
+		}
+	
+		
+	};
+
+
+	
+
+	luajs.lib.debug = {
+
+		debug: function () {
+			// Not implemented
+		},
+
+
+		getfenv: function (o) {
+			// Not implemented
+		},
+
+
+		gethook: function (thread) {
+			// Not implemented
+		},
+
+
+		getinfo: function (thread, func, what) {
+			// Not implemented
+		},
+
+
+		getlocal: function (thread, level, local) {
+			// Not implemented
+		},
+
+
+		getmetatable: function (object) {
+			// Not implemented
+		},
+
+
+		getregistry: function () {
+			// Not implemented
+		},
+
+
+		getupvalue: function (func, up) {
+			// Not implemented
+		},
+
+
+		setfenv: function (object, table) {
+			// Not implemented
+		},
+
+
+		sethook: function (thread, hook, mask, count) {
+			// Not implemented
+		},
+
+
+		setlocal: function (thread, level, local, value) {
+			// Not implemented
+		},
+
+
+		setmetatable: function (object, table) {
+			// Not implemented
+		},
+
+
+		setupvalue: function (func, up, value) {
+			// Not implemented
+		},
+
+
+		traceback: function (thread, message, level) {
+			// Not implemented
+		}
+	};
+
+
+
+
+	luajs.lib.io = {
+		
+		
+		write: function () {
+			var i, arg, output = '';
 			
-		},
-		
-		
-		
-		
-		gmatch: function (s, pattern) {
-			pattern = translatePattern (pattern);
-			var reg = new RegExp (pattern, 'g');
-				
-			return function () {
-				var result = reg.exec(s),
-					item;
-
-				if (!result) return;
-
-				item = result? result.shift() : undefined;
-				return result.length? result : item;
-			};			
-		},
-		
-		
-		
-		
-		gsub: function (s, pattern, repl, n) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'gsub' (string expected, got " + typeof s + ")");
-			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'gsub' (string expected, got " + typeof pattern + ")");
-			if (n !== undefined && (n = luajs.utils.toFloat (n)) === undefined) throw new luajs.Error ("bad argument #4 to 'gsub' (number expected, got " + typeof n + ")");
-
-			s = '' + s;
-			pattern = translatePattern ('' + pattern);
-
-			var reg = new RegExp (pattern),
-				count = 0,
-				result = '',
-				str,
-				prefix,
-				match;
-
-			while ((n === undefined || count < n) && s && (match = s.match (pattern))) {
-
-				if (typeof repl == 'function' || (repl || {}) instanceof luajs.Function) {
-					str = repl.call ({}, match[0]);
-					if (str instanceof Array) str = str[0];
-					if (str === undefined) str = match[0];
-
-				} else if ((repl || {}) instanceof luajs.Table) {
-					str = repl.getMember (match[0]);
-					
-				} else if (typeof repl == 'object') {
-					str = repl[match];
-					
-				} else {
-					str = ('' + repl).replace(/%([0-9])/g, function (m, i) { return match[i]; });
+			for (var i in arguments) {
+				if (arguments.hasOwnProperty(i)) {
+					var arg = arguments[i];
+					if (['string', 'number'].indexOf (typeof arg) == -1) throw new luajs.Error ('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
+					output += arg;
 				}
-				
-				prefix = s.split (match[0], 1)[0];
-				result += prefix + str;
-				s = s.substr((prefix + match[0]).length);
-
-				count++;
-			}
-
-			return [result + s, count];
-		},
-		
-		
-		
-		
-		len: function (s) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'len' (string expected, got " + typeof s + ")");
-			return ('' + s).length;
-		},
-		
-		
-		
-		
-		lower: function (s) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'lower' (string expected, got " + typeof s + ")");
-			return ('' + s).toLowerCase ();
-		},
-		
-		
-		
-		
-		match: function (s, pattern, init) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'match' (string expected, got " + typeof s + ")");
-			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'match' (string expected, got " + typeof pattern + ")");
-
-			init = init? init - 1 : 0;
-			s = ('' + s).substr (init);
-		
-			var matches = s.match(new RegExp (translatePattern (pattern)));
-			
-			if (!matches) return;
-			if (!matches[1]) return matches[0];
-
-			matches.shift ();
-			return matches;
-		},
-		
-		
-		
-		
-		rep: function (s, n) {
-			var result = '',
-			i;
-			
-			for (i = 0; i < n; i++) result += s;
-			return result;
-		},
-		
-		
-		
-		
-		reverse: function (s) {
-			var result = '',
-			i;
-			
-			for (i = s.length; i >= 0; i--) result += s.charAt (i);
-			return result;
-		},
-		
-		
-		
-		
-		sub: function (s, i, j) {
-			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'sub' (string expected, got " + typeof s + ")");
-			s = '' + s;
-			i = i || 1;
-			j = j || s.length;
-			
-			if (i > 0) {
-				i = i - 1;
-			} else if (i < 0) {
-				i = s.length + i;
 			}
 			
-			if (j < 0) j = s.length + j + 1;
-			
-			return s.substring (i, j);
-		},
-		
-		
-		
-		
-		upper: function (s) {
-			return s.toUpperCase ();
-		}	
+			luajs.stdout.write (output);
+		}
 		
 		
 	};
 	
 	
 	
-	
-	luajs.lib.table = {
 		
-		
-		concat: function (table, sep, i, j) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.concat(). Table expected');
-	
-			sep = sep || '';
-			i = i || 1;
-			j = j || luajs.lib.table.maxn (table);
-
-			var result = [].concat(table.__luajs.numValues).splice (i, j - i + 1);
-			return result.join (sep);
-		},
-		
-	
-	
-	
-		getn: function (table) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.getn(). Table expected');
-
-			var vals = table.__luajs.numValues, 
-				keys = [],
-				i, 
-				j = 0;
-
-			for (i in vals) if (vals.hasOwnProperty(i)) keys[i] = true;
-			while (keys[j + 1]) j++;
-	
-			// Following translated from ltable.c (http://www.lua.org/source/5.1/ltable.c.html)
-			if (j > 0 && vals[j] === undefined) {
-				/* there is a boundary in the array part: (binary) search for it */
-				var i = 0;
-	
-				while (j - i > 1) {
-					var m = Math.floor ((i + j) / 2);
-	
-					if (vals[m] === undefined) {
-						j = m;
-					} else {
-						i = m;
-					}
-				}
-
-				return i;
-			}
-
-			return j;
-		},
-		
-			
-		
-		
-		/**
-		 * Implementation of Lua's table.insert function.
-		 * @param {object} table The table in which to insert.
-		 * @param {object} index The poostion to insert.
-		 * @param {object} obj The value to insert.
-		 */
-		insert: function (table, index, obj) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.insert(). Table expected');
-	
-			if (obj == undefined) {
-				obj = index;
-				// index = 1;
-				// while (table.getMember(index) !== undefined) index++;
-				index = table.__luajs.numValues.length;
-			}
-	
-			var oldValue = table.getMember(index);
-			table.setMember(index, obj);
-	
-			if (oldValue) luajs.lib.table.insert (table, index + 1, oldValue);
-		},	
-		
-		
-		
-		
-		maxn: function (table) {
-			// v5.2: luajs.warn ('table.maxn is deprecated');
-			
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.maxn(). Table expected');
-	
-			// // length = 0;
-			// // while (table[length + 1] != undefined) length++;
-			// // 
-			// // return length;
-	
-			// var result = 0,
-			// 	index,
-			// 	i;
-				
-			// for (i in table) if ((index = 0 + parseInt (i, 10)) == i && table[i] !== null && index > result) result = index;
-			// return result; 
-
-			return table.__luajs.numValues.length - 1;
-		},
-		
-		
-		
-		
-		unpack: function (table, i, j) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in unpack(). Table expected');	
-	
-			i = i || 1;
-			if (j === undefined) j = luajs.lib.table.getn (table);
-			
-			var vals = [],
-				index;
-	
-			for (index = i; index <= j; index++) vals.push (table.getMember (index));
-			return vals;
-		},
-	
-	
-	
-	
-		/**
-		 * Implementation of Lua's table.remove function.
-		 * @param {object} table The table from which to remove an element.
-		 * @param {object} index The position of the element to remove.
-		 */
-		remove: function (table, index) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.remove(). Table expected');
-	
-			var max = luajs.lib.table.getn(table),
-				vals = table.__luajs.numValues,
-				result;
-
-			if (index > max) return;
-			if (index == undefined) index = max;
-				
-			result = vals.splice(index, 1);
-			while (index < max && vals[index] === undefined) delete vals[index++];
-			// table[index] = table[index + 1];	
-			
-			// luajs.lib.table.remove (table, index + 1);
-			// if (table[index] === undefined) delete table[index];
-	
-			return result;
-		},
-		
-		
-		
-		
-		sort: function (table, comp) {
-			if (!((table || {}) instanceof luajs.Table)) throw new luajs.Error ("Bad argument #1 to 'sort' (table expected)");
-	
-			var sortFunc, 
-				arr = table.__luajs.numValues;
-		
-			if (comp) {
-				if (!((comp || {}) instanceof luajs.Function)) throw new luajs.Error ("Bad argument #2 to 'sort' (function expected)");
-	
-				sortFunc = function (a, b) {
-					return comp.call ({}, a, b)[0]? -1 : 1;
-				}
-			
-			} else {
-				sortFunc = function (a, b) {
-					return a < b? -1 : 1;
-				};
-			}
-	
-			arr.shift();
-			arr.sort(sortFunc).unshift(undefined);
-		}
-	}
-	
-	
-	
-	
 	luajs.lib.math = {
 	
 	
@@ -3241,29 +3291,6 @@ var luajs = luajs || {};
 	
 	
 	
-	luajs.lib.io = {
-		
-		
-		write: function () {
-			var i, arg, output = '';
-			
-			for (var i in arguments) {
-				if (arguments.hasOwnProperty(i)) {
-					var arg = arguments[i];
-					if (['string', 'number'].indexOf (typeof arg) == -1) throw new luajs.Error ('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
-					output += arg;
-				}
-			}
-			
-			luajs.stdout.write (output);
-		}
-		
-		
-	}
-	
-	
-	
-		
 	luajs.lib.os = {
 	
 	
@@ -3286,7 +3313,7 @@ var luajs = luajs || {};
 					var dayOfYear = parseInt (handlers['%j'](d), 10),
 						jan1 = new Date (d.getFullYear (), 0, 1, 12),
 						offset = (8 - jan1['get' + utc + 'Day'] () + firstDay) % 7;
-	
+
 					return ('0' + (Math.floor ((dayOfYear - offset) / 7) + 1)).substr (-2);
 				},
 	
@@ -3455,99 +3482,565 @@ var luajs = luajs || {};
 	
 			
 	};
-	
-	
-	
-	luajs.lib.coroutine = {
-		
-		create: function (closure) {
-			//return new luajs.Coroutine (closure);
-			return luajs.Coroutine.create (closure);
-		},
-		
-		
-		
-		
-		resume: function (thread) {
-			var args = [];
-			for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);	
 
-			return thread.resume.apply (thread, args);
+
+
+
+	luajs.lib['package'] = {
+
+		cpath: undefined,
+
+
+		loaded: new luajs.Table(),
+
+
+		loadlib: function (libname, funcname) {
+			// Not implemented
 		},
+
+
+		path: '?.lua.json;?.json;./modules/?.json;./modules/?/?.json;./modules/?/index.json',
+
+
+		preload: {},
+
+
+		seeall: function (module) {
+			// Not implemented
+		}
+		
+	};
+
+
+
+
+	luajs.lib.string = {
 		
 		
-		
-		
-		running: function () {
-			return luajs.Coroutine._running;
-		},
-		
-	
-		
-		
-		status: function (closure) {
-			return closure.status;
-		},
-		
-		
-		
-		
-		wrap: function (closure) {
-			var co = luajs.lib.coroutine.create (closure);
+		'byte': function (s, i, j) {
+			i = i || 1;
+			j = j || i;
 			
-			var result = function () {			
-				var args = [co];
-				for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
-	
-				var retvals = luajs.lib.coroutine.resume.apply ({}, args),
-					success = retvals.shift ();
-					
-				if (success) return retvals;
-				throw retvals[0];
-			};
+			var result = luajs.gc.createArray(),
+				length = s.length,
+				index;
 			
-			result._coroutine = co;
+			for (index = i; index <= length && index <= j ; index++) result.push (s.charCodeAt (index - 1) || undefined);
 			return result;
 		},
 		
-	
 		
 		
-		yield: function () {
-			// If running in main thread, throw error.
-			if (!luajs.Coroutine._running) throw new luajs.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
-			if (luajs.Coroutine._running.status != 'running') throw new luajs.Error ('attempt to yield non-running coroutine in host');
-
-			var args = [],
-				running = luajs.Coroutine._running;
-
-			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
+		
+		'char': function () {
+			var result = '';
+			for (var i = 0, l = arguments.length; i < l; i++) result += String.fromCharCode (arguments[i]);
 	
-			running._yieldVars = args;
-			running.status = 'suspending';
+			return result;			
+		},
+		
+		
+		
+		
+		dump: function (func) {
+			return JSON.stringify(func._data);
+		},
+		
+		
+		
+		
+		find: function (s, pattern, init, plain) {
+			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'find' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'find' (string expected, got " + typeof pattern + ")");
 
-			return {
-				resume: function () {
-					var args = [running],
-						i, 
-						l = arguments.length,
-						f = function () { 
-							luajs.lib.coroutine.resume.apply (undefined, args); 
+			s = '' + s;
+			init = init || 1;
+
+			var index, reg, match;
+
+			// Regex
+			if (plain === undefined || !plain) {
+				pattern = translatePattern (pattern);
+				reg = new RegExp (pattern);
+				index = s.substr(init - 1).search (reg);
+				
+				if (index < 0) return;
+				
+				match = s.substr(init - 1).match (reg);
+				return [index + init, index + init + match[0].length - 1, match[1]];
+			}
+			
+			// Plain
+			index = s.indexOf (pattern, init - 1);
+			return (index === -1)? undefined : [index + 1, index + pattern.length];
+		},
+		
+		
+		
+		
+		format: function (formatstring) {
+			// Temp fix
+			
+			/**
+			*
+			*  Javascript sprintf
+			*  http://www.webtoolkit.info/
+			*
+			*
+			**/
+			 
+			var sprintfWrapper = {
+			 
+				init : function () {
+			 
+					if (typeof arguments == "undefined") { return null; }
+					if (arguments.length < 1) { return null; }
+					if (typeof arguments[0] != "string") { return null; }
+					if (typeof RegExp == "undefined") { return null; }
+
+					var string = arguments[0];
+					var exp = new RegExp(/(%([%]|(\-)?(\+|\x20)?(0)?(\d+)?(\.(\d)?)?([bcdfosxX])))/g);
+					var matches = new Array();
+					var strings = new Array();
+					var convCount = 0;
+					var stringPosStart = 0;
+					var stringPosEnd = 0;
+					var matchPosEnd = 0;
+					var newString = '';
+					var match = null;
+			 
+					while (match = exp.exec(string)) {
+						if (match[9]) { convCount += 1; }
+			 
+						stringPosStart = matchPosEnd;
+						stringPosEnd = exp.lastIndex - match[0].length;
+						strings[strings.length] = string.substring(stringPosStart, stringPosEnd);
+			 
+						matchPosEnd = exp.lastIndex;
+						matches[matches.length] = {
+							match: match[0],
+							left: match[3] ? true : false,
+							sign: match[4] || '',
+							pad: match[5] || ' ',
+							min: match[6] || 0,
+							precision: match[8],
+							code: match[9] || '%',
+							negative: parseInt(arguments[convCount]) < 0 ? true : false,
+							argument: String(arguments[convCount])
 						};
-
-					for (i = 0; i < l; i++) args.push (arguments[i]);
-
-					if (running.status == 'suspending') {
-						window.setTimeout (f, 1);
+					}
+					strings[strings.length] = string.substring(matchPosEnd);
+			 
+					if (matches.length == 0) { return string; }
+					if ((arguments.length - 1) < convCount) { return null; }
+			 
+					var code = null,
+						match = null,
+						i = null,
+						substitution;
+					
+			 
+					for (i=0; i<matches.length; i++) {
+			 
+						if (matches[i].code == '%') { substitution = '%' }
+						else if (matches[i].code == 'b') {
+							matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(2));
+							substitution = sprintfWrapper.convert(matches[i], true);
+						}
+						else if (matches[i].code == 'c') {
+							matches[i].argument = String(String.fromCharCode(Math.abs(parseInt(matches[i].argument))));
+							substitution = sprintfWrapper.convert(matches[i], true);
+						}
+						else if (matches[i].code == 'd') {
+							matches[i].argument = String(Math.abs(parseInt(matches[i].argument)));
+							substitution = sprintfWrapper.convert(matches[i]);
+						}
+						else if (matches[i].code == 'f') {
+							matches[i].argument = String(Math.abs(parseFloat(matches[i].argument)).toFixed(matches[i].precision ? matches[i].precision : 6));
+							substitution = sprintfWrapper.convert(matches[i]);
+						}
+						else if (matches[i].code == 'o') {
+							matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(8));
+							substitution = sprintfWrapper.convert(matches[i]);
+						}
+						else if (matches[i].code == 's') {
+							matches[i].argument = matches[i].argument.substring(0, matches[i].precision ? matches[i].precision : matches[i].argument.length)
+							substitution = sprintfWrapper.convert(matches[i], true);
+						}
+						else if (matches[i].code == 'x') {
+							matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(16));
+							substitution = sprintfWrapper.convert(matches[i]);
+						}
+						else if (matches[i].code == 'X') {
+							matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(16));
+							substitution = sprintfWrapper.convert(matches[i]).toUpperCase();
+						}
+						else {
+							substitution = matches[i].match;
+						}
+			 
+						newString += strings[i];
+						newString += substitution;
+			 
+					}
+					newString += strings[i];
+			 
+					return newString;
+			 
+				},
+			 
+				convert : function(match, nosign){
+					if (nosign) {
+						match.sign = '';
 					} else {
-						f ();
+						match.sign = match.negative ? '-' : match.sign;
+					}
+					var l = match.min - match.argument.length + 1 - match.sign.length;
+					var pad = new Array(l < 0 ? 0 : l).join(match.pad);
+					if (!match.left) {
+						if (match.pad == "0" || nosign) {
+							return match.sign + pad + match.argument;
+						} else {
+							return pad + match.sign + match.argument;
+						}
+					} else {
+						if (match.pad == "0" || nosign) {
+							return match.sign + match.argument + pad.replace(/0/g, ' ');
+						} else {
+							return match.sign + match.argument + pad;
+						}
 					}
 				}
 			}
-		}
-	
+			 
+			return sprintfWrapper.init.apply (null, arguments);
+			
+		},
+		
+		
+		
+		
+		gmatch: function (s, pattern) {
+			pattern = translatePattern (pattern);
+			var reg = new RegExp (pattern, 'g');
+				
+			return function () {
+				var result = reg.exec(s),
+					item;
+
+				if (!result) return;
+
+				item = result? result.shift() : undefined;
+				return result.length? result : item;
+			};			
+		},
+		
+		
+		
+		
+		gsub: function (s, pattern, repl, n) {
+			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'gsub' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'gsub' (string expected, got " + typeof pattern + ")");
+			if (n !== undefined && (n = luajs.utils.toFloat (n)) === undefined) throw new luajs.Error ("bad argument #4 to 'gsub' (number expected, got " + typeof n + ")");
+
+			s = '' + s;
+			pattern = translatePattern ('' + pattern);
+
+			var reg = new RegExp (pattern),
+				count = 0,
+				result = '',
+				str,
+				prefix,
+				match;
+
+			while ((n === undefined || count < n) && s && (match = s.match (pattern))) {
+
+				if (typeof repl == 'function' || (repl || luajs.EMPTY_OBJ) instanceof luajs.Function) {
+					str = repl.apply (null, [match[0]], true);
+					if (str instanceof Array) str = str[0];
+					if (str === undefined) str = match[0];
+
+				} else if ((repl || luajs.EMPTY_OBJ) instanceof luajs.Table) {
+					str = repl.getMember (match[0]);
+					
+				} else if (typeof repl == 'object') {
+					str = repl[match];
+					
+				} else {
+					str = ('' + repl).replace(/%([0-9])/g, function (m, i) { return match[i]; });
+				}
+				
+				prefix = s.split (match[0], 1)[0];
+				result += prefix + str;
+				s = s.substr((prefix + match[0]).length);
+
+				count++;
+			}
+
+			return [result + s, count];
+		},
+		
+		
+		
+		
+		len: function (s) {
+			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'len' (string expected, got " + typeof s + ")");
+			return ('' + s).length;
+		},
+		
+		
+		
+		
+		lower: function (s) {
+			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'lower' (string expected, got " + typeof s + ")");
+			return ('' + s).toLowerCase ();
+		},
+		
+		
+		
+		
+		match: function (s, pattern, init) {
+			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'match' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'match' (string expected, got " + typeof pattern + ")");
+
+			init = init? init - 1 : 0;
+			s = ('' + s).substr (init);
+		
+			var matches = s.match(new RegExp (translatePattern (pattern)));
+			
+			if (!matches) return;
+			if (!matches[1]) return matches[0];
+
+			matches.shift ();
+			return matches;
+		},
+		
+		
+		
+		
+		rep: function (s, n) {
+			var result = '',
+			i;
+			
+			for (i = 0; i < n; i++) result += s;
+			return result;
+		},
+		
+		
+		
+		
+		reverse: function (s) {
+			var result = '',
+			i;
+			
+			for (i = s.length; i >= 0; i--) result += s.charAt (i);
+			return result;
+		},
+		
+		
+		
+		
+		sub: function (s, i, j) {
+			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'sub' (string expected, got " + typeof s + ")");
+			s = '' + s;
+			i = i || 1;
+			j = j || s.length;
+			
+			if (i > 0) {
+				i = i - 1;
+			} else if (i < 0) {
+				i = s.length + i;
+			}
+			
+			if (j < 0) j = s.length + j + 1;
+			
+			return s.substring (i, j);
+		},
+		
+		
+		
+		
+		upper: function (s) {
+			return s.toUpperCase ();
+		}	
+		
 		
 	};
+	
+	
+	
+	
+	luajs.lib.table = {
+		
+		
+		concat: function (table, sep, i, j) {
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.concat(). Table expected');
+	
+			sep = sep || '';
+			i = i || 1;
+			j = j || luajs.lib.table.maxn (table);
+
+			var result = luajs.gc.createArray().concat(table.__luajs.numValues).splice (i, j - i + 1);
+			return result.join (sep);
+		},
+		
+	
+	
+	
+		getn: function (table) {
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.getn(). Table expected');
+
+			var vals = table.__luajs.numValues, 
+				keys = luajs.gc.createArray(),
+				i, 
+				j = 0;
+
+			for (i in vals) if (vals.hasOwnProperty(i)) keys[i] = true;
+			while (keys[j + 1]) j++;
+	
+			// Following translated from ltable.c (http://www.lua.org/source/5.1/ltable.c.html)
+			if (j > 0 && vals[j] === undefined) {
+				/* there is a boundary in the array part: (binary) search for it */
+				var i = 0;
+	
+				while (j - i > 1) {
+					var m = Math.floor ((i + j) / 2);
+	
+					if (vals[m] === undefined) {
+						j = m;
+					} else {
+						i = m;
+					}
+				}
+
+				return i;
+			}
+
+			return j;
+		},
+		
+			
+		
+		
+		/**
+		 * Implementation of Lua's table.insert function.
+		 * @param {object} table The table in which to insert.
+		 * @param {object} index The poostion to insert.
+		 * @param {object} obj The value to insert.
+		 */
+		insert: function (table, index, obj) {
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.insert(). Table expected');
+	
+			if (obj == undefined) {
+				obj = index;
+				// index = 1;
+				// while (table.getMember(index) !== undefined) index++;
+				index = table.__luajs.numValues.length;
+			}
+	
+			var oldValue = table.getMember(index);
+			table.setMember(index, obj);
+	
+			if (oldValue) luajs.lib.table.insert (table, index + 1, oldValue);
+		},	
+		
+		
+		
+		
+		maxn: function (table) {
+			// v5.2: luajs.warn ('table.maxn is deprecated');
+			
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.maxn(). Table expected');
+	
+			// // length = 0;
+			// // while (table[length + 1] != undefined) length++;
+			// // 
+			// // return length;
+	
+			// var result = 0,
+			// 	index,
+			// 	i;
+				
+			// for (i in table) if ((index = 0 + parseInt (i, 10)) == i && table[i] !== null && index > result) result = index;
+			// return result; 
+
+			return table.__luajs.numValues.length - 1;
+		},
+		
+		
+		
+		
+		/**
+		 * Implementation of Lua's table.remove function.
+		 * @param {object} table The table from which to remove an element.
+		 * @param {object} index The position of the element to remove.
+		 */
+		remove: function (table, index) {
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in table.remove(). Table expected');
+	
+			var max = luajs.lib.table.getn(table),
+				vals = table.__luajs.numValues,
+				result;
+
+			if (index > max) return;
+			if (index == undefined) index = max;
+				
+			result = vals.splice(index, 1);
+			while (index < max && vals[index] === undefined) delete vals[index++];
+			// table[index] = table[index + 1];	
+			
+			// luajs.lib.table.remove (table, index + 1);
+			// if (table[index] === undefined) delete table[index];
+	
+			return result;
+		},
+		
+		
+		
+		
+		sort: function (table, comp) {
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ("Bad argument #1 to 'sort' (table expected)");
+	
+			var sortFunc, 
+				arr = table.__luajs.numValues;
+		
+			if (comp) {
+				if (!((comp || luajs.EMPTY_OBJ) instanceof luajs.Function)) throw new luajs.Error ("Bad argument #2 to 'sort' (function expected)");
+	
+				sortFunc = function (a, b) {
+					return comp.apply (null, [a, b], true)[0]? -1 : 1;
+				}
+			
+			} else {
+				sortFunc = function (a, b) {
+					return a < b? -1 : 1;
+				};
+			}
+	
+			arr.shift();
+			arr.sort(sortFunc).unshift(undefined);
+		},
+
+
+
+
+		unpack: function (table, i, j) {
+			if (!((table || luajs.EMPTY_OBJ) instanceof luajs.Table)) throw new luajs.Error ('Bad argument #1 in unpack(). Table expected');	
+	
+			i = i || 1;
+			if (j === undefined) j = luajs.lib.table.getn (table);
+			
+			var vals = luajs.gc.createArray(),
+				index;
+	
+			for (index = i; index <= j; index++) vals.push (table.getMember (index));
+			return vals;
+		}
+
+
+	}
+
+	
 	
 	
 })();/**
@@ -3595,18 +4088,18 @@ luajs.debug = {};
 
 		toObject: function (table) {
 			var isArr = luajs.lib.table.getn (table) > 0,
-				result = isArr? [] : {},
+				result = luajs.gc['create' + (isArr? 'Array' : 'Object')](),
 				numValues = table.__luajs.numValues,
 				i,
 				l = numValues.length;
 
 			for (i = 1; i < l; i++) {
-				result[i - 1] = ((numValues[i] || {}) instanceof luajs.Table)? luajs.utils.toObject(numValues[i]) : numValues[i];
+				result[i - 1] = ((numValues[i] || luajs.EMPTY_OBJ) instanceof luajs.Table)? luajs.utils.toObject(numValues[i]) : numValues[i];
 			}
 
 			for (i in table) {
 				if (table.hasOwnProperty (i) && !(i in luajs.Table.prototype) && i !== '__luajs') {
-					result[i] = ((table[i] || {}) instanceof luajs.Table)? luajs.utils.toObject (table[i]) : table[i];
+					result[i] = ((table[i] || luajs.EMPTY_OBJ) instanceof luajs.Table)? luajs.utils.toObject (table[i]) : table[i];
 				}
 			}
 			
@@ -3646,13 +4139,33 @@ luajs.debug = {};
 			if (!('' + x).match (FLOATING_POINT_PATTERN)) return;
 			
 			return parseFloat (x);
-		}
+		},
 		
 
+
+
+		get: function (url, success, error) {
+	        var xhr = new XMLHttpRequest();
+	        xhr.responseType = 'text';
+
+	        xhr.onload = function (e) {
+	            if (this.status == 200) {
+	                if (success) success(this.response);
+	            } else {
+	                if (error) error(this.status);
+	            }
+	        }
+
+	        xhr.open('GET', url, true);
+	        xhr.send(luajs.EMPTY_OBJ);
+	    }
+
+	
 	};
 
 
-})();/**
+})();
+/**
  * @fileOverview Output streams.
  * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
  * @copyright Gamesys Limited 2013
