@@ -8,9 +8,9 @@ do
 	local currentFile
 
 
-	if getTimestamp then
-		startTime = getTimestamp()
-	end
+	-- if getTimestamp then
+	-- 	startTime = getTimestamp()
+	-- end
 
 
 	function assertTrue (condition, message)
@@ -56,10 +56,10 @@ do
 	function showResults ()		
 		local durationStr = ''
 
-		if getTimestamp then
-			local endTime = getTimestamp()
-			durationStr = '\nCompleted in '..(endTime - startTime)..'ms.'
-		end
+		-- if getTimestamp then
+		-- 	local endTime = getTimestamp()
+		-- 	durationStr = '\nCompleted in '..(endTime - startTime)..'ms.'
+		-- end
 
 		print "\n------------------------"
 		if failed == 0 then
