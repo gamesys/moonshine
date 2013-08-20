@@ -229,7 +229,9 @@ luajs.VM.prototype._bindLib = function (lib) {
 				result[i] = this._bindLib(lib[i]);
 
 			} else if (typeof lib[i] == 'function') {
-				result[i] = lib[i].bind(this);
+				result[i] = (function (func, context) {
+					return function () { return func.apply(context, arguments); };
+				})(lib[i], this);
 
 			} else {
 				result[i] = lib[i];
@@ -372,72 +374,6 @@ luajs.VM.prototype.dispose = function () {
 	luajs.Coroutine._graveyard.splice(0, luajs.Coroutine._graveyard.length);
 
 };
-
-
-(function () {
-	
-
-	/////////////////////////////////
-	// Array implementation
-	/////////////////////////////////
-
-
-	var ArrayInstructionSet = function (data) {
-		this._data = data;
-	}
-
-
-
-
-	ArrayInstructionSet.prototype.get = function (index, part) {
-		return this._data[index][part];
-	};
-
-
-
-
-
-	/////////////////////////////////
-	// Array buffer implementation
-	/////////////////////////////////
-
-
-	var ArrayBufferInstructionSet = function (data) {
-		this._buffer = new ArrayBuffer(data.length * 4 * 4);
-		this._view = new Int32Array(this._buffer);
-
-		var instruction,
-			i, l;
-
-		for (i = 0, l = data.length; i < l; i++) {
-			var instruction = data[i];
-
-			this._view[i * 4] = instruction.op;
-			this._view[i * 4 + 1] = instruction.A;
-			this._view[i * 4 + 2] = instruction.B;
-			if (instruction.C) this._view[i * 4 + 3] = instruction.C;
-		}
-	}
-
-
-
-
-	ArrayBufferInstructionSet.prototype.get = function (index, part) {
-		switch (part) {
-			case 'op': return this._view[index * 4];
-			case 'A': return this._view[index * 4 + 1];
-			case 'B': return this._view[index * 4 + 2];
-			case 'C': return this._view[index * 4 + 3];
-		}
-	};
-
-
-
-
-	luajs.InstructionSet = ('ArrayBuffer' in window)? ArrayBufferInstructionSet : ArrayInstructionSet;
-
-})();
-
 
 
 
@@ -646,7 +582,7 @@ luajs.Closure.prototype.execute = function (args) {
 		}
 
 		if (!e.luaStack) e.luaStack = luajs.gc.createArray();
-		e.luaStack.push ('at ' + (this._data.sourceName || 'function') + ' on line ' + this._data.linePositions[this._pc - 1])
+		e.luaStack.push ('at ' + (this._data.sourceName || 'function') + (this._data.linePositions? ' on line ' + this._data.linePositions[this._pc - 1] : ''));
 	
 		throw e;
 	}
@@ -692,9 +628,10 @@ luajs.Closure.prototype._run = function () {
 	if (yieldVars) {
 		// instruction = this._instructions[this._pc - 1];
 
-		var a = this._instructions.get(this._pc - 1, 'A'),
-			b = this._instructions.get(this._pc - 1, 'B'),
-			c = this._instructions.get(this._pc - 1, 'C'),
+		var offset = (this._pc - 1) * 4,
+			a = this._instructions[offset + 1],
+			b = this._instructions[offset + 2],
+			c = this._instructions[offset + 3],
 			retvals = luajs.gc.createArray();
 
 		for (var i = 0, l = yieldVars.length; i < l; i++) retvals.push (yieldVars[i]);
@@ -718,7 +655,7 @@ luajs.Closure.prototype._run = function () {
 	}
 
 
-	while (this._instructions.get(this._pc, 'op') !== undefined) {
+	while (this._instructions[this._pc * 4] !== undefined) {
 		line = this._data.linePositions && this._data.linePositions[this._pc];
 
 		retval = this._executeInstruction (this._pc++, line);
@@ -768,11 +705,12 @@ luajs.Closure.prototype._run = function () {
  * @returns {Array} Array of the values that make be returned from executing the instruction.
  */
 luajs.Closure.prototype._executeInstruction = function (pc, line) {
-	var opcode = this._instructions.get(pc, 'op'),
+	var offset = pc * 4,
+		opcode = this._instructions[offset],
 		op = this.constructor.OPERATIONS[opcode],
-		A = this._instructions.get(pc, 'A'),
-		B = this._instructions.get(pc, 'B'),
-		C = this._instructions.get(pc, 'C');
+		A = this._instructions[offset + 1],
+		B = this._instructions[offset + 2],
+		C = this._instructions[offset + 3];
 
 	if (!op) throw new Error ('Operation not implemented! (' + opcode + ')');
 
@@ -1024,7 +962,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var toFloat = luajs.utils.toFloat,
+		var coerce = luajs.utils.coerce,
 			mt, f, bn, cn;
 
 		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__add')))
@@ -1032,8 +970,9 @@ luajs.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
-			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register.setItem(a, parseFloat (b) + parseFloat (c));
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			this._register.setItem(a, b + c);
 		}
 	}
 
@@ -1044,7 +983,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var toFloat = luajs.utils.toFloat,
+		var coerce = luajs.utils.coerce,
 			mt, f;
 
 		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__sub')))
@@ -1052,8 +991,9 @@ luajs.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
-			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register.setItem(a, parseFloat (b) - parseFloat (c));
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			this._register.setItem(a, b - c);
 		}
 	}
 
@@ -1064,7 +1004,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var toFloat = luajs.utils.toFloat,
+		var coerce = luajs.utils.coerce,
 			mt, f;
 
 		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mul')))
@@ -1072,8 +1012,9 @@ luajs.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
-			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register.setItem(a, parseFloat (b) * parseFloat (c));
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			this._register.setItem(a, b * c);
 		}
 	}
 
@@ -1084,7 +1025,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var toFloat = luajs.utils.toFloat,
+		var coerce = luajs.utils.coerce,
 			mt, f;
 
 		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__div')))
@@ -1092,8 +1033,9 @@ luajs.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
-			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register.setItem(a, parseFloat (b) / parseFloat (c));
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			this._register.setItem(a, b / c);
 		}
 	}
 
@@ -1104,16 +1046,27 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 		
-		var toFloat = luajs.utils.toFloat,
-			mt, f;
+		var coerce = luajs.utils.coerce,
+			mt, f, result, absC;
 
 		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__mod')))
 		|| ((c || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = c.__luajs.metatable) && (f = mt.getMember ('__mod')))) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
-			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register.setItem(a, parseFloat (b) % parseFloat (c));
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+
+			if (c === 0 || c === -Infinity || c === Infinity || window.isNaN(b) || window.isNaN(c)) {
+				result = NaN;
+
+			} else {
+				result = Math.abs(b) % (absC = Math.abs(c));
+				if (!(b < 0) ^ !(c < 0)) result = absC - result;
+				if (c < 0) result *= -1;
+			}
+
+			this._register.setItem(a, result);
 		}
 	}
 
@@ -1124,7 +1077,7 @@ luajs.Closure.prototype.dispose = function (force) {
 		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
 
-		var toFloat = luajs.utils.toFloat,
+		var coerce = luajs.utils.coerce,
 			mt, f;
 
 		if (((b || luajs.EMPTY_OBJ) instanceof luajs.Table && (mt = b.__luajs.metatable) && (f = mt.getMember ('__pow')))
@@ -1132,8 +1085,9 @@ luajs.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
 
 		} else {
-			if (toFloat (b) === undefined || toFloat (c) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register.setItem(a, Math.pow (parseFloat (b), parseFloat (c)));
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			this._register.setItem(a, Math.pow (b, c));
 		}
 	}
 
@@ -1147,9 +1101,8 @@ luajs.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply (null, [this._register.getItem(b)], true)[0]);
 
 		} else {
-			b = this._register.getItem(b);
-			if (luajs.utils.toFloat (b) === undefined) throw new luajs.Error ('attempt to perform arithmetic on a non-numeric value'); 
-			this._register.setItem(a, -parseFloat (b));
+			b = luajs.utils.coerce(this._register.getItem(b), 'number', 'attempt to perform arithmetic on a non-numeric value');
+			this._register.setItem(a, -b);
 		}
 	}
 
@@ -1305,7 +1258,7 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function testset (a, b, c) {
-		if (!this._register.getItem(b) === !c) {
+		if (!this._register.getItem(b) !== !c) {
 			this._register.setItem(a, this._register.getItem(b));
 		} else {
 			this._pc++;
@@ -1524,14 +1477,14 @@ luajs.Closure.prototype.dispose = function (force) {
 			upvalues = luajs.gc.createArray(),
 			opcode;
 
-		while ((opcode = this._instructions.get(this._pc, 'op')) !== undefined && (opcode === 0 || opcode === 4) && this._instructions.get(this._pc, 'A') === 0) {	// move, getupval
+		while ((opcode = this._instructions[this._pc * 4]) !== undefined && (opcode === 0 || opcode === 4) && this._instructions[this._pc * 4 + 1] === 0) {	// move, getupval
 
 			(function () {
 				var op = opcode,
-					pc = me._pc,
-					A = me._instructions.get(pc, 'A'),
-					B = me._instructions.get(pc, 'B'),
-					C = me._instructions.get(pc, 'C'),
+					offset = me._pc * 4,
+					A = me._instructions[offset + 1],
+					B = me._instructions[offset + 2],
+					C = me._instructions[offset + 3],
 					upvalue;
 
 				// luajs.stddebug.write ('-> ' + me.constructor.OPERATION_NAMES[op] + '\t' + A + '\t' + B + '\t' + C);
@@ -1646,7 +1599,8 @@ luajs.Function = function (vm, file, data, globals, upvalues) {
 	this._retainCount = 0;
 
 	// Convert instructions to byte array (where possible);
- 	if (this._data.instructions instanceof Array) this._data.instructions = new luajs.InstructionSet(data.instructions);
+ 	//if (this._data.instructions instanceof Array) this._data.instructions = new luajs.InstructionSet(data.instructions);
+ 	this._convertInstructions();
 
 	this.constructor._instances.push(this);
 };
@@ -1682,6 +1636,50 @@ luajs.Function._instances = [];
  */
 luajs.Function.prototype.getInstance = function () {
 	return luajs.Closure.create (this._vm, this._file, this._data, this._globals, this._upvalues); //new luajs.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
+};
+
+
+
+
+/**
+ * Converts the function's instructions from the format in file into ArrayBuffer or Array in place.
+ */
+luajs.Function.prototype._convertInstructions = function () {
+	var instructions = this._data.instructions,
+		buffer,
+		result,
+		i, l,
+		instruction,
+		offset;
+	
+	if ('ArrayBuffer' in window) {
+		if (instructions instanceof Int32Array) return;
+
+		buffer = new ArrayBuffer(instructions.length * 4 * 4);
+		result = new Int32Array(buffer);
+
+		if (instructions.length == 0 || instructions[0].op === undefined) {
+			result.set(instructions);
+			this._data.instructions = result;
+			return;
+		}
+
+	} else {
+		if (instructions.length == 0 || instructions[0].op === undefined) return;
+		result = [];
+	}
+
+	for (i = 0, l = instructions.length; i < l; i++) {
+		instruction = instructions[i];
+		offset = i * 4;
+
+		result[offset] = instruction.op;
+		result[offset + 1] = instruction.A;
+		result[offset + 2] = instruction.B;
+		result[offset + 3] = instruction.C;
+	}
+
+	this._data.instructions = result;
 };
 
 
@@ -2203,9 +2201,12 @@ luajs.Error.prototype.constructor = luajs.Error;
  */
 luajs.Error.catchExecutionError = function (e) {
 	if (!e) return;
-	//if ((e || luajs.EMPTY_OBJ) instanceof luajs.Error && console) throw new Error ('[luajs] ' + e.message + '\n    ' + (e.luaStack || []).join ('\n    '));
-	if ((e || luajs.EMPTY_OBJ) instanceof luajs.Error) e.message = e.message + '\n    ' + (e.luaStack || []).join('\n    ');
-	
+
+	if ((e || luajs.EMPTY_OBJ) instanceof luajs.Error) {
+		if (!e.luaMessage) e.luaMessage = e.message;
+		e.message = e.luaMessage + '\n    ' + (e.luaStack || luajs.gc.createArray()).join('\n    ');
+	}
+
 	throw e;
 };
 
@@ -2625,7 +2626,7 @@ var luajs = luajs || {};
 					output.push ('nil');
 					
 				} else {
-					output.push (item);
+					output.push (luajs.lib.tostring(item));
 				}
 //	console.log ('print>>', item);
 			}
@@ -3205,8 +3206,9 @@ var luajs = luajs || {};
 		
 		
 		pow: function (x, y) {
-			if ((x = luajs.utils.toFloat (x)) === undefined) throw new luajs.Error ("bad argument #1 to 'pow' (number expected)");
-			if ((y = luajs.utils.toFloat (y)) === undefined) throw new luajs.Error ("bad argument #2 to 'pow' (number expected)");
+			var coerce = luajs.utils.coerce;
+			x = coerce(x, 'number', "bad argument #1 to 'pow' (number expected)")
+			y = coerce(y, 'number', "bad argument #2 to 'pow' (number expected)")
 			return Math.pow (x, y);
 		},
 		
@@ -3214,7 +3216,7 @@ var luajs = luajs || {};
 		
 		
 		rad: function (x) {
-			if ((x = luajs.utils.toFloat (x)) === undefined) throw new luajs.Error ("bad argument #1 to 'rad' (number expected)");
+			x = luajs.utils.coerce(x, 'number', "bad argument #1 to 'rad' (number expected)")
 			return (Math.PI / 180) * x;
 		},
 	
@@ -3556,7 +3558,7 @@ var luajs = luajs || {};
 			s = '' + s;
 			init = init || 1;
 
-			var index, reg, match;
+			var index, reg, match, result;
 
 			// Regex
 			if (plain === undefined || !plain) {
@@ -3567,7 +3569,10 @@ var luajs = luajs || {};
 				if (index < 0) return;
 				
 				match = s.substr(init - 1).match (reg);
-				return [index + init, index + init + match[0].length - 1, match[1]];
+				result = [index + init, index + init + match[0].length - 1];
+
+				match.shift();
+				return result.concat(match);
 			}
 			
 			// Plain
@@ -3722,17 +3727,18 @@ var luajs = luajs || {};
 		
 		gmatch: function (s, pattern) {
 			pattern = translatePattern (pattern);
-			var reg = new RegExp (pattern, 'g');
-				
+			var reg = new RegExp (pattern, 'g'),
+				matches = ('' + s).match(reg);
+
 			return function () {
-				var result = reg.exec(s),
-					item;
+				var match = matches.shift(),
+					groups = new RegExp(reg).exec(match);
 
-				if (!result) return;
+				if (match === undefined) return;
 
-				item = result? result.shift() : undefined;
-				return result.length? result : item;
-			};			
+				groups.shift();
+				return groups.length? groups : match;
+			};				
 		},
 		
 		
@@ -3741,17 +3747,17 @@ var luajs = luajs || {};
 		gsub: function (s, pattern, repl, n) {
 			if (typeof s != 'string' && typeof s != 'number') throw new luajs.Error ("bad argument #1 to 'gsub' (string expected, got " + typeof s + ")");
 			if (typeof pattern != 'string' && typeof pattern != 'number') throw new luajs.Error ("bad argument #2 to 'gsub' (string expected, got " + typeof pattern + ")");
-			if (n !== undefined && (n = luajs.utils.toFloat (n)) === undefined) throw new luajs.Error ("bad argument #4 to 'gsub' (number expected, got " + typeof n + ")");
+			if (n !== undefined && (n = luajs.utils.coerce(n, 'number')) === undefined) throw new luajs.Error ("bad argument #4 to 'gsub' (number expected, got " + typeof n + ")");
 
 			s = '' + s;
 			pattern = translatePattern ('' + pattern);
 
-			var reg = new RegExp (pattern),
-				count = 0,
+			var count = 0,
 				result = '',
 				str,
 				prefix,
-				match;
+				match,
+				lastMatch;
 
 			while ((n === undefined || count < n) && s && (match = s.match (pattern))) {
 
@@ -3769,10 +3775,16 @@ var luajs = luajs || {};
 				} else {
 					str = ('' + repl).replace(/%([0-9])/g, function (m, i) { return match[i]; });
 				}
-				
-				prefix = s.split (match[0], 1)[0];
+
+				if (match[0].length == 0 && lastMatch === undefined) {
+				 	prefix = '';
+				} else {
+					prefix = s.split (match[0], 1)[0];
+				}
+	
+				lastMatch = match[0];
 				result += prefix + str;
-				s = s.substr((prefix + match[0]).length);
+				s = s.substr((prefix + lastMatch).length);
 
 				count++;
 			}
@@ -4074,6 +4086,7 @@ luajs.debug = {};
 					return '' + val;
 
 				case 'number':
+					if (val === Infinity || val === -Infinity || (typeof val == 'number' && window.isNaN(val))) return val;
 					if (('' + val).match(FLOATING_POINT_PATTERN)) n = parseFloat(val);
 					if (n === undefined && errorMessage) throw new luajs.Error(errorMessage);
 					return n;
@@ -4132,20 +4145,10 @@ luajs.debug = {};
 		
 
 
-		toFloat: function (x) {
-			if (x === Infinity || x === -Infinity) return x;
-
-			var FLOATING_POINT_PATTERN = /^[-+]?[0-9]*\.?([0-9]+([eE][-+]?[0-9]+)?)?$/;
-			if (!('' + x).match (FLOATING_POINT_PATTERN)) return;
-			
-			return parseFloat (x);
-		},
-		
-
-
-
 		get: function (url, success, error) {
 	        var xhr = new XMLHttpRequest();
+
+	        xhr.open('GET', url, true);
 	        xhr.responseType = 'text';
 
 	        xhr.onload = function (e) {
@@ -4156,7 +4159,6 @@ luajs.debug = {};
 	            }
 	        }
 
-	        xhr.open('GET', url, true);
 	        xhr.send(luajs.EMPTY_OBJ);
 	    }
 

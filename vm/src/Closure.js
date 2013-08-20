@@ -161,9 +161,10 @@ luajs.Closure.prototype._run = function () {
 	if (yieldVars) {
 		// instruction = this._instructions[this._pc - 1];
 
-		var a = this._instructions.get(this._pc - 1, 'A'),
-			b = this._instructions.get(this._pc - 1, 'B'),
-			c = this._instructions.get(this._pc - 1, 'C'),
+		var offset = (this._pc - 1) * 4,
+			a = this._instructions[offset + 1],
+			b = this._instructions[offset + 2],
+			c = this._instructions[offset + 3],
 			retvals = luajs.gc.createArray();
 
 		for (var i = 0, l = yieldVars.length; i < l; i++) retvals.push (yieldVars[i]);
@@ -187,7 +188,7 @@ luajs.Closure.prototype._run = function () {
 	}
 
 
-	while (this._instructions.get(this._pc, 'op') !== undefined) {
+	while (this._instructions[this._pc * 4] !== undefined) {
 		line = this._data.linePositions && this._data.linePositions[this._pc];
 
 		retval = this._executeInstruction (this._pc++, line);
@@ -237,11 +238,12 @@ luajs.Closure.prototype._run = function () {
  * @returns {Array} Array of the values that make be returned from executing the instruction.
  */
 luajs.Closure.prototype._executeInstruction = function (pc, line) {
-	var opcode = this._instructions.get(pc, 'op'),
+	var offset = pc * 4,
+		opcode = this._instructions[offset],
 		op = this.constructor.OPERATIONS[opcode],
-		A = this._instructions.get(pc, 'A'),
-		B = this._instructions.get(pc, 'B'),
-		C = this._instructions.get(pc, 'C');
+		A = this._instructions[offset + 1],
+		B = this._instructions[offset + 2],
+		C = this._instructions[offset + 3];
 
 	if (!op) throw new Error ('Operation not implemented! (' + opcode + ')');
 
@@ -1008,14 +1010,14 @@ luajs.Closure.prototype.dispose = function (force) {
 			upvalues = luajs.gc.createArray(),
 			opcode;
 
-		while ((opcode = this._instructions.get(this._pc, 'op')) !== undefined && (opcode === 0 || opcode === 4) && this._instructions.get(this._pc, 'A') === 0) {	// move, getupval
+		while ((opcode = this._instructions[this._pc * 4]) !== undefined && (opcode === 0 || opcode === 4) && this._instructions[this._pc * 4 + 1] === 0) {	// move, getupval
 
 			(function () {
 				var op = opcode,
-					pc = me._pc,
-					A = me._instructions.get(pc, 'A'),
-					B = me._instructions.get(pc, 'B'),
-					C = me._instructions.get(pc, 'C'),
+					offset = me._pc * 4,
+					A = me._instructions[offset + 1],
+					B = me._instructions[offset + 2],
+					C = me._instructions[offset + 3],
 					upvalue;
 
 				// luajs.stddebug.write ('-> ' + me.constructor.OPERATION_NAMES[op] + '\t' + A + '\t' + B + '\t' + C);
