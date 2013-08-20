@@ -2,6 +2,43 @@
 
 /**
  * @fileOverview Moonshine CLI binary.
+ *
+ * Format: moonshine command [option option ...] [filepattern filepattern ...]
+ *
+ * command can be one of:
+ *	distil 			Distils a Lua script for use with Moonshine VM.
+ *
+ * options can be one or more of:
+ * 	-j 				Use old JSON format to encode instructions in the output. 
+ *					For use with older versions.
+ * 	-m 				Minimise output. Strips out unnecessary debugging information. 
+ *					Be aware that debugger will not work with this output.
+ *	-o:filename 	Output filename. The distilled file will be named according to filename.
+ *					Default = input_basename.lua.json
+ *	-p:path 		Output path. The folder in which to place the output files.
+ *					Default = current path
+ *
+ * filepattern can be:
+ * 	filename 		Input filename. 
+ * 	?				Use wildcards to specify patterns.
+ * 	*				All files in current path.
+ *
+ * Examples:
+ * 	moonshine distil -m -o:myoutput.json myinput.lua
+ * 					Distils myinput.lua, removes debugging information and writes the
+ *					output to myoutput.json
+ *
+ *	moonshine distil -j *
+ * 					Distils all files in the current path using the old file format and
+ *					default filenames.
+ *
+ *	moonshine distil -m mymod_v???.lua myothermod.lua 
+ * 					Distils all files matching the pattern and myothermod.lua, strips
+ *					out debugging and writes to the default filenames.
+ * 
+ *	moonshine distil -p:./json *
+ * 					Distils all files to 'json' subfolder.
+ * 
  * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
  * @copyright Gamesys Ltd 2013
  */
@@ -15,20 +52,23 @@ var command = process.argv[2],
 	Parser = require('../distil/distil.moonshine.js').Parser,
 	exec = require('child_process').exec,
 	fs = require('fs'),
+	match,
 	arg, i, l;
 
 
+// Sort through arguments for switches and filenames
 for (i = 3, l = process.argv.length; i < l; i++) {
 	arg = process.argv[i];
 
-	if (arg.substr(0, 1) === '-') {
-		switches[arg] = 1;
+	if (match = arg.match(/^(-\w+)(:(.*))?$/)) {
+		switches[match[1]] = match[3] || true;
 	} else {
 		filenames.push(arg);
 	}
 }
 
 
+// Execute command
 switch (command) {
 	case 'distil': return distil(filenames);
 	default: return console.log('Unknown command: ' + command);
@@ -37,6 +77,10 @@ switch (command) {
 
 
 
+/**
+ * Distil command. Distils a given list of file patterns.
+ * @param {Array} filenames List of file patterns to distil.
+ */
 function distil (filenames) {
 	var filename, i, l;
 
@@ -49,6 +93,10 @@ function distil (filenames) {
 
 
 
+/**
+ * Distils a Lua script. Compiles and distils the given filename.
+ * @param {string} filename Input Lua filename.
+ */
 function distilLua (filename) {
 	var luacFilename = filename + '.luac';
 
@@ -63,19 +111,35 @@ function distilLua (filename) {
 
 
 
+/**
+ * Distils a Lua bytecode file.
+ * @param {string} filename Bytecode filename.
+ */
 function distilLuac (filename) {
 	var parser = new Parser(),
 		config = {
 			stripDebugging: switches['-m'],
-			useInstructionObjects: switches['-o']
+			useInstructionObjects: switches['-j']
 		};
 
 	parser.parse(filename, config, function (tree) {
-		if (match = filename.match(/^(.*)\.luac$/)) filename = match[1];
+		var path = switches['-p'];
+			outputFilename = switches['-o'];
 
-		fs.writeFile(filename + '.json', JSON.stringify(tree), function (err) {
+		path = (!path || path === true)? './' : path + '/';
+		
+		if (outputFilename && outputFilename !== true) {
+			filename = outputFilename;
+
+		} else {
+			if (match = filename.match(/^(.*)\.luac$/)) filename = match[1];
+			filename += '.json';
+		}
+
+
+		fs.writeFile(path + filename, JSON.stringify(tree), function (err) {
 			if (err) throw new Error(err);
-			console.log('File written: ' + filename + '.json');
+			console.log('File written: ' + path + filename);
 		});
 	});
 }
