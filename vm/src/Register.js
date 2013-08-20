@@ -1,9 +1,20 @@
 
 
 
-
 luajs.Register = function () {
+	luajs.Register.count++;
 	this._register = luajs.gc.createArray();
+}
+luajs.Register.count = 0;
+
+
+luajs.Register._graveyard = [];
+
+
+
+luajs.Register.create = function () {
+	var o = luajs.Register._graveyard.pop();
+	return o || new luajs.Register(arguments);
 }
 
 
@@ -66,6 +77,15 @@ luajs.Register.prototype.reset = function () {
 luajs.Register.prototype.clearItem = function (index) {
 	delete this._register[index];
 }
+
+
+
+
+luajs.Register.prototype.dispose = function (index) {
+	this._register.reset();
+	this.constructor._graveyard.push(this);
+}
+
 
 
 

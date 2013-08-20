@@ -127,7 +127,8 @@ luajs.VM.prototype.execute = function (coConfig, file) {
 	var me = this,
 		files = file? [file] : this._files,
 		index,
-		file;
+		file,
+		thread;
 
 
 	if (!files.length) throw new Error ('No files loaded.'); 
@@ -139,15 +140,15 @@ luajs.VM.prototype.execute = function (coConfig, file) {
 			if (!file.data) throw new Error ('Tried to execute file before data loaded.');
 		
 		
-			this._thread = new luajs.Function (this, file, file.data, this._globals);	
-			this._trigger ('executing', [this._thread, coConfig]);
+			thread = this._thread = new luajs.Function (this, file, file.data, this._globals);
+			this._trigger ('executing', [thread, coConfig]);
 			
 			try {
 				if (!coConfig) {
-					this._thread.call ();
+					thread.call ();
 					
 				} else {
-					var co = luajs.lib.coroutine.wrap (this._thread),
+					var co = luajs.lib.coroutine.wrap (thread),
 						resume = function () {
 							co ();
 							if (coConfig.uiOnly && co._coroutine.status != 'dead') window.setTimeout (resume, 1);

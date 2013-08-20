@@ -33,7 +33,7 @@ luajs.Closure = function (vm, file, data, globals, upvalues) {
 	this._functions = data.functions;
 	this._instructions = data.instructions;
 
-	this._register = this._register || new luajs.Register();
+	this._register = this._register || luajs.Register.create();
 	this._pc = 0;
 	this._localsUsedAsUpvalues = this._localsUsedAsUpvalues || luajs.gc.createArray();
 	this._funcInstances = this._funcInstances || luajs.gc.createArray();
@@ -320,7 +320,10 @@ luajs.Closure.prototype.dispose = function (force) {
 		delete this._params;
 	
 		delete this._constants;
-		// delete this._localsUsedAsUpvalues;
+
+//		delete this._localsUsedAsUpvalues;
+
+		luajs.gc.collect(this._upvalues);
 		delete this._upvalues;
 
 		this._register.reset();
@@ -417,7 +420,14 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function setglobal(a, b) {
-		this._globals[this._getConstant (b)] = this._register.getItem(a);
+		var varName = this._getConstant(b),
+			oldValue = this._globals[varName],
+			newValue = this._register.getItem(a);
+
+		this._globals[varName] = newValue;
+
+		luajs.gc.decrRef(oldValue);
+		luajs.gc.incrRef(newValue);
 	}
 
 
@@ -841,7 +851,6 @@ luajs.Closure.prototype.dispose = function (force) {
 			
 			for (i = 0; i < l; i++) {
 				this._register.setItem(a + i, retvals[i]);
-				luajs.gc.incrRef(retvals[i]);
 			}
 
 			this._register.splice (a + l);
@@ -870,7 +879,7 @@ luajs.Closure.prototype.dispose = function (force) {
 	function return_ (a, b) {
 		var retvals = luajs.gc.createArray(),
 			val,
-			i;
+			i, l;
 
 		if (b === 0) {
 			l = this._register.getLength();
@@ -887,16 +896,17 @@ luajs.Closure.prototype.dispose = function (force) {
 		}
 
 
-		for (var i = 0, l = this._localsUsedAsUpvalues.length; i < l; i++) {
-			var local = this._localsUsedAsUpvalues[i];
+		// for (var i = 0, l = this._localsUsedAsUpvalues.length; i < l; i++) {
+		// 	var local = this._localsUsedAsUpvalues[i];
 
-			local.upvalue.value = this._register.getItem(local.registerIndex);
-			local.upvalue.open = false;
+		// 	local.upvalue.value = this._register.getItem(local.registerIndex);
+		// 	local.upvalue.open = false;
 
-			this._localsUsedAsUpvalues.splice (i--, 1);
-			l--;
-			this._register.clearItem(local.registerIndex);
-		}
+		// 	this._localsUsedAsUpvalues.splice (i--, 1);
+		// 	l--;
+		// 	this._register.clearItem(local.registerIndex);
+		// }
+		close.call(this, 0);
 		
 //		this._register.reset();
 		this.dead = true;

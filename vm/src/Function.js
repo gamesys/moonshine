@@ -176,21 +176,17 @@ luajs.Function.prototype.dispose = function (force) {
 
 	delete this._vm;
 	delete this._file;
-
-	luajs.gc.collect(this._data);
 	delete this._data;
 	delete this._globals;
-
-	luajs.gc.collect(this._upvalues);
 	delete this._upvalues;
-	// delete this._listeners;
+
 	delete this.instances;	
 	delete this._readyToDispose;
 
 	//for (var i in this._listeners) delete this._listeners[i];
 
 	this.constructor._instances.splice (this.constructor._instances.indexOf(this), 1);
-	
+
 	return true;
 };
 

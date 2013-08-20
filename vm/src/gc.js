@@ -37,7 +37,7 @@ luajs.gc = {
 
 
 
-	createObject: function () {
+	createObject: function () { 
 		if (luajs.gc.objects.length) luajs.gc.reused++;
 		return luajs.gc.objects.pop() || {};
 	},
@@ -79,16 +79,21 @@ luajs.gc = {
 		var i, l, 
 			meta = val.__luajs;
 
-		for (i in val) if (val.hasOwnProperty(i)) this.decrRef(val[i]);
 		for (i = 0, l = meta.values.length; i < l; i++) this.decrRef(meta.values[i]);
 		for (i = 0, l = meta.numValues.length; i < l; i++) this.decrRef(meta.numValues[i]);
 
-		this.cacheArray(val.__luajs.keys);
-		this.cacheArray(val.__luajs.values);
-		this.cacheObject(val.__luajs);
+		this.cacheArray(meta.keys);
+		this.cacheArray(meta.values);
+
+		delete meta.keys;
+		delete meta.values;
+
+		this.cacheObject(meta);
+		delete val.__luajs;
+
+		for (i in val) if (val.hasOwnProperty(i)) this.decrRef(val[i]);
 	}
 
 
 };
-
 

@@ -38,7 +38,7 @@ luajs.gc = {
 
 
 
-	createObject: function () {
+	createObject: function () { 
 		if (luajs.gc.objects.length) luajs.gc.reused++;
 		return luajs.gc.objects.pop() || {};
 	},
@@ -55,7 +55,7 @@ luajs.gc = {
 
 
 	decrRef: function (val) {
-		if (!val || !(val instanceof luajs.Table)) return;
+		if (!val || !(val instanceof luajs.Table) || val.__luajs.refCount === undefined) return;
 		if (--val.__luajs.refCount == 0) this.collect(val);
 	},
 
@@ -63,7 +63,7 @@ luajs.gc = {
 
 
 	incrRef: function (val) {
-		if (!val || !(val instanceof luajs.Table)) return;
+		if (!val || !(val instanceof luajs.Table) || val.__luajs.refCount === undefined) return;
 		val.__luajs.refCount++;
 	},
 
@@ -75,23 +75,28 @@ luajs.gc = {
 		if (val instanceof Array) return this.cacheArray(val);
 		if (typeof val == 'object' && val.constructor == Object) return this.cacheObject(val);
 
-		if (!(val instanceof luajs.Table)) return;
+		if (!(val instanceof luajs.Table) || val.__luajs.refCount === undefined) return;
 
 		var i, l, 
 			meta = val.__luajs;
 
-		for (i in val) if (val.hasOwnProperty(i)) this.decrRef(val[i]);
 		for (i = 0, l = meta.values.length; i < l; i++) this.decrRef(meta.values[i]);
 		for (i = 0, l = meta.numValues.length; i < l; i++) this.decrRef(meta.numValues[i]);
 
-		this.cacheArray(val.__luajs.keys);
-		this.cacheArray(val.__luajs.values);
-		this.cacheObject(val.__luajs);
+		this.cacheArray(meta.keys);
+		this.cacheArray(meta.values);
+
+		delete meta.keys;
+		delete meta.values;
+
+		this.cacheObject(meta);
+		delete val.__luajs;
+
+		for (i in val) if (val.hasOwnProperty(i)) this.decrRef(val[i]);
 	}
 
 
 };
-
 
 /**
  * @fileOverview EventEmitter class.
@@ -292,7 +297,8 @@ luajs.VM.prototype.execute = function (coConfig, file) {
 	var me = this,
 		files = file? [file] : this._files,
 		index,
-		file;
+		file,
+		thread;
 
 
 	if (!files.length) throw new Error ('No files loaded.'); 
@@ -304,15 +310,15 @@ luajs.VM.prototype.execute = function (coConfig, file) {
 			if (!file.data) throw new Error ('Tried to execute file before data loaded.');
 		
 		
-			this._thread = new luajs.Function (this, file, file.data, this._globals);	
-			this._trigger ('executing', [this._thread, coConfig]);
+			thread = this._thread = new luajs.Function (this, file, file.data, this._globals);
+			this._trigger ('executing', [thread, coConfig]);
 			
 			try {
 				if (!coConfig) {
-					this._thread.call ();
+					thread.call ();
 					
 				} else {
-					var co = luajs.lib.coroutine.wrap (this._thread),
+					var co = luajs.lib.coroutine.wrap (thread),
 						resume = function () {
 							co ();
 							if (coConfig.uiOnly && co._coroutine.status != 'dead') window.setTimeout (resume, 1);
@@ -435,9 +441,20 @@ luajs.VM.prototype.dispose = function () {
 
 
 
-
 luajs.Register = function () {
+	luajs.Register.count++;
 	this._register = luajs.gc.createArray();
+}
+luajs.Register.count = 0;
+
+
+luajs.Register._graveyard = [];
+
+
+
+luajs.Register.create = function () {
+	var o = luajs.Register._graveyard.pop();
+	return o || new luajs.Register(arguments);
 }
 
 
@@ -503,6 +520,15 @@ luajs.Register.prototype.clearItem = function (index) {
 
 
 
+
+luajs.Register.prototype.dispose = function (index) {
+	this._register.reset();
+	this.constructor._graveyard.push(this);
+}
+
+
+
+
 /**
  * @fileOverview Closure class.
  * @author <a href="http://paulcuth.me.uk">Paul Cuthbertson</a>
@@ -538,7 +564,7 @@ luajs.Closure = function (vm, file, data, globals, upvalues) {
 	this._functions = data.functions;
 	this._instructions = data.instructions;
 
-	this._register = this._register || new luajs.Register();
+	this._register = this._register || luajs.Register.create();
 	this._pc = 0;
 	this._localsUsedAsUpvalues = this._localsUsedAsUpvalues || luajs.gc.createArray();
 	this._funcInstances = this._funcInstances || luajs.gc.createArray();
@@ -825,7 +851,10 @@ luajs.Closure.prototype.dispose = function (force) {
 		delete this._params;
 	
 		delete this._constants;
-		// delete this._localsUsedAsUpvalues;
+
+//		delete this._localsUsedAsUpvalues;
+
+		luajs.gc.collect(this._upvalues);
 		delete this._upvalues;
 
 		this._register.reset();
@@ -922,7 +951,14 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function setglobal(a, b) {
-		this._globals[this._getConstant (b)] = this._register.getItem(a);
+		var varName = this._getConstant(b),
+			oldValue = this._globals[varName],
+			newValue = this._register.getItem(a);
+
+		this._globals[varName] = newValue;
+
+		luajs.gc.decrRef(oldValue);
+		luajs.gc.incrRef(newValue);
 	}
 
 
@@ -954,7 +990,9 @@ luajs.Closure.prototype.dispose = function (force) {
 
 
 	function newtable (a, b, c) {
-		this._register.setItem(a, new luajs.Table ());
+		var t = new luajs.Table ();
+		t.__luajs.refCount = 0;
+		this._register.setItem(a, t);
 	}
 
 
@@ -1344,7 +1382,6 @@ luajs.Closure.prototype.dispose = function (force) {
 			
 			for (i = 0; i < l; i++) {
 				this._register.setItem(a + i, retvals[i]);
-				luajs.gc.incrRef(retvals[i]);
 			}
 
 			this._register.splice (a + l);
@@ -1373,7 +1410,7 @@ luajs.Closure.prototype.dispose = function (force) {
 	function return_ (a, b) {
 		var retvals = luajs.gc.createArray(),
 			val,
-			i;
+			i, l;
 
 		if (b === 0) {
 			l = this._register.getLength();
@@ -1390,18 +1427,19 @@ luajs.Closure.prototype.dispose = function (force) {
 		}
 
 
-		for (var i = 0, l = this._localsUsedAsUpvalues.length; i < l; i++) {
-			var local = this._localsUsedAsUpvalues[i];
+		// for (var i = 0, l = this._localsUsedAsUpvalues.length; i < l; i++) {
+		// 	var local = this._localsUsedAsUpvalues[i];
 
-			local.upvalue.value = this._register.getItem(local.registerIndex);
-			local.upvalue.open = false;
+		// 	local.upvalue.value = this._register.getItem(local.registerIndex);
+		// 	local.upvalue.open = false;
 
-			this._localsUsedAsUpvalues.splice (i--, 1);
-			l--;
-			this._register.clearItem(local.registerIndex);
-		}
+		// 	this._localsUsedAsUpvalues.splice (i--, 1);
+		// 	l--;
+		// 	this._register.clearItem(local.registerIndex);
+		// }
+		close.call(this, 0);
 		
-		this._register.reset();
+//		this._register.reset();
 		this.dead = true;
 		
 		return retvals;
@@ -1756,21 +1794,17 @@ luajs.Function.prototype.dispose = function (force) {
 
 	delete this._vm;
 	delete this._file;
-
-	luajs.gc.collect(this._data);
 	delete this._data;
 	delete this._globals;
-
-	luajs.gc.collect(this._upvalues);
 	delete this._upvalues;
-	// delete this._listeners;
+
 	delete this.instances;	
 	delete this._readyToDispose;
 
 	//for (var i in this._listeners) delete this._listeners[i];
 
 	this.constructor._instances.splice (this.constructor._instances.indexOf(this), 1);
-	
+
 	return true;
 };
 
@@ -1987,7 +2021,6 @@ luajs.Table = function (obj) {
 	meta.keys = luajs.gc.createArray();
 	meta.values = luajs.gc.createArray();
 	meta.numValues = [undefined];
-	meta.refCount = 0;
 
 
 	for (i in obj) {
