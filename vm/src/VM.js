@@ -182,6 +182,18 @@ shine.VM.prototype.setGlobal = function (name, value) {
 
 
 /**
+ * Retrieves a global from the guest environment.
+ * @param {String} name Name of the global variable.
+ * @returns {Object} Value of the global variable.
+ */
+shine.VM.prototype.getGlobal = function (name) {
+	return this._globals[name];
+};
+
+
+
+
+/**
  * Dumps memory associated with the VM.
  */
 shine.VM.prototype.dispose = function () {
