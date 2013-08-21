@@ -1,59 +1,133 @@
+ /*
+ * Moonshine Lua VM
+ * http://moonshinejs.org
+ *
+ * Copyright 2013 Gamesys Limited.
+ * Distributed under the terms of the XXXXXXXXXX license.
+ * http://moonshinejs.org/license
+ */
+ 
+
+// vm/src/gc.js:
 
 
 
 var shine = shine || {};
 
 
+/**
+ * Constant empty object for use in comparisons, etc to avoid creating an object needlessly
+ * @type Object
+ * @constant
+ */
 shine.EMPTY_OBJ = {};
 
 
+/**
+ * Constant empty array for use in comparisons, etc to avoid creating an object needlessly
+ * @type Object
+ * @constant
+ */
+shine.EMPTY_ARR = [];
 
 
+
+
+/**
+ * Moonshine GC functions.
+ * @namespace
+ */
 shine.gc = { 
 
 
+	/**
+	 * Collected objects, empty and ready for reuse.
+	 * @type Array
+	 * @static
+	 */
 	objects: [],
+
+
+	/**
+	 * Collected objects, empty and ready for reuse.
+	 * @type Array
+	 * @static
+	 */
 	arrays: [],
+
+
+	/**
+	 * Number of objects and array that have been collected. Use for debugging.
+	 * @type Number
+	 * @static
+	 */
 	collected: 0,
+
+
+	/**
+	 * Number of objects and array that have been reused. Use for debugging.
+	 * @type Number
+	 * @static
+	 */
 	reused: 0,
 
 
 
 
+	/**
+	 * Prepare an array for reuse.
+	 * @param {Array} arr Array to be used.
+	 */
 	cacheArray: function (arr) {
 		arr.length = 0;
 		this.arrays.push(arr);
-		shine.gc.collected++;
+		this.collected++;
 	},
 
 
 
 
+	/**
+	 * Prepare an object for reuse.
+	 * @param {Object} obj Object to be used.
+	 */
 	cacheObject: function (obj) {
 		for (var i in obj) if (obj.hasOwnProperty(i)) delete obj[i];
 		this.objects.push(obj);
-		shine.gc.collected++;
+		this.collected++;
 	},
 
 
 
 
-	createObject: function () { 
-		if (shine.gc.objects.length) shine.gc.reused++;
-		return shine.gc.objects.pop() || {};
-	},
-
-
-
-
+	/**
+	 * Returns a clean array from the cache or creates a new one if cache is empty.
+	 * @returns {Array} An empty array.
+	 */
 	createArray: function () {
-		if (shine.gc.arrays.length) shine.gc.reused++;
-		return shine.gc.arrays.pop() || [];
+		if (this.arrays.length) this.reused++;
+		return this.arrays.pop() || [];
 	},
 
 
 
 
+	/**
+	 * Returns a clean object from the cache or creates a new one if cache is empty.
+	 * @returns {Object} An empty object.
+	 */
+	createObject: function () { 
+		if (this.objects.length) this.reused++;
+		return this.objects.pop() || {};
+	},
+
+
+
+
+	/**
+	 * Reduces the number of references associated with an object by one and collect it if necessary.
+	 * @param {Object} Any object.
+	 */
 	decrRef: function (val) {
 		if (!val || !(val instanceof shine.Table) || val.__shine.refCount === undefined) return;
 		if (--val.__shine.refCount == 0) this.collect(val);
@@ -62,6 +136,10 @@ shine.gc = {
 
 
 
+	/**
+	 * Increases the number of references associated with an object by one.
+	 * @param {Object} Any object.
+	 */
 	incrRef: function (val) {
 		if (!val || !(val instanceof shine.Table) || val.__shine.refCount === undefined) return;
 		val.__shine.refCount++;
@@ -70,6 +148,10 @@ shine.gc = {
 
 
 
+	/**
+	 * Collect an object.
+	 * @param {Object} Any object.
+	 */
 	collect: function (val) {
 		if (val === undefined || val === null) return;
 		if (val instanceof Array) return this.cacheArray(val);
@@ -98,11 +180,10 @@ shine.gc = {
 
 };
 
-/**
- * @fileOverview EventEmitter class.
- * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
- * @copyright Gamesys Limited 2013
- */
+
+
+// vm/src/EventEmitter.js:
+
 
 var shine = shine || {};
 
@@ -168,11 +249,10 @@ shine.EventEmitter.prototype.unbind = function (name, callback) {
 	}
 }
 
-/**
- * @fileOverview Lua virtual machine class.
- * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
- * @copyright Gamesys Limited 2013
- */
+
+
+// vm/src/VM.js:
+
 
 var shine = shine || {};
 
@@ -376,18 +456,34 @@ shine.VM.prototype.dispose = function () {
 };
 
 
+// vm/src/Register.js:
 
+
+
+
+/**
+ * Represents a register.
+ * @constructor
+ */
 shine.Register = function () {
-	shine.Register.count++;
-	this._register = shine.gc.createArray();
+	this._items = shine.gc.createArray();
 }
-shine.Register.count = 0;
 
 
+/**
+ * Array of disposed registers, ready to be reused.
+ * @type Array
+ * @static
+ */
 shine.Register._graveyard = [];
 
 
 
+
+/**
+ * Returns a new, empty register.
+ * @returns {shine.Register} An empty register
+ */
 shine.Register.create = function () {
 	var o = shine.Register._graveyard.pop();
 	return o || new shine.Register(arguments);
@@ -396,81 +492,117 @@ shine.Register.create = function () {
 
 
 
+/**
+ * Returns the number of items in the register.
+ * @returns {Number} Number of items.
+ */
 shine.Register.prototype.getLength = function () {
-	return this._register.length;
-}
-
-
-
-
-shine.Register.prototype.getItem = function (index) {
-	return this._register[index];
-}
-
-
-
-
-shine.Register.prototype.setItem = function (index, value) {
-	var item = this._register[index];
-	shine.gc.decrRef(item);
-
-	item = this._register[index] = value;
-	shine.gc.incrRef(item);
-}
-
-
-
-
-shine.Register.prototype.set = function (arr) {
-	for (var i = 0, l = arr.length; i < l; i++) this.setItem(i, arr[i]);
-}
-
-
-
-
-shine.Register.prototype.push = function () {
-	this._register.push.apply(this._register, arguments);
-}
-
-
-
-
-shine.Register.prototype.splice = function () {
-	this._register.splice.apply(this._register, arguments);
-}
-
-
-
-
-shine.Register.prototype.reset = function () {
-	for (var i = 0, l = this._register.length; i < l; i++) shine.gc.decrRef(this._register[i]);
-	this._register.length = 0;
-}
-
-
-
-
-shine.Register.prototype.clearItem = function (index) {
-	delete this._register[index];
-}
-
-
-
-
-shine.Register.prototype.dispose = function (index) {
-	this._register.reset();
-	this.constructor._graveyard.push(this);
+	return this._items.length;
 }
 
 
 
 
 /**
- * @fileOverview Closure class.
- * @author <a href="http://paulcuth.me.uk">Paul Cuthbertson</a>
- * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
- * @copyright Gamesys Limited 2013
+ * Retrieves an item from the register.
+ * @param {Number} index Index of the item.
+ * @returns {Object} Value of the item.
  */
+shine.Register.prototype.getItem = function (index) {
+	return this._items[index];
+}
+
+
+
+
+/**
+ * Sets the value an item in the register.
+ * @param {Number} index Index of the item.
+ * @param {Object} value Value of the item.
+ */
+shine.Register.prototype.setItem = function (index, value) {
+	var item = this._items[index];
+	shine.gc.decrRef(item);
+
+	item = this._items[index] = value;
+	shine.gc.incrRef(item);
+}
+
+
+
+
+/**
+ * Rewrites the values of all the items in the register.
+ * @param {Array} arr The entire register.
+ */
+shine.Register.prototype.set = function (arr) {
+	var i, 
+		l = Math.max(arr.length, this._items.length);
+
+	for (i = 0; i < l; i++) this.setItem(i, arr[i]);
+}
+
+
+
+
+/**
+ * Inserts new items at the end of the register.
+ * @param {...Object} One or more items to be inserted.
+ */
+shine.Register.prototype.push = function () {
+	this._items.push.apply(this._items, arguments);
+}
+
+
+
+
+/**
+ * Removes an item from the register.
+ * @param {Number} index Index of the item to remove.
+ */
+shine.Register.prototype.clearItem = function (index) {
+	delete this._items[index];
+}
+
+
+
+
+/**
+ * Splices the register.
+ * @param {Number} index Index of the first item to remove.
+ * @param {Number} length Number of items to remove.
+ * @param {...Object} One or more items to be inserted.
+ */
+shine.Register.prototype.splice = function (index, length) {
+	this._items.splice.apply(this._items, arguments);
+}
+
+
+
+
+/**
+ * Empties the register.
+ */
+shine.Register.prototype.reset = function () {
+	for (var i = 0, l = this._items.length; i < l; i++) shine.gc.decrRef(this._items[i]);
+	this._items.length = 0;
+}
+
+
+
+
+/**
+ * Cleans up the register and caches it for reuse.
+ */
+shine.Register.prototype.dispose = function () {
+	this._items.reset();
+	this.constructor._graveyard.push(this);
+}
+
+
+
+// vm/src/Closure.js:
+
 
 var shine = shine || {};
 
@@ -1062,7 +1194,7 @@ shine.Closure.prototype.dispose = function (force) {
 
 			} else {
 				result = Math.abs(b) % (absC = Math.abs(c));
-				if (0 + !(b < 0) ^ 0 + !(c < 0)) result = absC - result;
+				if (b * c < 0) result = absC - result;
 				if (c < 0) result *= -1;
 			}
 
@@ -1569,11 +1701,10 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 
-/**
- * @fileOverview Function definition class.
- * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
- * @copyright Gamesys Limited 2013
-*/
+
+
+// vm/src/Function.js:
+
 
 var shine = shine || {};
 
@@ -1809,11 +1940,10 @@ shine.Function.prototype.dispose = function (force) {
 
 
 
-/**
- * @fileOverview Coroutine class.
- * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
- * @copyright Gamesys Limited 2013
- */
+
+
+// vm/src/Coroutine.js:
+
 
 var shine = shine || {};
 
@@ -1984,11 +2114,10 @@ shine.Coroutine.prototype._dispose = function () {
 
 
 
-/**
- * @fileOverview Table class.
- * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
- * @copyright Gamesys Limited 2013
- */
+
+
+// vm/src/Table.js:
+
 
 var shine = shine || {};
 
@@ -2153,11 +2282,10 @@ shine.Table.prototype.toString = function () {
 
 
 
-/**
- * @fileOverview Error class.
- * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
- * @copyright Gamesys Limited 2013
- */
+
+
+// vm/src/Error.js:
+
 
 var shine = shine || {};
 
@@ -2215,11 +2343,10 @@ shine.Error.catchExecutionError = function (e) {
  */
 shine.Error.prototype.toString = function () {
 	return 'Moonshine Error: ' + this.message;
-};/**
- * @fileOverview File class.
- * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
- * @copyright Gamesys Limited 2013
- */
+};
+
+// vm/src/File.js:
+
 
 var shine = shine || {};
 
@@ -2285,11 +2412,10 @@ shine.File.prototype.dispose = function () {
 	delete this.data;
 };
 
-/**
- * @fileOverview The Lua standard library.
- * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
- * @copyright Gamesys Limited 2013
-*/
+
+
+// vm/src/lib.js:
+
 
 var shine = shine || {};
 
@@ -4051,11 +4177,10 @@ var shine = shine || {};
 	
 	
 	
-})();/**
- * @fileOverview Utility functions.
- * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
- * @copyright Gamesys Limited 2013
- */
+})();
+
+// vm/src/utils.js:
+
 
 var shine = shine || {};
 
@@ -4163,17 +4288,18 @@ shine.debug = {};
 
 
 })();
-/**
- * @fileOverview Output streams.
- * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
- * @copyright Gamesys Limited 2013
- */
+
+
+// vm/src/output.js:
+
+
 
 var shine = shine || {};
 
 
 
 
+// Standard output
 shine.stdout = {};
 
 shine.stdout.write = function (message) {
@@ -4183,26 +4309,26 @@ shine.stdout.write = function (message) {
 	} else if (trace) {
 		trace (message);
 	}
-}
+};
 
 
 
 
+// Standard debug output
 shine.stddebug = {};
 
 shine.stddebug.write = function (message) {
 	// Moonshine bytecode debugging output
-}
+};
 
 
 
 
+// Standard error output
 shine.stderr = {};
 
 shine.stderr.write = function (message, level) {
 	level = level || 'error';
 	if (console && console[level]) console[level] (message);
-}
-
-
+};
 

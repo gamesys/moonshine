@@ -1,0 +1,155 @@
+#!/usr/bin/env node
+
+/**
+ * @fileOverview Moonshine build script.
+ * Concatenates source files into a single JS library file and produces a minimised version.
+ * Use -swc switch to produce a Flash libaray file too.
+ * 
+ * Examples:
+ * 	./build				Builds JavaScript lib files.
+ * 	./build -swc 		Builds JavaScript and ActionScript lib files.
+ *
+ * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
+ * @copyright Gamesys Limited 2013
+ */
+
+
+
+var switches = getSwitches(process.argv),
+	exec = require('child_process').exec,
+	fs = require('fs'),
+
+
+	SOURCE_FILENAMES = [
+			'../src/gc.js',
+			'../src/EventEmitter.js',
+			'../src/VM.js',
+			'../src/Register.js',
+			'../src/Closure.js',
+			'../src/Function.js',
+			'../src/Coroutine.js',
+			'../src/Table.js',
+			'../src/Error.js',
+			'../src/File.js',
+			'../src/lib.js',
+			'../src/utils.js',
+			'../src/output.js'		
+		],
+	OUTPUT_FILENAME = '../moonshine.js',
+	HEADER_FILENAME = './header.js',
+	MINIFIED_OUTPUT_FILENAME = '../moonshine.min.js',
+	AS_HEADER_FILENAME = '../src/as/header.as',
+	AS_FOOTER_FILENAME = '../src/as/footer.as',
+	AS_CLASS_NAME = 'Moonshine',
+	SWC_OUTPUT_FILENAME = '../moonshine.swc';
+
+
+buildLibrary();
+minifyLibrary();
+if (switches['-swc']) buildSWC();
+
+
+
+
+/**
+ * Builds an array of switches from command line arguments.
+ * @param {Array} args Command line arguments.
+ * @returns {Object} Object containing a key for each switch found.
+ */
+function getSwitches (args) {
+	var arg, i, l,
+		result = [];
+
+	for (i = 2, l = args.length; i < l; i++) {
+		arg = args[i];
+		if (arg.substr(0, 1) == '-') result[arg] = true;
+	}
+
+	return result;
+}
+
+
+
+
+/**
+ * Appends the content of a file to the end of a write buffer.
+ * @param {Object} fd Output file pointer.
+ * @param {String} filename Input filename.
+ * @param {Boolean} intact Flag for instructing method to not alter the input.
+ */
+function appendFile (fd, filename, intact) {
+	var input = fs.readFileSync(filename).toString(),
+		desc = filename.replace('..', 'vm');
+
+	// Remove @fileOverviews that don't apply in concatenated file.
+	if (!intact) input = input.replace(/\/\*\*[\s\*]+\@fileOverview(.*\n)*?\s*\*\//g, '\n\n// ' + desc + ':\n');
+
+	fs.writeSync(fd, input);
+}
+
+
+
+
+/**
+ * Concatenates source files.
+ */
+function buildLibrary () {
+	var output = fs.openSync(OUTPUT_FILENAME, 'w'),
+		input,
+		i, l;
+
+	appendFile(output, HEADER_FILENAME, true);	
+	for (i = 0, l = SOURCE_FILENAMES.length; i < l; i++) appendFile(output, SOURCE_FILENAMES[i]);
+	fs.closeSync(output);
+
+	console.log ('File written: ' + OUTPUT_FILENAME);
+}
+
+
+
+
+/**
+ * Minifies an already-built library file.
+ */
+function minifyLibrary () {
+	var filename = './minified.js',
+		cmd = 'java -jar /usr/local/bin/yuicompressor-2.4.7.jar ' + OUTPUT_FILENAME + ' -o ' + filename;
+
+	exec(cmd, function (err) {
+		if (err) throw err;
+
+		var output = fs.openSync(MINIFIED_OUTPUT_FILENAME, 'w');
+		appendFile(output, HEADER_FILENAME, true);	
+		appendFile(output, filename);
+
+		fs.closeSync(output);
+		fs.unlink(filename);
+
+		console.log('File written: ' + MINIFIED_OUTPUT_FILENAME);
+	});
+}
+
+
+
+
+/**
+ * Concatenates source files.
+ */
+function buildSWC () {
+	var filename = './' + AS_CLASS_NAME + '.as',
+		output = fs.openSync(filename, 'w'),
+		cmd = 'compc -include-classes=' + AS_CLASS_NAME + ' -output=' + SWC_OUTPUT_FILENAME + ' -source-path=. -warnings=false';
+
+	appendFile(output, AS_HEADER_FILENAME);
+	appendFile(output, OUTPUT_FILENAME);
+	appendFile(output, AS_FOOTER_FILENAME);
+	fs.closeSync(output);
+
+	exec(cmd, function (err) {
+		if (err) throw err;
+		fs.unlink(filename);
+
+		console.log('File written: ' + SWC_OUTPUT_FILENAME);
+	});
+}
+
