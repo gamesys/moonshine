@@ -49,7 +49,7 @@
 var command = process.argv[2],
 	filenames = [],
 	switches = {},
-	Parser = require('../distil/distil.moonshine.js').Parser,
+	Parser = require('../distillery/distillery.moonshine.js').Parser,
 	exec = require('child_process').exec,
 	fs = require('fs'),
 	match,

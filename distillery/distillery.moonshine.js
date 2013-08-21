@@ -367,31 +367,15 @@ var shine = shine || {};
 
 
 
-	if (typeof window == 'object') {
-		// Browser
-		shine.distillery = {
-			Parser: Parser
-		};
-		
-	} else {
-		// eg. Node
-		exports.Parser = Parser;
-		
-
-		var parser = new Parser(),
-			filename, match;
-
-		if (!module.parent && (filename = process.argv[2])) {
-			parser.parse(filename, function (tree) {
-				if (match = filename.match(/(.*)\.luac$/)) filename = match[1];
-				
-				require('fs').writeFile(filename + '.json', JSON.stringify(tree), function (err) {
-					if (err) throw new Error(err);
-					console.log('File written: ' + filename + '.json');
-				});
-			});
-		}
-	}	
+	shine.distillery = {
+		Parser: Parser
+	};
 
 
 })();
+
+
+
+
+if (typeof module != 'undefined') module.exports = shine.distillery;
+

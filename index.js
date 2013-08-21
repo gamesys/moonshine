@@ -3,7 +3,7 @@
 var shine = require('./vm/moonshine.js'),
 	fs = require('fs');
 
-module.exports.distil = require('./distil/distil.moonshine.js');
+module.exports.distillery = require('./distillery/distillery.moonshine.js');
 window = global;
 
 
