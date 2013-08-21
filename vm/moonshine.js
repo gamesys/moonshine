@@ -216,7 +216,7 @@ shine.EventEmitter.prototype._trigger = function (name, data) {
 	
 	for (i in listeners) {
 		if (listeners.hasOwnProperty(i)) {
-			result = listeners[i].apply (this, data);
+			result = listeners[i].apply(this, data);
 			if (result !== undefined && !result) break;
 		}
 	}
@@ -232,7 +232,7 @@ shine.EventEmitter.prototype._trigger = function (name, data) {
  */
 shine.EventEmitter.prototype.bind = function (name, callback) {
 	if (!this._listeners[name]) this._listeners[name] = [];
-	this._listeners[name].push (callback);
+	this._listeners[name].push(callback);
 }
 
 
@@ -245,7 +245,7 @@ shine.EventEmitter.prototype.bind = function (name, callback) {
  */
 shine.EventEmitter.prototype.unbind = function (name, callback) {
 	for (var i in this._listeners[name]) {
-		if (this._listeners[name].hasOwnProperty(i) && this._listeners[name][i] === callback) this._listeners[name].splice (i, 1);
+		if (this._listeners[name].hasOwnProperty(i) && this._listeners[name][i] === callback) this._listeners[name].splice(i, 1);
 	}
 }
 
@@ -265,13 +265,13 @@ var shine = shine || {};
  * @param {object} env Object containing global variables and methods from the host.
  */
 shine.VM = function (env) {
-	shine.EventEmitter.call (this);
+	shine.EventEmitter.call(this);
 	
 	this._files = [];
 	this._env = env || {};
 	this._coroutineStack = [];
 	
-	this._resetGlobals ();
+	this._resetGlobals();
 };
 
 shine.VM.prototype = new shine.EventEmitter ();
@@ -338,25 +338,25 @@ shine.VM.prototype.load = function (url, execute, coConfig) {
 	switch (typeof url) {
 
 		case 'string':
-			file = new shine.File (url);
+			file = new shine.File(url);
 			
-			this._files.push (file);
+			this._files.push(file);
 
-			file.bind ('loaded', function (data) {
-				me._trigger ('loaded-file', file);
-				if (execute || execute === undefined) me.execute (coConfig, file);
+			file.bind('loaded', function (data) {
+				me._trigger('loaded-file', file);
+				if (execute || execute === undefined) me.execute(coConfig, file);
 			});
 
-			this._trigger ('loading-file', file);
-			file.load ();
+			this._trigger('loading-file', file);
+			file.load();
 
 			break;
 
 
 		case 'object':
-			file = new shine.File ();
+			file = new shine.File();
 			file.data = url;
-			if (execute || execute === undefined) me.execute (coConfig, file);
+			if (execute || execute === undefined) me.execute(coConfig, file);
 
 			break
 
@@ -389,28 +389,28 @@ shine.VM.prototype.execute = function (coConfig, file) {
 		if (files.hasOwnProperty(index)) {
 
 			file = files[index];		
-			if (!file.data) throw new Error ('Tried to execute file before data loaded.');
+			if (!file.data) throw new Error('Tried to execute file before data loaded.');
 		
 		
-			thread = this._thread = new shine.Function (this, file, file.data, this._globals);
-			this._trigger ('executing', [thread, coConfig]);
+			thread = this._thread = new shine.Function(this, file, file.data, this._globals);
+			this._trigger('executing', [thread, coConfig]);
 			
 			try {
 				if (!coConfig) {
 					thread.call ();
 					
 				} else {
-					var co = shine.lib.coroutine.wrap (thread),
+					var co = shine.lib.coroutine.wrap(thread),
 						resume = function () {
-							co ();
-							if (coConfig.uiOnly && co._coroutine.status != 'dead') window.setTimeout (resume, 1);
+							co();
+							if (coConfig.uiOnly && co._coroutine.status != 'dead') window.setTimeout(resume, 1);
 						};
 		
-					resume ();
+					resume();
 				}
 				
 			} catch (e) {
-				shine.Error.catchExecutionError (e);
+				shine.Error.catchExecutionError(e);
 			}
 		}
 	}
@@ -420,12 +420,24 @@ shine.VM.prototype.execute = function (coConfig, file) {
 
 
 /**
- * Creates or updates a global object in the guest environment.
- * @param {string} name Name of the global variable.
- * @param {object} value Value.
+ * Creates or updates a global in the guest environment.
+ * @param {String} name Name of the global variable.
+ * @param {Object} value Value.
  */
 shine.VM.prototype.setGlobal = function (name, value) {
 	this._globals[name] = value;
+};
+
+
+
+
+/**
+ * Retrieves a global from the guest environment.
+ * @param {String} name Name of the global variable.
+ * @returns {Object} Value of the global variable.
+ */
+shine.VM.prototype.getGlobal = function (name) {
+	return this._globals[name];
 };
 
 
@@ -437,9 +449,9 @@ shine.VM.prototype.setGlobal = function (name, value) {
 shine.VM.prototype.dispose = function () {
 	var thread;
 
-	for (var i in this._files) if (this._files.hasOwnProperty(i)) this._files[i].dispose ();
+	for (var i in this._files) if (this._files.hasOwnProperty(i)) this._files[i].dispose();
 
-	if (thread = this._thread) thread.dispose ();
+	if (thread = this._thread) thread.dispose();
 
 	delete this._files;
 	delete this._thread;
@@ -449,10 +461,8 @@ shine.VM.prototype.dispose = function () {
 
 
 	// Clear static stacks -- Very dangerous for environments that contain multiple VMs!
-	while (shine.Function._instances.length) shine.Function._instances.dispose(true);
 	shine.Closure._graveyard.splice(0, shine.Closure._graveyard.length);
 	shine.Coroutine._graveyard.splice(0, shine.Coroutine._graveyard.length);
-
 };
 
 
@@ -467,7 +477,7 @@ shine.VM.prototype.dispose = function () {
  */
 shine.Register = function () {
 	this._items = shine.gc.createArray();
-}
+};
 
 
 /**
@@ -487,7 +497,7 @@ shine.Register._graveyard = [];
 shine.Register.create = function () {
 	var o = shine.Register._graveyard.pop();
 	return o || new shine.Register(arguments);
-}
+};
 
 
 
@@ -498,7 +508,7 @@ shine.Register.create = function () {
  */
 shine.Register.prototype.getLength = function () {
 	return this._items.length;
-}
+};
 
 
 
@@ -510,7 +520,7 @@ shine.Register.prototype.getLength = function () {
  */
 shine.Register.prototype.getItem = function (index) {
 	return this._items[index];
-}
+};
 
 
 
@@ -526,7 +536,7 @@ shine.Register.prototype.setItem = function (index, value) {
 
 	item = this._items[index] = value;
 	shine.gc.incrRef(item);
-}
+};
 
 
 
@@ -540,7 +550,7 @@ shine.Register.prototype.set = function (arr) {
 		l = Math.max(arr.length, this._items.length);
 
 	for (i = 0; i < l; i++) this.setItem(i, arr[i]);
-}
+};
 
 
 
@@ -551,7 +561,7 @@ shine.Register.prototype.set = function (arr) {
  */
 shine.Register.prototype.push = function () {
 	this._items.push.apply(this._items, arguments);
-}
+};
 
 
 
@@ -562,7 +572,7 @@ shine.Register.prototype.push = function () {
  */
 shine.Register.prototype.clearItem = function (index) {
 	delete this._items[index];
-}
+};
 
 
 
@@ -575,7 +585,7 @@ shine.Register.prototype.clearItem = function (index) {
  */
 shine.Register.prototype.splice = function (index, length) {
 	this._items.splice.apply(this._items, arguments);
-}
+};
 
 
 
@@ -586,7 +596,7 @@ shine.Register.prototype.splice = function (index, length) {
 shine.Register.prototype.reset = function () {
 	for (var i = 0, l = this._items.length; i < l; i++) shine.gc.decrRef(this._items[i]);
 	this._items.length = 0;
-}
+};
 
 
 
@@ -597,7 +607,7 @@ shine.Register.prototype.reset = function () {
 shine.Register.prototype.dispose = function () {
 	this._items.reset();
 	this.constructor._graveyard.push(this);
-}
+};
 
 
 
@@ -648,7 +658,7 @@ shine.Closure = function (vm, file, data, globals, upvalues) {
 	result._instance = this;
 
 	result.dispose = function () {
-		me.dispose ();
+		me.dispose.apply(me, arguments);
 		delete this.dispose;
 	};
 
@@ -736,7 +746,7 @@ shine.Closure.prototype._run = function () {
 	this.terminated = false;
 	
 	
-	if (shine.debug.status == 'resuming') {
+	if (shine.debug && shine.debug.status == 'resuming') {
 	 	if (shine.debug.resumeStack.length) {
 			this._pc--;
 			
@@ -809,7 +819,7 @@ shine.Closure.prototype._run = function () {
 			return;
 		}
 
-		if (shine.debug.status == 'suspending' && !retval) {
+		if (shine.debug && shine.debug.status == 'suspending' && !retval) {
 			shine.debug.resumeStack.push (this);			
 			return retval;
 		}
@@ -1409,7 +1419,7 @@ shine.Closure.prototype.dispose = function (force) {
 			f, o, mt;
 
 
-		if (shine.debug.status == 'resuming') {
+		if (shine.debug && shine.debug.status == 'resuming') {
 			funcToResume = shine.debug.resumeStack.pop ();
 			
 			if ((funcToResume || shine.EMPTY_OBJ) instanceof shine.Coroutine) {
@@ -1718,8 +1728,6 @@ var shine = shine || {};
  * @param {object} [upvalues] The upvalues passed from the parent closure.
  */
 shine.Function = function (vm, file, data, globals, upvalues) {
-	//shine.EventEmitter.call (this);
-
 	this._vm = vm;
 	this._file = file;
 	this._data = data;
@@ -1729,15 +1737,11 @@ shine.Function = function (vm, file, data, globals, upvalues) {
 	this.instances = shine.gc.createArray();
 	this._retainCount = 0;
 
-	// Convert instructions to byte array (where possible);
- 	//if (this._data.instructions instanceof Array) this._data.instructions = new shine.InstructionSet(data.instructions);
  	this._convertInstructions();
-
-	this.constructor._instances.push(this);
 };
 
 
-shine.Function.prototype = {}; //new shine.EventEmitter ();
+shine.Function.prototype = {};
 shine.Function.prototype.constructor = shine.Function;
 
 
@@ -1752,21 +1756,11 @@ shine.Function._index = 0;
 
 
 /**
- * Keeps track of active functions in order to clean up on dispose.
- * @type Array
- * @static
- */
-shine.Function._instances = [];
-
-
-
-
-/**
  * Creates a new function instance from the definition.
  * @returns {shine.Closure} An instance of the function definition.
  */
 shine.Function.prototype.getInstance = function () {
-	return shine.Closure.create (this._vm, this._file, this._data, this._globals, this._upvalues); //new shine.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
+	return shine.Closure.create(this._vm, this._file, this._data, this._globals, this._upvalues);
 };
 
 
@@ -1825,8 +1819,8 @@ shine.Function.prototype.call = function () {
 		l = arguments.length,
 		i;
 		
-	for (i = 1; i < l; i++) args.push (arguments[i]);
-	return this.apply (args);
+	for (i = 1; i < l; i++) args.push(arguments[i]);
+	return this.apply(args);
 };
 
 
@@ -1844,14 +1838,14 @@ shine.Function.prototype.apply = function (obj, args, internal) {
 		obj = undefined;
 	}
 
-	var func = internal? this.getInstance () : shine.lib.coroutine.wrap (this);
+	var func = internal? this.getInstance() : shine.lib.coroutine.wrap(this);
 	
 	try {
-		return func.apply (obj, args);
-//		return this.getInstance ().apply (obj, args);
+		return func.apply(obj, args);
+//		return this.getInstance().apply(obj, args);
 
 	} catch (e) {
-		shine.Error.catchExecutionError (e);
+		shine.Error.catchExecutionError(e);
 	}
 };
 
@@ -1863,7 +1857,7 @@ shine.Function.prototype.apply = function (obj, args, internal) {
  * @returns {string} Description.
  */
 shine.Function.prototype.toString = function () {
-	return 'function: 0x' + this._index.toString (16);
+	return 'function: 0x' + this._index.toString(16);
 };
 
 
@@ -1908,13 +1902,14 @@ shine.Function.prototype.isRetained = function () {
 
 /**
  * Dump memory associated with function.
+ * returns {Boolean} Whether or not the function was dumped successfully.
  */
 shine.Function.prototype.dispose = function (force) {
 	this._readyToDispose = true;
 	
 	if (force) {
-		for (var i in this.instances) {
-			if (this.instances.hasOwnProperty(i)) this.instances[i].dispose(true);
+		for (var i = 0, l = this.instances.length; i < l; i++) {
+			this.instances[i].dispose(true);
 		}
 		
 	} else if (this.isRetained()) {
@@ -1929,10 +1924,6 @@ shine.Function.prototype.dispose = function (force) {
 
 	delete this.instances;	
 	delete this._readyToDispose;
-
-	//for (var i in this._listeners) delete this._listeners[i];
-
-	this.constructor._instances.splice (this.constructor._instances.indexOf(this), 1);
 
 	return true;
 };
@@ -1956,9 +1947,9 @@ var shine = shine || {};
  * @param {shine.Closure} closure The closure that is to be executed in the thread.
  */
 shine.Coroutine = function (closure) {
-	shine.EventEmitter.call (this);
+	shine.EventEmitter.call(this);
 
-	this._func = closure.getInstance ();
+	this._func = closure.getInstance();
 	this._index = shine.Coroutine._index++;
 	this._started = false;
 	this._yieldVars = undefined;
@@ -1969,7 +1960,7 @@ shine.Coroutine = function (closure) {
 };
 
 
-shine.Coroutine.prototype = new shine.EventEmitter ();
+shine.Coroutine.prototype = new shine.EventEmitter();
 shine.Coroutine.prototype.constructor = shine.Function;
 
 
@@ -1980,7 +1971,6 @@ shine.Coroutine._graveyard = [];
 
 shine.Coroutine.create = function (closure) {
 	var instance = shine.Coroutine._graveyard.pop();
-	//console.log (instance? 'reusing' : 'creating');
 	
 	if (instance) {
 		shine.Coroutine.apply(instance, arguments);
@@ -2000,7 +1990,7 @@ shine.Coroutine.create = function (closure) {
  * @param {shine.Coroutine} co A running coroutine.
  */
 shine.Coroutine._add = function (co) {
-	shine.Coroutine._stack.push (shine.Coroutine._running);
+	shine.Coroutine._stack.push(shine.Coroutine._running);
 	shine.Coroutine._running = co;
 };
 
@@ -2012,7 +2002,7 @@ shine.Coroutine._add = function (co) {
  * @static
  */
 shine.Coroutine._remove = function () {
-	shine.Coroutine._running = shine.Coroutine._stack.pop ();
+	shine.Coroutine._running = shine.Coroutine._stack.pop();
 };
 
 
@@ -2028,43 +2018,43 @@ shine.Coroutine.prototype.resume = function () {
 	try {
 		if (this.status == 'dead') throw new shine.Error ('cannot resume dead coroutine');
 
-		shine.Coroutine._add (this);
+		shine.Coroutine._add(this);
 		
-		if (shine.debug.status == 'resuming') {
-			var funcToResume = shine.debug.resumeStack.pop ();
+		if (shine.debug && shine.debug.status == 'resuming') {
+			var funcToResume = shine.debug.resumeStack.pop();
 			
 			if ((funcToResume || shine.EMPTY_OBJ) instanceof shine.Coroutine) {
-				retval = funcToResume.resume ();
+				retval = funcToResume.resume();
 			} else {
-				retval = this._func._instance._run ();
+				retval = this._func._instance._run();
 			}
 
 		} else if (!this._started) {
 			this.status = 'running';
-			shine.stddebug.write ('[coroutine started]\n');
+			shine.stddebug.write('[coroutine started]\n');
 
 			this._started = true;
-			retval = this._func.apply (null, arguments, true);
+			retval = this._func.apply(null, arguments, true);
 
 		} else {
 			this.status = 'resuming';
-			shine.stddebug.write ('[coroutine resuming]\n');
+			shine.stddebug.write('[coroutine resuming]\n');
 
 			var args = shine.gc.createArray();
-			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
+			for (var i = 0, l = arguments.length; i < l; i++) args.push(arguments[i]);	
 
 			this._yieldVars = args;
-			retval = this._resumeStack.pop ()._run ();
+			retval = this._resumeStack.pop()._run();
 		}	
 	
-		if (shine.debug.status == 'suspending') {
-			shine.debug.resumeStack.push (this);
+		if (shine.debug && shine.debug.status == 'suspending') {
+			shine.debug.resumeStack.push(this);
 			return;
 		}
 		
 		this.status = this._func._instance.terminated? 'dead' : 'suspended';
 
-		if (retval) retval.unshift (true);
+		if (retval) retval.unshift(true);
 
 	} catch (e) {
 		retval = [false, e];
@@ -2072,8 +2062,8 @@ shine.Coroutine.prototype.resume = function () {
 	}
 
 	if (this.status == 'dead') {
-		shine.Coroutine._remove ();
-		shine.stddebug.write ('[coroutine terminated]\n');
+		shine.Coroutine._remove();
+		shine.stddebug.write('[coroutine terminated]\n');
 		this._dispose();
 	}
 
@@ -2150,18 +2140,18 @@ shine.Table = function (obj) {
 		if (obj.hasOwnProperty(i)) {
 			var iterate;
 
-			key = isArr? parseInt (i, 10) + 1: i;
+			key = isArr? parseInt(i, 10) + 1: i;
 			value = obj[i];
 
 			if (typeof getQualifiedClassName !== 'undefined') {
 				// ActionScript
-				iterate = ((getQualifiedClassName(value) == "Object") && (!(value instanceof shine.Table)) && (!(value instanceof shine.Coroutine)) && (!(value instanceof shine.Function)) && (!(value instanceof shine.Closure) )) || (getQualifiedClassName(value) == "Array");
+				iterate = ((getQualifiedClassName(value) == 'Object') && (!(value instanceof shine.Table)) && (!(value instanceof shine.Coroutine)) && (!(value instanceof shine.Function)) && (!(value instanceof shine.Closure) )) || (getQualifiedClassName(value) == 'Array');
 			} else {
 				// JavaScript
 				iterate = (typeof value == 'object' && value.constructor === Object) || value instanceof Array;
 			}
 			
-			this.setMember(key, iterate? new shine.Table (value) : value);
+			this.setMember(key, iterate? new shine.Table(value) : value);
 		}
 	}
 	
@@ -2197,7 +2187,7 @@ shine.Table.prototype.getMember = function (key) {
 			if (value !== undefined) return value;
 
 		default:
-			index = this.__shine.keys.indexOf (key);
+			index = this.__shine.keys.indexOf(key);
 			if (index >= 0) return this.__shine.values[index];
 	}
 	
@@ -2205,9 +2195,9 @@ shine.Table.prototype.getMember = function (key) {
 
 	if (mt && mt.__index) {
 		switch (mt.__index.constructor) {
-			case shine.Table: return mt.__index.getMember (key);
-			case Function: return mt.__index (this, key);
-			case shine.Function: return mt.__index.apply (this, [this, key])[0];
+			case shine.Table: return mt.__index.getMember(key);
+			case Function: return mt.__index(this, key);
+			case shine.Function: return mt.__index.apply(this, [this, key])[0];
 		}
 	}		
 };
@@ -2228,9 +2218,9 @@ shine.Table.prototype.setMember = function (key, value) {
 
 	if (this[key] === undefined && mt && mt.__newindex) {
 		switch (mt.__newindex.constructor) {
-			case shine.Table: return mt.__newindex.setMember (key, value);
-			case Function: return mt.__newindex (this, key, value);
-			case shine.Function: return mt.__newindex.apply (this, [this, key, value])[0];
+			case shine.Table: return mt.__newindex.setMember(key, value);
+			case Function: return mt.__newindex(this, key, value);
+			case shine.Function: return mt.__newindex.apply(this, [this, key, value])[0];
 		}
 	}
 
@@ -2275,13 +2265,10 @@ shine.Table.prototype.toString = function () {
 	var mt;
 	
 	if (this.constructor != shine.Table) return 'userdata';
-	if (this.__shine && (mt = this.__shine.metatable) && mt.__tostring) return mt.__tostring.call (undefined, this);
+	if (this.__shine && (mt = this.__shine.metatable) && mt.__tostring) return mt.__tostring.call(undefined, this);
 
-	return 'table: 0x' + this.__shine.index.toString (16);
+	return 'table: 0x' + this.__shine.index.toString(16);
 };
-
-
-
 
 
 // vm/src/Error.js:
@@ -2297,10 +2284,7 @@ var shine = shine || {};
  * @param {string} message Error message.
  */
 shine.Error = function (message) {
-	//Error.call (this, message); //AS3 no likey
-	//this.message = message;
-
-
+	
 	// The following is an ugly frigg to overcome Chromium bug: https://code.google.com/p/chromium/issues/detail?id=228909
 	var err = new Error(message);
 
@@ -2359,14 +2343,14 @@ var shine = shine || {};
  * @param {string} url Address of the decompiled Luac file.
  */
 shine.File = function (url) {
-	shine.EventEmitter.call (this);
+	shine.EventEmitter.call(this);
 
 	this._url = url;
 	this.data = undefined;
 };
 
 
-shine.File.prototype = new shine.EventEmitter ();
+shine.File.prototype = new shine.EventEmitter();
 shine.File.prototype.constructor = shine.File;
 
 
@@ -2380,12 +2364,11 @@ shine.File.prototype.load = function () {
 
 	function success (data) {
 		me.data = JSON.parse(data);
-		me._trigger ('loaded', me.data);
+		me._trigger('loaded', me.data);
 	}
 
 	function error (code) {
-		//throw new shine.Error('Unable to load file: ' + me._url + ' (' + code + ')');
-		me._trigger ('error', code);
+		me._trigger('error', code);
 	}
 	
 	shine.utils.get(this._url, success, error);
@@ -4185,17 +4168,34 @@ var shine = shine || {};
 var shine = shine || {};
 
 
-// TODO: Remove this!
-shine.debug = {};
 
 
 (function () {
+	/**
+	 * Pattern to identify a string value that can validly be converted to a number in Lua.
+	 * @type RegExp
+	 * @private
+	 * @constant
+	 */
 	var FLOATING_POINT_PATTERN = /^[-+]?[0-9]*\.?([0-9]+([eE][-+]?[0-9]+)?)?$/;
 
+
+
+
+	
+
+// vm/src/utils.js:
 
 	shine.utils = {
 
 
+		/**
+		 * Coerces a value from its current type to another type in the same manner as Lua.
+		 * @param {Object} val The value to be converted.
+		 * @param {String} type The type to which to convert. Possible values: 'boolean', 'string', number'.
+		 * @param {String} [error] The error message to throw if the conversion fails.
+		 * @returns {Object} The converted value.
+		 */
 		coerce: function (val, type, errorMessage) {
 			var n;
 
@@ -4204,7 +4204,13 @@ shine.debug = {};
 					return !(val === false || val === undefined);
 
 				case 'string':
-					return '' + val;
+					switch(true) {
+						case val === undefined: return 'nil';
+						case val === Infinity: return 'inf';
+						case val === -Infinity: return '-inf';
+						case typeof val == 'number' && window.isNaN(val): return 'nan';
+						default: return e.toString();
+					}
 
 				case 'number':
 					if (val === Infinity || val === -Infinity || (typeof val == 'number' && window.isNaN(val))) return val;
@@ -4220,6 +4226,11 @@ shine.debug = {};
 
 
 
+		/**
+		 * Converts a Lua table and all of its nested properties to a JavaScript objects or arrays.
+		 * @param {shine.Table} table The Lua table object.
+		 * @returns {Object} The converted object.
+		 */
 		toObject: function (table) {
 			var isArr = shine.lib.table.getn (table) > 0,
 				result = shine.gc['create' + (isArr? 'Array' : 'Object')](),
@@ -4233,7 +4244,7 @@ shine.debug = {};
 
 			for (i in table) {
 				if (table.hasOwnProperty (i) && !(i in shine.Table.prototype) && i !== '__shine') {
-					result[i] = ((table[i] || shine.EMPTY_OBJ) instanceof shine.Table)? shine.utils.toObject (table[i]) : table[i];
+					result[i] = ((table[i] || shine.EMPTY_OBJ) instanceof shine.Table)? shine.utils.toObject(table[i]) : table[i];
 				}
 			}
 			
@@ -4243,13 +4254,18 @@ shine.debug = {};
 		
 		
 		
+		/**
+		 * Parses a JSON string to a table.
+		 * @param {String} json The JSON string.
+		 * @returns {shine.Table} The resulting table.
+		 */
 		parseJSON: function (json) {
 
 			var convertToTable = function (obj) {
 				for (var i in obj) {
 					if (obj.hasOwnProperty(i)) {
 						if (typeof obj[i] === 'object') {
-							obj[i] = convertToTable (obj[i]);
+							obj[i] = convertToTable(obj[i]);
 							
 						} else if (obj[i] === null) {
 							obj[i] = undefined;
@@ -4257,30 +4273,36 @@ shine.debug = {};
 					}
 				}
 				
-				return new shine.Table (obj);
+				return new shine.Table(obj);
 			};
 
-			return convertToTable (JSON.parse (json));
+			return convertToTable(JSON.parse(json));
 		},
 		
 		
 
 
+		/**
+		 * Makes an HTTP GET request.
+		 * @param {String} url The URL to request.
+		 * @param {Function} success The callback to be executed upon a successful outcome.
+		 * @param {Function} error The callback to be executed upon an unsuccessful outcome.
+		 */
 		get: function (url, success, error) {
-	        var xhr = new XMLHttpRequest();
+			var xhr = new XMLHttpRequest();
 
-	        xhr.open('GET', url, true);
-	        xhr.responseType = 'text';
+			xhr.open('GET', url, true);
+			xhr.responseType = 'text';
 
-	        xhr.onload = function (e) {
-	            if (this.status == 200) {
-	                if (success) success(this.response);
-	            } else {
-	                if (error) error(this.status);
-	            }
-	        }
+			xhr.onload = function (e) {
+				if (this.status == 200) {
+					if (success) success(this.response);
+				} else {
+					if (error) error(this.status);
+				}
+			}
 
-	        xhr.send(shine.EMPTY_OBJ);
+			xhr.send(shine.EMPTY_OBJ);
 	    }
 
 	
@@ -4305,9 +4327,9 @@ shine.stdout = {};
 shine.stdout.write = function (message) {
 	// Overwrite this in host application
 	if (console && console.log) {
-		console.log (message);
+		console.log(message);
 	} else if (trace) {
-		trace (message);
+		trace(message);
 	}
 };
 
@@ -4329,6 +4351,7 @@ shine.stderr = {};
 
 shine.stderr.write = function (message, level) {
 	level = level || 'error';
-	if (console && console[level]) console[level] (message);
+	if (console && console[level]) console[level](message);
 };
 
+;if (typeof module != 'undefined') module.exports = shine;

@@ -21,22 +21,23 @@ var switches = getSwitches(process.argv),
 
 
 	SOURCE_FILENAMES = [
-			'../src/gc.js',
-			'../src/EventEmitter.js',
-			'../src/VM.js',
-			'../src/Register.js',
-			'../src/Closure.js',
-			'../src/Function.js',
-			'../src/Coroutine.js',
-			'../src/Table.js',
-			'../src/Error.js',
-			'../src/File.js',
-			'../src/lib.js',
-			'../src/utils.js',
-			'../src/output.js'		
-		],
+		'../src/gc.js',
+		'../src/EventEmitter.js',
+		'../src/VM.js',
+		'../src/Register.js',
+		'../src/Closure.js',
+		'../src/Function.js',
+		'../src/Coroutine.js',
+		'../src/Table.js',
+		'../src/Error.js',
+		'../src/File.js',
+		'../src/lib.js',
+		'../src/utils.js',
+		'../src/output.js'		
+	],
 	OUTPUT_FILENAME = '../moonshine.js',
 	HEADER_FILENAME = './header.js',
+	FOOTER_FILENAME = './footer.js',
 	MINIFIED_OUTPUT_FILENAME = '../moonshine.min.js',
 	AS_HEADER_FILENAME = '../src/as/header.as',
 	AS_FOOTER_FILENAME = '../src/as/footer.as',
@@ -98,10 +99,11 @@ function buildLibrary () {
 		input,
 		i, l;
 
-	appendFile(output, HEADER_FILENAME, true);	
+	appendFile(output, HEADER_FILENAME, true);
 	for (i = 0, l = SOURCE_FILENAMES.length; i < l; i++) appendFile(output, SOURCE_FILENAMES[i]);
-	fs.closeSync(output);
+	appendFile(output, FOOTER_FILENAME, true);
 
+	fs.closeSync(output);
 	console.log ('File written: ' + OUTPUT_FILENAME);
 }
 
