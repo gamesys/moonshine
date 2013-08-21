@@ -26,8 +26,6 @@ shine.Function = function (vm, file, data, globals, upvalues) {
 	this._retainCount = 0;
 
  	this._convertInstructions();
-
-	this.constructor._instances.push(this);
 };
 
 
@@ -41,16 +39,6 @@ shine.Function.prototype.constructor = shine.Function;
  * @static
  */
 shine.Function._index = 0;
-
-
-
-
-/**
- * Keeps track of active functions in order to clean up on dispose.
- * @type Array
- * @static
- */
-shine.Function._instances = [];
 
 
 
@@ -224,10 +212,6 @@ shine.Function.prototype.dispose = function (force) {
 
 	delete this.instances;	
 	delete this._readyToDispose;
-
-	//for (var i in this._listeners) delete this._listeners[i];
-
-	this.constructor._instances.splice (this.constructor._instances.indexOf(this), 1);
 
 	return true;
 };

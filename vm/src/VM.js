@@ -211,8 +211,6 @@ shine.VM.prototype.dispose = function () {
 
 
 	// Clear static stacks -- Very dangerous for environments that contain multiple VMs!
-	while (shine.Function._instances.length) shine.Function._instances.dispose(true);
 	shine.Closure._graveyard.splice(0, shine.Closure._graveyard.length);
 	shine.Coroutine._graveyard.splice(0, shine.Coroutine._graveyard.length);
-
 };
