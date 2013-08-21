@@ -49,7 +49,7 @@ shine.Closure = function (vm, file, data, globals, upvalues) {
 	result._instance = this;
 
 	result.dispose = function () {
-		me.dispose ();
+		me.dispose.apply(me, arguments);
 		delete this.dispose;
 	};
 
@@ -137,7 +137,7 @@ shine.Closure.prototype._run = function () {
 	this.terminated = false;
 	
 	
-	if (shine.debug.status == 'resuming') {
+	if (shine.debug && shine.debug.status == 'resuming') {
 	 	if (shine.debug.resumeStack.length) {
 			this._pc--;
 			
@@ -210,7 +210,7 @@ shine.Closure.prototype._run = function () {
 			return;
 		}
 
-		if (shine.debug.status == 'suspending' && !retval) {
+		if (shine.debug && shine.debug.status == 'suspending' && !retval) {
 			shine.debug.resumeStack.push (this);			
 			return retval;
 		}
@@ -810,7 +810,7 @@ shine.Closure.prototype.dispose = function (force) {
 			f, o, mt;
 
 
-		if (shine.debug.status == 'resuming') {
+		if (shine.debug && shine.debug.status == 'resuming') {
 			funcToResume = shine.debug.resumeStack.pop ();
 			
 			if ((funcToResume || shine.EMPTY_OBJ) instanceof shine.Coroutine) {

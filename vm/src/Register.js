@@ -12,7 +12,7 @@
  */
 shine.Register = function () {
 	this._items = shine.gc.createArray();
-}
+};
 
 
 /**
@@ -32,7 +32,7 @@ shine.Register._graveyard = [];
 shine.Register.create = function () {
 	var o = shine.Register._graveyard.pop();
 	return o || new shine.Register(arguments);
-}
+};
 
 
 
@@ -43,7 +43,7 @@ shine.Register.create = function () {
  */
 shine.Register.prototype.getLength = function () {
 	return this._items.length;
-}
+};
 
 
 
@@ -55,7 +55,7 @@ shine.Register.prototype.getLength = function () {
  */
 shine.Register.prototype.getItem = function (index) {
 	return this._items[index];
-}
+};
 
 
 
@@ -71,7 +71,7 @@ shine.Register.prototype.setItem = function (index, value) {
 
 	item = this._items[index] = value;
 	shine.gc.incrRef(item);
-}
+};
 
 
 
@@ -85,7 +85,7 @@ shine.Register.prototype.set = function (arr) {
 		l = Math.max(arr.length, this._items.length);
 
 	for (i = 0; i < l; i++) this.setItem(i, arr[i]);
-}
+};
 
 
 
@@ -96,7 +96,7 @@ shine.Register.prototype.set = function (arr) {
  */
 shine.Register.prototype.push = function () {
 	this._items.push.apply(this._items, arguments);
-}
+};
 
 
 
@@ -107,7 +107,7 @@ shine.Register.prototype.push = function () {
  */
 shine.Register.prototype.clearItem = function (index) {
 	delete this._items[index];
-}
+};
 
 
 
@@ -120,7 +120,7 @@ shine.Register.prototype.clearItem = function (index) {
  */
 shine.Register.prototype.splice = function (index, length) {
 	this._items.splice.apply(this._items, arguments);
-}
+};
 
 
 
@@ -131,7 +131,7 @@ shine.Register.prototype.splice = function (index, length) {
 shine.Register.prototype.reset = function () {
 	for (var i = 0, l = this._items.length; i < l; i++) shine.gc.decrRef(this._items[i]);
 	this._items.length = 0;
-}
+};
 
 
 
@@ -142,5 +142,5 @@ shine.Register.prototype.reset = function () {
 shine.Register.prototype.dispose = function () {
 	this._items.reset();
 	this.constructor._graveyard.push(this);
-}
+};
 

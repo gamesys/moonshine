@@ -7,17 +7,34 @@
 var shine = shine || {};
 
 
-// TODO: Remove this!
-shine.debug = {};
 
 
 (function () {
+	/**
+	 * Pattern to identify a string value that can validly be converted to a number in Lua.
+	 * @type RegExp
+	 * @private
+	 * @constant
+	 */
 	var FLOATING_POINT_PATTERN = /^[-+]?[0-9]*\.?([0-9]+([eE][-+]?[0-9]+)?)?$/;
 
 
+
+
+	/**
+	 * @fileOverview Utility function namespace.
+	 * @namespace
+	 */
 	shine.utils = {
 
 
+		/**
+		 * Coerces a value from its current type to another type in the same manner as Lua.
+		 * @param {Object} val The value to be converted.
+		 * @param {String} type The type to which to convert. Possible values: 'boolean', 'string', number'.
+		 * @param {String} [error] The error message to throw if the conversion fails.
+		 * @returns {Object} The converted value.
+		 */
 		coerce: function (val, type, errorMessage) {
 			var n;
 
@@ -26,7 +43,13 @@ shine.debug = {};
 					return !(val === false || val === undefined);
 
 				case 'string':
-					return '' + val;
+					switch(true) {
+						case val === undefined: return 'nil';
+						case val === Infinity: return 'inf';
+						case val === -Infinity: return '-inf';
+						case typeof val == 'number' && window.isNaN(val): return 'nan';
+						default: return e.toString();
+					}
 
 				case 'number':
 					if (val === Infinity || val === -Infinity || (typeof val == 'number' && window.isNaN(val))) return val;
@@ -42,6 +65,11 @@ shine.debug = {};
 
 
 
+		/**
+		 * Converts a Lua table and all of its nested properties to a JavaScript objects or arrays.
+		 * @param {shine.Table} table The Lua table object.
+		 * @returns {Object} The converted object.
+		 */
 		toObject: function (table) {
 			var isArr = shine.lib.table.getn (table) > 0,
 				result = shine.gc['create' + (isArr? 'Array' : 'Object')](),
@@ -55,7 +83,7 @@ shine.debug = {};
 
 			for (i in table) {
 				if (table.hasOwnProperty (i) && !(i in shine.Table.prototype) && i !== '__shine') {
-					result[i] = ((table[i] || shine.EMPTY_OBJ) instanceof shine.Table)? shine.utils.toObject (table[i]) : table[i];
+					result[i] = ((table[i] || shine.EMPTY_OBJ) instanceof shine.Table)? shine.utils.toObject(table[i]) : table[i];
 				}
 			}
 			
@@ -65,13 +93,18 @@ shine.debug = {};
 		
 		
 		
+		/**
+		 * Parses a JSON string to a table.
+		 * @param {String} json The JSON string.
+		 * @returns {shine.Table} The resulting table.
+		 */
 		parseJSON: function (json) {
 
 			var convertToTable = function (obj) {
 				for (var i in obj) {
 					if (obj.hasOwnProperty(i)) {
 						if (typeof obj[i] === 'object') {
-							obj[i] = convertToTable (obj[i]);
+							obj[i] = convertToTable(obj[i]);
 							
 						} else if (obj[i] === null) {
 							obj[i] = undefined;
@@ -79,30 +112,36 @@ shine.debug = {};
 					}
 				}
 				
-				return new shine.Table (obj);
+				return new shine.Table(obj);
 			};
 
-			return convertToTable (JSON.parse (json));
+			return convertToTable(JSON.parse(json));
 		},
 		
 		
 
 
+		/**
+		 * Makes an HTTP GET request.
+		 * @param {String} url The URL to request.
+		 * @param {Function} success The callback to be executed upon a successful outcome.
+		 * @param {Function} error The callback to be executed upon an unsuccessful outcome.
+		 */
 		get: function (url, success, error) {
-	        var xhr = new XMLHttpRequest();
+			var xhr = new XMLHttpRequest();
 
-	        xhr.open('GET', url, true);
-	        xhr.responseType = 'text';
+			xhr.open('GET', url, true);
+			xhr.responseType = 'text';
 
-	        xhr.onload = function (e) {
-	            if (this.status == 200) {
-	                if (success) success(this.response);
-	            } else {
-	                if (error) error(this.status);
-	            }
-	        }
+			xhr.onload = function (e) {
+				if (this.status == 200) {
+					if (success) success(this.response);
+				} else {
+					if (error) error(this.status);
+				}
+			}
 
-	        xhr.send(shine.EMPTY_OBJ);
+			xhr.send(shine.EMPTY_OBJ);
 	    }
 
 	

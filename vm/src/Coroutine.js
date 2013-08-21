@@ -15,9 +15,9 @@ var shine = shine || {};
  * @param {shine.Closure} closure The closure that is to be executed in the thread.
  */
 shine.Coroutine = function (closure) {
-	shine.EventEmitter.call (this);
+	shine.EventEmitter.call(this);
 
-	this._func = closure.getInstance ();
+	this._func = closure.getInstance();
 	this._index = shine.Coroutine._index++;
 	this._started = false;
 	this._yieldVars = undefined;
@@ -28,7 +28,7 @@ shine.Coroutine = function (closure) {
 };
 
 
-shine.Coroutine.prototype = new shine.EventEmitter ();
+shine.Coroutine.prototype = new shine.EventEmitter();
 shine.Coroutine.prototype.constructor = shine.Function;
 
 
@@ -39,7 +39,6 @@ shine.Coroutine._graveyard = [];
 
 shine.Coroutine.create = function (closure) {
 	var instance = shine.Coroutine._graveyard.pop();
-	//console.log (instance? 'reusing' : 'creating');
 	
 	if (instance) {
 		shine.Coroutine.apply(instance, arguments);
@@ -59,7 +58,7 @@ shine.Coroutine.create = function (closure) {
  * @param {shine.Coroutine} co A running coroutine.
  */
 shine.Coroutine._add = function (co) {
-	shine.Coroutine._stack.push (shine.Coroutine._running);
+	shine.Coroutine._stack.push(shine.Coroutine._running);
 	shine.Coroutine._running = co;
 };
 
@@ -71,7 +70,7 @@ shine.Coroutine._add = function (co) {
  * @static
  */
 shine.Coroutine._remove = function () {
-	shine.Coroutine._running = shine.Coroutine._stack.pop ();
+	shine.Coroutine._running = shine.Coroutine._stack.pop();
 };
 
 
@@ -87,43 +86,43 @@ shine.Coroutine.prototype.resume = function () {
 	try {
 		if (this.status == 'dead') throw new shine.Error ('cannot resume dead coroutine');
 
-		shine.Coroutine._add (this);
+		shine.Coroutine._add(this);
 		
-		if (shine.debug.status == 'resuming') {
-			var funcToResume = shine.debug.resumeStack.pop ();
+		if (shine.debug && shine.debug.status == 'resuming') {
+			var funcToResume = shine.debug.resumeStack.pop();
 			
 			if ((funcToResume || shine.EMPTY_OBJ) instanceof shine.Coroutine) {
-				retval = funcToResume.resume ();
+				retval = funcToResume.resume();
 			} else {
-				retval = this._func._instance._run ();
+				retval = this._func._instance._run();
 			}
 
 		} else if (!this._started) {
 			this.status = 'running';
-			shine.stddebug.write ('[coroutine started]\n');
+			shine.stddebug.write('[coroutine started]\n');
 
 			this._started = true;
-			retval = this._func.apply (null, arguments, true);
+			retval = this._func.apply(null, arguments, true);
 
 		} else {
 			this.status = 'resuming';
-			shine.stddebug.write ('[coroutine resuming]\n');
+			shine.stddebug.write('[coroutine resuming]\n');
 
 			var args = shine.gc.createArray();
-			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
+			for (var i = 0, l = arguments.length; i < l; i++) args.push(arguments[i]);	
 
 			this._yieldVars = args;
-			retval = this._resumeStack.pop ()._run ();
+			retval = this._resumeStack.pop()._run();
 		}	
 	
-		if (shine.debug.status == 'suspending') {
-			shine.debug.resumeStack.push (this);
+		if (shine.debug && shine.debug.status == 'suspending') {
+			shine.debug.resumeStack.push(this);
 			return;
 		}
 		
 		this.status = this._func._instance.terminated? 'dead' : 'suspended';
 
-		if (retval) retval.unshift (true);
+		if (retval) retval.unshift(true);
 
 	} catch (e) {
 		retval = [false, e];
@@ -131,8 +130,8 @@ shine.Coroutine.prototype.resume = function () {
 	}
 
 	if (this.status == 'dead') {
-		shine.Coroutine._remove ();
-		shine.stddebug.write ('[coroutine terminated]\n');
+		shine.Coroutine._remove();
+		shine.stddebug.write('[coroutine terminated]\n');
 		this._dispose();
 	}
 

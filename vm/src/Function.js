@@ -16,8 +16,6 @@ var shine = shine || {};
  * @param {object} [upvalues] The upvalues passed from the parent closure.
  */
 shine.Function = function (vm, file, data, globals, upvalues) {
-	//shine.EventEmitter.call (this);
-
 	this._vm = vm;
 	this._file = file;
 	this._data = data;
@@ -27,15 +25,13 @@ shine.Function = function (vm, file, data, globals, upvalues) {
 	this.instances = shine.gc.createArray();
 	this._retainCount = 0;
 
-	// Convert instructions to byte array (where possible);
- 	//if (this._data.instructions instanceof Array) this._data.instructions = new shine.InstructionSet(data.instructions);
  	this._convertInstructions();
 
 	this.constructor._instances.push(this);
 };
 
 
-shine.Function.prototype = {}; //new shine.EventEmitter ();
+shine.Function.prototype = {};
 shine.Function.prototype.constructor = shine.Function;
 
 
@@ -64,7 +60,7 @@ shine.Function._instances = [];
  * @returns {shine.Closure} An instance of the function definition.
  */
 shine.Function.prototype.getInstance = function () {
-	return shine.Closure.create (this._vm, this._file, this._data, this._globals, this._upvalues); //new shine.Closure (this._vm, this._file, this._data, this._globals, this._upvalues);
+	return shine.Closure.create(this._vm, this._file, this._data, this._globals, this._upvalues);
 };
 
 
@@ -123,8 +119,8 @@ shine.Function.prototype.call = function () {
 		l = arguments.length,
 		i;
 		
-	for (i = 1; i < l; i++) args.push (arguments[i]);
-	return this.apply (args);
+	for (i = 1; i < l; i++) args.push(arguments[i]);
+	return this.apply(args);
 };
 
 
@@ -142,14 +138,14 @@ shine.Function.prototype.apply = function (obj, args, internal) {
 		obj = undefined;
 	}
 
-	var func = internal? this.getInstance () : shine.lib.coroutine.wrap (this);
+	var func = internal? this.getInstance() : shine.lib.coroutine.wrap(this);
 	
 	try {
-		return func.apply (obj, args);
-//		return this.getInstance ().apply (obj, args);
+		return func.apply(obj, args);
+//		return this.getInstance().apply(obj, args);
 
 	} catch (e) {
-		shine.Error.catchExecutionError (e);
+		shine.Error.catchExecutionError(e);
 	}
 };
 
@@ -161,7 +157,7 @@ shine.Function.prototype.apply = function (obj, args, internal) {
  * @returns {string} Description.
  */
 shine.Function.prototype.toString = function () {
-	return 'function: 0x' + this._index.toString (16);
+	return 'function: 0x' + this._index.toString(16);
 };
 
 
@@ -206,13 +202,14 @@ shine.Function.prototype.isRetained = function () {
 
 /**
  * Dump memory associated with function.
+ * returns {Boolean} Whether or not the function was dumped successfully.
  */
 shine.Function.prototype.dispose = function (force) {
 	this._readyToDispose = true;
 	
 	if (force) {
-		for (var i in this.instances) {
-			if (this.instances.hasOwnProperty(i)) this.instances[i].dispose(true);
+		for (var i = 0, l = this.instances.length; i < l; i++) {
+			this.instances[i].dispose(true);
 		}
 		
 	} else if (this.isRetained()) {

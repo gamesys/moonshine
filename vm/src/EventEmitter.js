@@ -35,7 +35,7 @@ shine.EventEmitter.prototype._trigger = function (name, data) {
 	
 	for (i in listeners) {
 		if (listeners.hasOwnProperty(i)) {
-			result = listeners[i].apply (this, data);
+			result = listeners[i].apply(this, data);
 			if (result !== undefined && !result) break;
 		}
 	}
@@ -51,7 +51,7 @@ shine.EventEmitter.prototype._trigger = function (name, data) {
  */
 shine.EventEmitter.prototype.bind = function (name, callback) {
 	if (!this._listeners[name]) this._listeners[name] = [];
-	this._listeners[name].push (callback);
+	this._listeners[name].push(callback);
 }
 
 
@@ -64,7 +64,7 @@ shine.EventEmitter.prototype.bind = function (name, callback) {
  */
 shine.EventEmitter.prototype.unbind = function (name, callback) {
 	for (var i in this._listeners[name]) {
-		if (this._listeners[name].hasOwnProperty(i) && this._listeners[name][i] === callback) this._listeners[name].splice (i, 1);
+		if (this._listeners[name].hasOwnProperty(i) && this._listeners[name][i] === callback) this._listeners[name].splice(i, 1);
 	}
 }
 

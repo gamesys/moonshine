@@ -15,13 +15,13 @@ var shine = shine || {};
  * @param {object} env Object containing global variables and methods from the host.
  */
 shine.VM = function (env) {
-	shine.EventEmitter.call (this);
+	shine.EventEmitter.call(this);
 	
 	this._files = [];
 	this._env = env || {};
 	this._coroutineStack = [];
 	
-	this._resetGlobals ();
+	this._resetGlobals();
 };
 
 shine.VM.prototype = new shine.EventEmitter ();
@@ -88,25 +88,25 @@ shine.VM.prototype.load = function (url, execute, coConfig) {
 	switch (typeof url) {
 
 		case 'string':
-			file = new shine.File (url);
+			file = new shine.File(url);
 			
-			this._files.push (file);
+			this._files.push(file);
 
-			file.bind ('loaded', function (data) {
-				me._trigger ('loaded-file', file);
-				if (execute || execute === undefined) me.execute (coConfig, file);
+			file.bind('loaded', function (data) {
+				me._trigger('loaded-file', file);
+				if (execute || execute === undefined) me.execute(coConfig, file);
 			});
 
-			this._trigger ('loading-file', file);
-			file.load ();
+			this._trigger('loading-file', file);
+			file.load();
 
 			break;
 
 
 		case 'object':
-			file = new shine.File ();
+			file = new shine.File();
 			file.data = url;
-			if (execute || execute === undefined) me.execute (coConfig, file);
+			if (execute || execute === undefined) me.execute(coConfig, file);
 
 			break
 
@@ -139,28 +139,28 @@ shine.VM.prototype.execute = function (coConfig, file) {
 		if (files.hasOwnProperty(index)) {
 
 			file = files[index];		
-			if (!file.data) throw new Error ('Tried to execute file before data loaded.');
+			if (!file.data) throw new Error('Tried to execute file before data loaded.');
 		
 		
-			thread = this._thread = new shine.Function (this, file, file.data, this._globals);
-			this._trigger ('executing', [thread, coConfig]);
+			thread = this._thread = new shine.Function(this, file, file.data, this._globals);
+			this._trigger('executing', [thread, coConfig]);
 			
 			try {
 				if (!coConfig) {
 					thread.call ();
 					
 				} else {
-					var co = shine.lib.coroutine.wrap (thread),
+					var co = shine.lib.coroutine.wrap(thread),
 						resume = function () {
-							co ();
-							if (coConfig.uiOnly && co._coroutine.status != 'dead') window.setTimeout (resume, 1);
+							co();
+							if (coConfig.uiOnly && co._coroutine.status != 'dead') window.setTimeout(resume, 1);
 						};
 		
-					resume ();
+					resume();
 				}
 				
 			} catch (e) {
-				shine.Error.catchExecutionError (e);
+				shine.Error.catchExecutionError(e);
 			}
 		}
 	}
@@ -170,9 +170,9 @@ shine.VM.prototype.execute = function (coConfig, file) {
 
 
 /**
- * Creates or updates a global object in the guest environment.
- * @param {string} name Name of the global variable.
- * @param {object} value Value.
+ * Creates or updates a global in the guest environment.
+ * @param {String} name Name of the global variable.
+ * @param {Object} value Value.
  */
 shine.VM.prototype.setGlobal = function (name, value) {
 	this._globals[name] = value;
@@ -187,9 +187,9 @@ shine.VM.prototype.setGlobal = function (name, value) {
 shine.VM.prototype.dispose = function () {
 	var thread;
 
-	for (var i in this._files) if (this._files.hasOwnProperty(i)) this._files[i].dispose ();
+	for (var i in this._files) if (this._files.hasOwnProperty(i)) this._files[i].dispose();
 
-	if (thread = this._thread) thread.dispose ();
+	if (thread = this._thread) thread.dispose();
 
 	delete this._files;
 	delete this._thread;

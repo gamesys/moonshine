@@ -15,14 +15,14 @@ var shine = shine || {};
  * @param {string} url Address of the decompiled Luac file.
  */
 shine.File = function (url) {
-	shine.EventEmitter.call (this);
+	shine.EventEmitter.call(this);
 
 	this._url = url;
 	this.data = undefined;
 };
 
 
-shine.File.prototype = new shine.EventEmitter ();
+shine.File.prototype = new shine.EventEmitter();
 shine.File.prototype.constructor = shine.File;
 
 
@@ -36,12 +36,11 @@ shine.File.prototype.load = function () {
 
 	function success (data) {
 		me.data = JSON.parse(data);
-		me._trigger ('loaded', me.data);
+		me._trigger('loaded', me.data);
 	}
 
 	function error (code) {
-		//throw new shine.Error('Unable to load file: ' + me._url + ' (' + code + ')');
-		me._trigger ('error', code);
+		me._trigger('error', code);
 	}
 	
 	shine.utils.get(this._url, success, error);

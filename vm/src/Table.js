@@ -35,18 +35,18 @@ shine.Table = function (obj) {
 		if (obj.hasOwnProperty(i)) {
 			var iterate;
 
-			key = isArr? parseInt (i, 10) + 1: i;
+			key = isArr? parseInt(i, 10) + 1: i;
 			value = obj[i];
 
 			if (typeof getQualifiedClassName !== 'undefined') {
 				// ActionScript
-				iterate = ((getQualifiedClassName(value) == "Object") && (!(value instanceof shine.Table)) && (!(value instanceof shine.Coroutine)) && (!(value instanceof shine.Function)) && (!(value instanceof shine.Closure) )) || (getQualifiedClassName(value) == "Array");
+				iterate = ((getQualifiedClassName(value) == 'Object') && (!(value instanceof shine.Table)) && (!(value instanceof shine.Coroutine)) && (!(value instanceof shine.Function)) && (!(value instanceof shine.Closure) )) || (getQualifiedClassName(value) == 'Array');
 			} else {
 				// JavaScript
 				iterate = (typeof value == 'object' && value.constructor === Object) || value instanceof Array;
 			}
 			
-			this.setMember(key, iterate? new shine.Table (value) : value);
+			this.setMember(key, iterate? new shine.Table(value) : value);
 		}
 	}
 	
@@ -82,7 +82,7 @@ shine.Table.prototype.getMember = function (key) {
 			if (value !== undefined) return value;
 
 		default:
-			index = this.__shine.keys.indexOf (key);
+			index = this.__shine.keys.indexOf(key);
 			if (index >= 0) return this.__shine.values[index];
 	}
 	
@@ -90,9 +90,9 @@ shine.Table.prototype.getMember = function (key) {
 
 	if (mt && mt.__index) {
 		switch (mt.__index.constructor) {
-			case shine.Table: return mt.__index.getMember (key);
-			case Function: return mt.__index (this, key);
-			case shine.Function: return mt.__index.apply (this, [this, key])[0];
+			case shine.Table: return mt.__index.getMember(key);
+			case Function: return mt.__index(this, key);
+			case shine.Function: return mt.__index.apply(this, [this, key])[0];
 		}
 	}		
 };
@@ -113,9 +113,9 @@ shine.Table.prototype.setMember = function (key, value) {
 
 	if (this[key] === undefined && mt && mt.__newindex) {
 		switch (mt.__newindex.constructor) {
-			case shine.Table: return mt.__newindex.setMember (key, value);
-			case Function: return mt.__newindex (this, key, value);
-			case shine.Function: return mt.__newindex.apply (this, [this, key, value])[0];
+			case shine.Table: return mt.__newindex.setMember(key, value);
+			case Function: return mt.__newindex(this, key, value);
+			case shine.Function: return mt.__newindex.apply(this, [this, key, value])[0];
 		}
 	}
 
@@ -160,10 +160,7 @@ shine.Table.prototype.toString = function () {
 	var mt;
 	
 	if (this.constructor != shine.Table) return 'userdata';
-	if (this.__shine && (mt = this.__shine.metatable) && mt.__tostring) return mt.__tostring.call (undefined, this);
+	if (this.__shine && (mt = this.__shine.metatable) && mt.__tostring) return mt.__tostring.call(undefined, this);
 
-	return 'table: 0x' + this.__shine.index.toString (16);
+	return 'table: 0x' + this.__shine.index.toString(16);
 };
-
-
-

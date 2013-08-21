@@ -14,10 +14,7 @@ var shine = shine || {};
  * @param {string} message Error message.
  */
 shine.Error = function (message) {
-	//Error.call (this, message); //AS3 no likey
-	//this.message = message;
-
-
+	
 	// The following is an ugly frigg to overcome Chromium bug: https://code.google.com/p/chromium/issues/detail?id=228909
 	var err = new Error(message);
 
