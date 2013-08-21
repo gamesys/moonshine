@@ -4,11 +4,13 @@
  * @copyright Gamesys Limited 2013
  */
 
+
 var shine = shine || {};
 
 
 
 
+// Standard output
 shine.stdout = {};
 
 shine.stdout.write = function (message) {
@@ -23,6 +25,7 @@ shine.stdout.write = function (message) {
 
 
 
+// Standard debug output
 shine.stddebug = {};
 
 shine.stddebug.write = function (message) {
@@ -32,12 +35,11 @@ shine.stddebug.write = function (message) {
 
 
 
+// Standard error output
 shine.stderr = {};
 
 shine.stderr.write = function (message, level) {
 	level = level || 'error';
 	if (console && console[level]) console[level] (message);
 };
-
-
 
