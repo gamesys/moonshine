@@ -14,19 +14,11 @@ var shine = shine || {};
  * @param {string} message Error message.
  */
 shine.Error = function (message) {
-	
-	// The following is an ugly frigg to overcome Chromium bug: https://code.google.com/p/chromium/issues/detail?id=228909
-	var err = new Error(message);
-
-	err.constructor = this.constructor;
-	err.__proto__ = this;    
-	err.name = 'shine.Error';
-
-	return err;
+	this.message = message;
 };
 
 
-shine.Error.prototype = new Error ();
+shine.Error.prototype = Object.create(Error.prototype);	// Overcomes Chromium bug: https://code.google.com/p/chromium/issues/detail?id=228909
 shine.Error.prototype.constructor = shine.Error;
 
 
@@ -42,10 +34,82 @@ shine.Error.catchExecutionError = function (e) {
 
 	if ((e || shine.EMPTY_OBJ) instanceof shine.Error) {
 		if (!e.luaMessage) e.luaMessage = e.message;
-		e.message = e.luaMessage + '\n    ' + (e.luaStack || shine.gc.createArray()).join('\n    ');
+		// e.message = e.luaMessage + '\n    ' + (e.luaStack || shine.gc.createArray()).join('\n    ');
+		e.message = e.luaMessage + '\n    ' + e._stackToString();
 	}
 
 	throw e;
+};
+
+
+
+
+/**
+ * Coerces the error to a string for logging.
+ * @return {string} String representation of error.
+ */
+shine.Error.prototype._stackToString = function () {
+	var result = [],
+		closure, pc, 
+		funcName, parent, up,
+		filename, path,
+		i, j, l;
+
+	for (i = 0, l = this.luaStack.length; i < l; i++) {
+		if (typeof this.luaStack[i] == 'string') {
+			result.push(this.luaStack[i]);
+
+		} else {
+			closure = this.luaStack[i][0];
+			pc = this.luaStack[i][1];
+
+			if (!(funcName = closure._data.sourceName)) {
+
+				if (parent = this.luaStack[i + 1] && this.luaStack[i + 1][0]) {
+					// Search locals
+					for (j in parent._localFunctions) {
+						if (parent._localFunctions[j]._data === closure._data) {
+							funcName = j;
+							break;
+						} 
+					}
+
+					// Search upvalues
+					if (!funcName) {
+						for (j in parent._upvalues) {
+							up = parent._upvalues[j].getValue();
+
+							if ((up || shine.EMPTY_OBJ) instanceof shine.Function && up._data === closure._data) {
+								funcName = parent._upvalues[j].name;
+								break;
+							} 
+						}
+					}
+				}
+
+				// Search globals
+				if (!funcName) {
+					for (j in closure._globals) {
+						if ((closure._globals[j] || shine.EMPTY_OBJ) instanceof shine.Function && closure._globals[j]._data === closure._data) {
+							funcName = j;
+							break;
+						} 
+					}
+				}
+			}
+
+
+			if (filename = closure._file.data.sourcePath) {
+				filename = closure._file.url.match('^(.*)\/.*?$')[1] + filename;
+			} else {
+				filename = closure._file.url;
+			}
+
+			result.push ('in ' + (funcName || 'function') + ' [' + (filename || 'file') + ':' + closure._data.linePositions[pc] + ']')
+		}
+	}
+	
+	return result.join('\n    ');
 };
 
 
