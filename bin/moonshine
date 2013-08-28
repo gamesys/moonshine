@@ -103,7 +103,7 @@ function distilLua (filename) {
 	exec('luac -o ' + luacFilename + ' ' + filename, function (err, stdout, stderr) {
 		if (err) throw new Error(err);
 
-		distilLuac(luacFilename);
+		distilLuac(luacFilename, filename);
 		fs.unlink(luacFilename);
 	});
 }
@@ -115,25 +115,29 @@ function distilLua (filename) {
  * Distils a Lua bytecode file.
  * @param {string} filename Bytecode filename.
  */
-function distilLuac (filename) {
-	var parser = new Parser(),
+function distilLuac (luacFilename, luaFilename) {
+	var pathLib = require('path'),
+		parser = new Parser(),
 		config = {
 			stripDebugging: switches['-m'],
 			useInstructionObjects: switches['-j']
 		};
 
-	parser.parse(filename, config, function (tree) {
-		var path = switches['-p'];
-			outputFilename = switches['-o'];
+	parser.parse(luacFilename, config, function (tree) {
+		var path = switches['-p'],
+			reversePath = pathLib.relative(path, '.') + '/' + luaFilename,
+			outputFilename = switches['-o'],
+			filename;
 
+		tree.sourcePath = reversePath;
 		path = (!path || path === true)? './' : path + '/';
-		
+
 		if (outputFilename && outputFilename !== true) {
 			filename = outputFilename;
 
 		} else {
-			if (match = filename.match(/^(.*)\.luac$/)) filename = match[1];
-			filename += '.json';
+			//if (match = filename.match(/^(.*)\.luac$/)) filename = match[1];
+			filename = luaFilename + '.json';
 		}
 
 
