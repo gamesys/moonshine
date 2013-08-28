@@ -42,8 +42,8 @@ shine.Closure = function (vm, file, data, globals, upvalues) {
 	var me = this,
 		result = function () { 
 			var args = shine.gc.createArray();
-			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);
-			return me.execute (args);
+			for (var i = 0, l = arguments.length; i < l; i++) args.push(arguments[i]);
+			return me.execute(args);
 		};
 		
 	result._instance = this;
@@ -85,7 +85,7 @@ shine.Closure.create = function (vm, file, data, globals, upvalues) {
 shine.Closure.prototype.execute = function (args) {
 	this._pc = 0;
 
-	//if (this._data && this._data.sourceName) shine.stddebug.write ('Executing ' + this._data.sourceName + '...'); //? ' ' + this._data.sourceName : ' function') + '...<br><br>');
+	//if (this._data && this._data.sourceName) shine.stddebug.write('Executing ' + this._data.sourceName + '...'); //? ' ' + this._data.sourceName : ' function') + '...<br><br>');
 	//shine.stddebug.write ('\n');
 
 	// ASSUMPTION: Parameter values are automatically copied to R(0) onwards of the function on initialisation. This is based on observation and is neither confirmed nor denied in any documentation. (Different rules apply to v5.0-style VARARG functions)
@@ -210,9 +210,9 @@ shine.Closure.prototype._run = function () {
 			return;
 		}
 
-		if (shine.debug && shine.debug.status == 'suspending' && !retval) {
-			shine.debug.resumeStack.push (this);			
-			return retval;
+		if (shine.debug && shine.debug._status == 'suspending' && !retval) {
+			shine.debug._resumeStack.push(this);
+			return;
 		}
 		
 		
@@ -289,7 +289,7 @@ shine.Closure.prototype.hasRetainedScope = function () {
 	// }
 
 	for (var i in this._funcInstances) {
-		if (this._funcInstances.hasOwnProperty(i) && this._funcInstances[i].isRetained ()) return true;
+		if (this._funcInstances.hasOwnProperty(i) && this._funcInstances[i].isRetained()) return true;
 	}
 
 	return false;
@@ -402,7 +402,7 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function gettable (a, b, c) {
-		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
+		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
 		if (this._register.getItem(b) === undefined) {
 			throw new shine.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
@@ -443,14 +443,14 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function settable (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
-		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
+		b = (b >= 256)? this._getConstant(b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
 		if ((this._register.getItem(a) || shine.EMPTY_OBJ) instanceof shine.Table) {
 			this._register.getItem(a).setMember (b, c);
 		
 		} else if (this._register.getItem(a) === undefined) {
-			throw new shine.Error ('Attempt to index a missing field (can\'t set "' + b + '" on a nil value)');
+			throw new shine.Error('Attempt to index a missing field (can\'t set "' + b + '" on a nil value)');
 			
 		} else {
 			this._register.getItem(a)[b] = c;
@@ -810,8 +810,8 @@ shine.Closure.prototype.dispose = function (force) {
 			f, o, mt;
 
 
-		if (shine.debug && shine.debug.status == 'resuming') {
-			funcToResume = shine.debug.resumeStack.pop ();
+		if (shine.debug && shine.debug._status == 'resuming') {
+			funcToResume = shine.debug._resumeStack.pop ();
 			
 			if ((funcToResume || shine.EMPTY_OBJ) instanceof shine.Coroutine) {
 				retvals = funcToResume.resume ();

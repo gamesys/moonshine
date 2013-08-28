@@ -48,7 +48,7 @@ var shine = shine || {};
 						case val === Infinity: return 'inf';
 						case val === -Infinity: return '-inf';
 						case typeof val == 'number' && window.isNaN(val): return 'nan';
-						default: return e.toString();
+						default: return val.toString();
 					}
 
 				case 'number':
@@ -82,7 +82,7 @@ var shine = shine || {};
 			}
 
 			for (i in table) {
-				if (table.hasOwnProperty (i) && !(i in shine.Table.prototype) && i !== '__shine') {
+				if (table.hasOwnProperty(i) && !(i in shine.Table.prototype) && i !== '__shine') {
 					result[i] = ((table[i] || shine.EMPTY_OBJ) instanceof shine.Table)? shine.utils.toObject(table[i]) : table[i];
 				}
 			}

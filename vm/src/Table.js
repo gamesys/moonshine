@@ -40,7 +40,7 @@ shine.Table = function (obj) {
 
 			if (typeof getQualifiedClassName !== 'undefined') {
 				// ActionScript
-				iterate = ((getQualifiedClassName(value) == 'Object') && (!(value instanceof shine.Table)) && (!(value instanceof shine.Coroutine)) && (!(value instanceof shine.Function)) && (!(value instanceof shine.Closure) )) || (getQualifiedClassName(value) == 'Array');
+				iterate = (getQualifiedClassName(value) == 'Object' && !(value instanceof shine.Table) && !(value instanceof shine.Coroutine) && !(value instanceof shine.Function) && !(value instanceof shine.Closure)) || getQualifiedClassName(value) == 'Array';
 			} else {
 				// JavaScript
 				iterate = (typeof value == 'object' && value.constructor === Object) || value instanceof Array;

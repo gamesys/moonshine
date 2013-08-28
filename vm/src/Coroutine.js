@@ -88,8 +88,8 @@ shine.Coroutine.prototype.resume = function () {
 
 		shine.Coroutine._add(this);
 		
-		if (shine.debug && shine.debug.status == 'resuming') {
-			var funcToResume = shine.debug.resumeStack.pop();
+		if (shine.debug && shine.debug._status == 'resuming') {
+			var funcToResume = shine.debug._resumeStack.pop();
 			
 			if ((funcToResume || shine.EMPTY_OBJ) instanceof shine.Coroutine) {
 				retval = funcToResume.resume();
@@ -115,8 +115,8 @@ shine.Coroutine.prototype.resume = function () {
 			retval = this._resumeStack.pop()._run();
 		}	
 	
-		if (shine.debug && shine.debug.status == 'suspending') {
-			shine.debug.resumeStack.push(this);
+		if (shine.debug && shine.debug._status == 'suspending') {
+			shine.debug._resumeStack.push(this);
 			return;
 		}
 		
