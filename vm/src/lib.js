@@ -877,24 +877,14 @@ var shine = shine || {};
 		
 		
 		max: function () {
-			var max = -Infinity,
-				length = arguments.length,
-				i;
-			
-			for (i = 0; i < length; i++) if (arguments[i] > max) max = arguments[i];
-			return max;
+			return Math.max.apply(Math, arguments);
 		},
 		
 		
 		
 		
 		min: function () {
-			var min = Infinity,
-				length = arguments.length,
-				i;
-			
-			for (i = 0; i < length; i++) if (arguments[i] < min) min = arguments[i];
-			return min;
+			return Math.min.apply(Math, arguments);
 		},
 		
 		
