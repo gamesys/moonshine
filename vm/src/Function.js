@@ -68,15 +68,18 @@ shine.Function.prototype._convertInstructions = function () {
 	if ('ArrayBuffer' in window) {
 		if (instructions instanceof Int32Array) return;
 
-		buffer = new ArrayBuffer(instructions.length * 4 * 4);
-		result = new Int32Array(buffer);
-
 		if (instructions.length == 0 || instructions[0].op === undefined) {
+			buffer = new ArrayBuffer(instructions.length * 4);
+			result = new Int32Array(buffer);
+
 			result.set(instructions);
 			this._data.instructions = result;
 			return;
 		}
 
+		buffer = new ArrayBuffer(instructions.length * 4 * 4);
+		result = new Int32Array(buffer);
+		
 	} else {
 		if (instructions.length == 0 || typeof instructions[0] == 'number') return;
 		result = [];
