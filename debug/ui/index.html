@@ -1,0 +1,64 @@
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Moonshine Debugger</title>
+		<link rel="stylesheet" href="./css/debug.moonshine.css" />
+	</head>
+
+	<body>
+		<section class="shine-debug">
+
+			<div class="buttons">
+				<button class="pause-resume" title="Pause/resume">Pause/resume</button>
+				<button class="auto-step" title="Automatically keep stepping">Auto step</button>
+				<button class="step-over" title="Step over">Step over</button>
+				<button class="step-in" title="Step in">Step in</button>
+				<button class="step-out" title="Step out">Step out</button>
+				<button class="breakpoints" title="Toggle breakpoints">Breakpoints</button>
+				<button class="reload" title="Reload remote app">Reload remote</button>
+			</div>
+
+			<div class="info">
+				<select id="files"></select>
+				<p id="remote-status"></p>
+			</div>
+
+			<div id="code">
+			</div><!--
+
+			--><section id="inspectors">
+				<div class="inspector globals">
+					<h6>Globals<span/></h6>
+					<dl id="globals"></dl>
+				</div>
+
+				<div class="inspector upvalues">
+					<h6>Upvalues<span/></h6>
+					<dl id="upvalues"></dl>
+				</div>
+
+				<div class="inspector locals">
+					<h6>Locals<span/></h6>
+					<dl id="locals"></dl>
+				</div>
+
+				<div class="inspector call-stack">
+					<h6>Call stack</h6>
+					<dl id="call-stack"></dl>
+				</div>
+
+				<div class="inspector error-log">
+					<h6>Error log<span/></h6>
+					<dl id="error-log"></dl>
+				</div>
+			</section>
+
+			<!-- p class="table-inspector"></p>
+			<p class="error"></p -->
+		</section>
+
+		<script src="./js/lib/ace/ace.js"></script>
+		<script src="./js/debugger.js"></script>
+		<script src="./js/remote-debugger.js"></script>
+	</body>
+</html>

@@ -1,0 +1,574 @@
+@charset "utf-8";
+
+
+body {
+	padding: 56px 0 0;
+	margin: 0;
+	background: #ddd;
+	background: -webkit-linear-gradient(#eee,#ddd);
+	background: -moz-linear-gradient(#eee,#ddd);
+	background: -o-linear-gradient(#eee,#ddd);
+	background: -ms-linear-gradient(#eee,#ddd);
+	background: linear-gradient(#eee,#ddd);
+	overflow: hidden;
+}
+
+/*
+section.shine-debug {
+	border-radius: 0 0 8px 8px;
+	padding: 2px 4px;
+}
+
+
+section.shine-debug.showing-code {
+	padding: 2px 4px 4px 4px;
+}
+
+*/
+section.shine-debug .info,
+section.shine-debug .buttons {
+	position: absolute;
+	top: 0;
+	font-family: monospace;
+	font-size: 11px;
+	line-height: 20px;
+	padding: 2px;
+	overflow: hidden;
+	width: 100%;
+}
+
+section.shine-debug .info {
+	top: 28px;
+}
+
+
+section.shine-debug button {
+	border: 1px solid #aaa;
+	background: rgba(255,255,255,.5) 8px center no-repeat;
+	border-radius: 5px;
+	padding: 4px 10px 4px 28px;
+	float: left;
+	margin: 0 2px;
+}
+
+
+section.shine-debug button.pause-resume {
+	background-image: url('../img/control-pause.png');
+}
+
+
+section.shine-debug button.pause-resume.suspended {
+	background-image: url('../img/control.png');
+}
+
+
+section.shine-debug button.auto-step {
+	background-image: url('../img/arrow-skip-270.png');
+}
+
+
+section.shine-debug button.step-in {
+	background-image: url('../img/arrow-step.png');
+}
+
+
+section.shine-debug button.step-over {
+	background-image: url('../img/arrow-step-over.png');
+}
+
+
+section.shine-debug button.step-out {
+	background-image: url('../img/arrow-step-out.png');
+}
+
+
+section.shine-debug button.breakpoints {
+	background-image: url('../img/status-offline.png');
+}
+
+
+section.shine-debug button.toggle {
+	background-image: url('../img/arrow-out.png');
+}
+
+
+section.shine-debug button.toggle.expanded {
+	background-image: url('../img/arrow-in.png');
+}
+
+
+section.shine-debug button.pop-out {
+	background-image: url('../img/applications-blue.png');
+}
+
+
+section.shine-debug.stop-at-breakpoints button.breakpoints {
+	background-image: url('../img/status.png');
+}
+
+
+section.shine-debug button.reload {
+	background-image: url('../img/arrow-circle-315.png');
+	display: none;
+}
+
+
+body.remote button.reload {
+	display: inline;
+}
+
+
+
+@media screen and (max-width: 535px) {
+	section.shine-debug button {
+		text-indent: -9999px;
+		padding-right: 0;
+		width: 34px;
+	}
+}
+
+
+section.shine-debug button:hover {
+	background-color: #e0e0e0;
+}
+
+
+section.shine-debug.stop-at-breakpoints ol li.breakpoint code:before {
+	background-color: #c66;
+}
+
+
+section.shine-debug select {
+	height: 21px;
+	border: 1px solid #aaa;
+	background: rgba(255,255,255,.5) 8px center no-repeat;
+	border-radius: 5px;
+	padding: 4px 10px 4px 28px;
+	margin: 0 2px;
+}
+
+
+section.shine-debug #remote-status {
+	display: inline;
+	margin-left: 4px;
+	background: url('../img/status-busy.png') left center no-repeat;
+}
+
+
+section.shine-debug #remote-status.disconnected {
+	padding-left: 17px;
+}
+
+
+section.shine-debug #remote-status.waiting {
+	padding-left: 17px;
+	background-image: url('../img/status-away.png');
+}
+
+
+section.shine-debug #remote-status.connected {
+	padding-left: 17px;
+	background-image: url('../img/status.png');
+}
+
+
+
+
+
+/*
+section.shine-debug.showing-code button.toggle-code {
+	background-color: #bfbfbf;
+}
+
+
+section.shine-debug.showing-code {
+	background: #ddd;
+}
+
+*/
+
+section.shine-debug #code {
+	display: inline-block;
+	position: relative;
+	width: 70%;
+	height: 100%;
+	overflow: auto;
+	box-shadow: 0 0 1px #555;
+	min-height: 100px;
+}
+
+section.shine-debug.showing-code #code {
+	display: inline-block;
+}
+
+
+@media screen and (max-height: 60px) {
+	section.shine-debug .buttons {
+		line-height: 100%;
+	}
+}
+
+
+
+section.shine-debug #code .ace_gutter-cell.ace_breakpoint {
+	background-color: #4391cd;
+	padding-right: 6px;
+	margin-right: 7px;
+	color: #ddd;
+}
+
+section.shine-debug #code .ace_gutter-cell.ace_breakpoint::after {
+	content: '';
+	display: block;
+	position: relative;
+	left: 100%;
+	top: -100%;
+	height: 0px;
+	width: 0px;
+	border: 7px solid transparent;
+	border-left: 7px solid #4391cd;
+	-webkit-transform: translateX(6px);
+	-moz-transform: translateX(6px);
+	-ms-transform: translateX(6px);
+	transform: translateX(6px);
+}
+
+section.shine-debug #code .exec {
+	background-color: #ffb;
+	position: absolute;
+}
+
+section.shine-debug #code .goto {
+	border: 1px dotted #777;
+	background-color: rgba(225, 225, 255, .6);
+	position: absolute;
+	-webkit-transform: translate(-1px, -1px);
+}
+
+section.shine-debug #code .error {
+	background-color: #fbb;
+	position: absolute;
+}
+
+section.shine-debug #code.ace-github .ace_marker-layer .ace_active-line {
+	background-color: transparent;
+}
+
+
+/*
+section.shine-debug ol {
+	display: inline-block;
+	font-family: monospace; 
+	font-size: 9px;
+	margin: 2px 0 0;
+	padding-right: 0;
+	counter-reset: li;
+	background-color: #bbb;
+}
+
+
+section.shine-debug ol li {
+	min-width: 500px;
+	white-space: pre;
+	position: relative;
+	margin: 0;
+	list-style: none;
+}
+
+
+section.shine-debug ol li.load-error {
+	min-width: 0;
+	text-align: center;
+	font-size: 11px;
+	color: #722;
+	padding: 2px;
+}
+ 
+
+section.shine-debug ol li code {
+	display: block;
+	width: 100%;
+	background-color: #fff;
+	color: #111;
+	font-size: 11px;
+	border-left: 1px solid #888;
+	padding: 1px 0;
+	margin-left: -10px;
+	padding-right: 10px;
+	text-indent: 4px;
+}
+
+
+section.shine-debug ol li code:before {
+	content: counter(li);
+    counter-increment: li;
+	display: inline-block;
+	text-align: right;
+	padding-right: 3px;
+	width: 28px;
+	position: absolute;
+	left: -40px;
+	cursor: pointer;
+	color: #555;
+
+	font-size: 9px;
+	line-height: 14px;
+	height: 13px;
+}
+
+
+section.shine-debug ol li.breakpoint code:before {
+	color: #822;
+}
+
+
+section.shine-debug ol li code:after {
+	content: ' ';
+}
+
+
+section.shine-debug ol li.highlighted code {
+	border-top: 1px solid #66f; 
+	border-bottom: 1px solid #66f; 
+	background-color: #ccf;
+	padding: 0 10px 0 0;
+}
+
+
+section.shine-debug ol li.highlighted.error code {
+	border-color: #f55; 
+	background-color: #faa;
+}
+
+section.shine-debug p.error {
+	border: 1px solid #f55; 
+	background-color: #faa;
+	position: absolute;
+	padding: 6px 8px;
+	white-space: pre;
+	line-height: 15px;
+	z-index: 1;
+	font-family: monospace;
+	color: #333;
+	font-size: 11px;
+	display: none;
+	border-radius: 8px;
+	right: 100.5%;
+	margin: 0;
+}
+
+section.shine-debug.showing-error p.error {
+	display: block;
+}
+
+
+section.shine-debug p.error:after {
+	content: '⇢';
+	font-size: 15px;
+	position: absolute;
+	right: -9px;
+}
+
+*/
+
+section.shine-debug #inspectors {
+	float: right;
+	font-family: monospace; 
+	width: 29%;
+	height: 100%;
+	overflow-x: hidden;
+	overflow-y: auto;
+	background-color: #fff;
+	vertical-align: top;
+	margin-left: 4px;
+	box-shadow: -1px 0 0 #bbb;
+	font-size: 11px;
+}
+
+
+section.shine-debug.showing-code #inspectors {
+	display: inline-block;
+}
+
+
+section.shine-debug #inspectors dl {
+	margin: 0;
+}
+
+/*section.shine-debug #inspectors dt,
+section.shine-debug #inspectors dd {
+	width: 48%;
+	float: right;
+	margin: 0;
+	padding: 4px 0;
+	border-top: 1px solid #eee;
+	color: #555;
+	text-overflow: ellipsis;
+	position: relative;
+}*/
+
+section.shine-debug #inspectors dt,
+section.shine-debug #inspectors dd {
+	display: inline;
+	white-space: nowrap;
+	margin: 0;
+	color: #555;
+	text-overflow: ellipsis;
+	line-height: 20px;
+}
+
+section.shine-debug #inspectors dt {
+	color: purple;
+	position: relative;
+	left: 6px;
+}
+
+section.shine-debug #inspectors dt:before {
+	border-top: 1px solid #eee;
+	width: 100%;
+	height: 0;
+	content: '';
+	display: block;
+	background-color: red;
+	position: relative;
+	left: -6px;
+}}
+
+section.shine-debug #inspectors dt:first-child:before {
+	display: none;
+}
+
+section.shine-debug #inspectors dt:after {
+	content: ':  ';
+	margin-right: 4px;
+}
+
+section.shine-debug #inspectors dd {
+/*	float: right;
+*/}
+
+/*section.shine-debug #inspectors dt {
+	float: left;
+	clear: both;
+	text-indent: 3px;
+	color: #000;
+	overflow: hidden;
+}
+*/
+
+/*
+section.shine-debug dd p.table-inspectors {
+	top: -60%;
+	right: 50%;
+	opacity: 0;
+}
+
+section.shine-debug p.table-inspectors {
+	position: absolute;
+	border: 1px solid #ccc;
+	background-color: #ffc;
+	padding: 4px 6px;
+	white-space: pre;
+	line-height: 15px;
+	z-index: 1;
+	font-family: monospace;
+	color: #555;
+	font-size: 11px;	
+	display: none;
+}
+*/
+section.shine-debug #inspectors h6 {
+	clear: both;
+	background-color: #d0d0d0;
+	margin: 0;
+	font-size: 12px;
+	font-weight: normal;
+	padding: 2px 3px;
+	margin-top: 4px;
+	cursor: pointer;
+	border-top: 1px solid #bbb;
+}
+
+section.shine-debug #inspectors h6:first-child {
+	margin-top: 0;
+}
+
+section.shine-debug #inspectors h6:before {
+	content: '▸';
+	display: inline-block;
+	margin: 0 6px 0 2px;
+	width: 5px;
+	text-align: center;
+	color: #444;
+}
+
+section.shine-debug #inspectors .open h6:before {
+	content: '▾';
+}
+
+section.shine-debug #inspectors h6 span {
+	margin-left: 6px;
+	color: #888;
+}
+
+section.shine-debug #inspectors h6 span:before {
+	content: '(';
+}
+
+section.shine-debug #inspectors h6 span:after {
+	content: ')';
+}
+
+section.shine-debug #inspectors dl {
+	display: none;
+}
+
+section.shine-debug #inspectors .open dl {
+	display: block;
+}
+
+
+section.shine-debug #inspectors .call-stack li,
+section.shine-debug #inspectors .error-log li {
+	list-style: none;
+	padding: 3px 6px;
+	overflow: hidden;
+}
+
+section.shine-debug #inspectors .error-log li::before {
+	content: '“'
+}
+
+section.shine-debug #inspectors .error-log li::after {
+	content: '”'
+}
+
+section.shine-debug #inspectors .call-stack li:nth-child(2n) {
+	background-color: #f1f1f1;
+}
+
+section.shine-debug #inspectors a {
+	color: #999;
+	float: right;
+	text-align: right;
+}
+
+
+section.shine-debug #inspectors .error-log li:nth-child(2n) {
+	background-color: #fff1f1;
+}
+
+
+section.shine-debug #inspectors .error-log h6.has-errors {
+	background-color: #fbb;
+}	
+
+
+
+
+
+
+
+
+
+

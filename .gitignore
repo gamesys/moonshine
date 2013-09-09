@@ -1,5 +1,6 @@
 .svn/*
 */.svn/*
 */*/.svn/*
+node_modules/
 
 .DS_Store
