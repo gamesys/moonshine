@@ -475,13 +475,7 @@ var shine = shine || {};
 		
 		
 		tostring: function (e) {
-			switch(true) {
-				case e === undefined: return 'nil';
-				case e === Infinity: return 'inf';
-				case e === -Infinity: return '-inf';
-				case typeof e == 'number' && window.isNaN(e): return 'nan';
-				default: return e.toString ();
-			}
+			return shine.utils.coerce(e, 'string');
 		},
 		
 		
