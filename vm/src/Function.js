@@ -78,7 +78,7 @@ shine.Function.prototype._convertInstructions = function () {
 		}
 
 	} else {
-		if (instructions.length == 0 || instructions[0].op === undefined) return;
+		if (instructions.length == 0 || typeof instructions[0] == 'number') return;
 		result = [];
 	}
 

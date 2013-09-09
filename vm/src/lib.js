@@ -1149,9 +1149,9 @@ var shine = shine || {};
 			var time;
 			
 			if (!table) {
-				time = Date.now? Date.now() : new Date().getTime();
+				time = Date['now']? Date['now']() : new Date().getTime();
 				
-			} else {	
+			} else {
 				var day, month, year, hour, min, sec;
 				
 				if (!(day = table.getMember('day'))) throw new shine.Error("Field 'day' missing in date table");

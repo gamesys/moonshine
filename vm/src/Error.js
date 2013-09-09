@@ -18,7 +18,7 @@ shine.Error = function (message) {
 };
 
 
-shine.Error.prototype = Object.create(Error.prototype);	// Overcomes Chromium bug: https://code.google.com/p/chromium/issues/detail?id=228909
+shine.Error.prototype = Object['create']? Object['create'](Error.prototype) : new Error();	// Overcomes Chromium bug: https://code.google.com/p/chromium/issues/detail?id=228909
 shine.Error.prototype.constructor = shine.Error;
 
 
