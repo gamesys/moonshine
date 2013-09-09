@@ -55,7 +55,10 @@ shine.VM.prototype._bindLib = function (lib) {
 
 	for (var i in lib) {
 		if (lib.hasOwnProperty(i)) {
-			if (lib[i] && lib[i].constructor === Object) {
+			if (lib[i] && lib[i].constructor === shine.Table) {
+				result[i] = new shine.Table(shine.utils.toObject(lib[i]));
+
+			} else if (lib[i] && lib[i].constructor === Object) {
 				result[i] = this._bindLib(lib[i]);
 
 			} else if (typeof lib[i] == 'function') {
