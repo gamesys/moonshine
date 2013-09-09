@@ -48,10 +48,12 @@ var shine = shine || {};
 						case val === Infinity: return 'inf';
 						case val === -Infinity: return '-inf';
 						case typeof val == 'number' && window.isNaN(val): return 'nan';
+						case typeof val == 'function': return 'function: [host code]'
 						default: return val.toString();
 					}
 
 				case 'number':
+					if (val === undefined) return;
 					if (val === Infinity || val === -Infinity || (typeof val == 'number' && window.isNaN(val))) return val;
 					if (('' + val).match(FLOATING_POINT_PATTERN)) n = parseFloat(val);
 					if (n === undefined && errorMessage) throw new shine.Error(errorMessage);
