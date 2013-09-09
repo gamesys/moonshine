@@ -17,7 +17,7 @@ var shine = shine || {};
 shine.File = function (url) {
 	shine.EventEmitter.call(this);
 
-	this._url = url;
+	this.url = url;
 	this.data = undefined;
 };
 
@@ -35,25 +35,37 @@ shine.File.prototype.load = function () {
 	var me = this;
 
 	function success (data) {
-		me.data = JSON.parse(data);
-		me._trigger('loaded', me.data);
+		me._onSuccess(data);
 	}
 
 	function error (code) {
-		me._trigger('error', code);
+		me._onError(code);
 	}
-	
-	shine.utils.get(this._url, success, error);
+
+	shine.utils.get(this.url, success, error);
 };
 
 
 
 
 /**
- * Retrieved the corresponding Lua file, if exists.
- * @todo
+ * Handles a successful response from the server.
+ * @param {String} data Response.
  */
-shine.File.prototype.loadLua = function () {
+shine.File.prototype._onSuccess = function (data) {
+	this.data = JSON.parse(data);
+	this._trigger('loaded', data);
+};
+
+
+
+
+/**
+ * Handles an unsuccessful response from the server.
+ * @param {Number} code HTTP resonse code.
+ */
+shine.File.prototype._onError = function (code) {
+	this._trigger('error', code);
 };
 
 
@@ -63,7 +75,7 @@ shine.File.prototype.loadLua = function () {
  * Dump memory associated with file.
  */
 shine.File.prototype.dispose = function () {
-	delete this._url;
+	delete this.url;
 	delete this.data;
 };
 

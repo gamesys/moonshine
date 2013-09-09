@@ -102,16 +102,22 @@ shine.Coroutine.prototype.resume = function () {
 			shine.stddebug.write('[coroutine started]\n');
 
 			this._started = true;
-			retval = this._func.apply(null, arguments, true);
+			retval = this._func.apply(null, arguments);
 
 		} else {
 			this.status = 'resuming';
 			shine.stddebug.write('[coroutine resuming]\n');
 
-			var args = shine.gc.createArray();
-			for (var i = 0, l = arguments.length; i < l; i++) args.push(arguments[i]);	
+			if (!arguments.length) {
+				this._yieldVars = undefined;
 
-			this._yieldVars = args;
+			} else {
+				var args = shine.gc.createArray();
+				for (var i = 0, l = arguments.length; i < l; i++) args.push(arguments[i]);	
+
+				this._yieldVars = args;
+			}
+
 			retval = this._resumeStack.pop()._run();
 		}	
 	
@@ -146,7 +152,7 @@ shine.Coroutine.prototype.resume = function () {
  * @returns {string} Description.
  */
 shine.Coroutine.prototype.toString = function () {
-	return 'thread: 0x' + this._index.toString (16);
+	return 'thread:' + (this._index? '0x' + this._index.toString(16) : '[dead]');
 };
 
 

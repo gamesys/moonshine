@@ -71,6 +71,7 @@ for (i = 3, l = process.argv.length; i < l; i++) {
 // Execute command
 switch (command) {
 	case 'distil': return distil(filenames);
+	case 'debug': return startDebugServer();
 	default: return console.log('Unknown command: ' + command);
 }
 
@@ -150,3 +151,13 @@ function distilLuac (luacFilename, luaFilename) {
 
 
 
+
+
+function startDebugServer () {
+	var DebugServer = require('../debug/server/DebugServer'),
+		config = {
+			sourcePath: switches['-src']
+		};
+
+	new DebugServer(config);
+}

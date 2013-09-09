@@ -1,6 +1,6 @@
 {
 	"name": "moonshine",
-	"description": "Distillery for Moonshine Lua VM",
+	"description": "Moonshine Lua VM",
 	"keywords": [
 		"Moonshine",
 		"Lua",
@@ -21,7 +21,7 @@
 	"engines": {
 		"node": ">=0.8.x"
 	},
-	"main": "./distil.moonshine.js",
+	"main": "./index.js",
 	"bin": {
 		"moonshine": "./bin/moonshine"
 	},
@@ -29,6 +29,9 @@
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/gamesys/moonshine"
+	},
+	"license": {
+		"url": "http://moonshinejs.org/license"
 	},
 	"bugs": {
 		"url": "https://github.com/gamesys/moonshine/issues"

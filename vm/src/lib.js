@@ -375,15 +375,29 @@ var shine = shine || {};
 		require: function (modname) {
 			var thread,
 				packageLib = shine.lib['package'],
+				running = shine.Coroutine._running._func._instance,
 				vm = this,
 				module,
 				preload,
 				paths,
 				path;
 
+
 			function load (preloadFunc) {
+				var result;
+
 				packageLib.loaded[modname] = true;
-				module = preloadFunc.call(null, modname)[0];
+				result = preloadFunc.call(null, modname);
+
+				if (shine.debug && shine.debug._status == 'suspending' && !result) {
+					// running._pc -= 1;
+					// shine.debug._resumeStack
+					delete packageLib.loaded[modname];
+					shine.debug._resumeStack.push(running);
+					return;
+				}
+
+				module = result[0];
 
 				if (module !== undefined) packageLib.loaded[modname] = module;
 				return packageLib.loaded[modname];
@@ -407,7 +421,8 @@ var shine = shine || {};
 
 					loadfile.call(vm, path, function (preload) {
 						if (preload) {
-							thread.resume(load(preload));
+							var result = load(preload);
+							if (result) thread.resume(result);
 						} else {
 							loadNextPath();
 						}
@@ -566,6 +581,8 @@ var shine = shine || {};
 		
 		
 		resume: function (thread) {
+			if (arguments.length < 2) return thread.resume.call(thread);
+
 			var args = shine.gc.createArray();
 			for (var i = 1, l = arguments.length; i < l; i++) args.push(arguments[i]);	
 
@@ -596,8 +613,12 @@ var shine = shine || {};
 				var args = [co];
 				for (var i = 0, l = arguments.length; i < l; i++) args.push(arguments[i]);	
 	
-				var retvals = shine.lib.coroutine.resume.apply (null, args),
-					success = retvals.shift ();
+				var retvals = shine.lib.coroutine.resume.apply(null, args),
+					success;
+				
+				if (shine.debug && shine.debug._status == 'suspending' && !retvals) return;
+
+				success = retvals.shift();
 					
 				if (success) return retvals;
 				throw retvals[0];
@@ -632,7 +653,8 @@ var shine = shine || {};
 							shine.lib.coroutine.resume.apply(undefined, args); 
 						};
 
-					for (i = 0; i < l; i++) args.push (arguments[i]);
+					if (arguments.length == 1 && arguments[0] === undefined) l = 0;
+					for (i = 0; i < l; i++) args.push(arguments[i]);
 
 					if (running.status == 'suspending') {
 						window.setTimeout(f, 1);
@@ -642,8 +664,7 @@ var shine = shine || {};
 				}
 			}
 		}
-	
-		
+			
 	};
 
 

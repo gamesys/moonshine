@@ -68,3 +68,8 @@ shine.EventEmitter.prototype.unbind = function (name, callback) {
 	}
 }
 
+
+
+
+if (typeof module == 'object' && module.exports) module.exports.EventEmitter = shine.EventEmitter;
+

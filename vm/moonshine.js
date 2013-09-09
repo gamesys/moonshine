@@ -251,6 +251,11 @@ shine.EventEmitter.prototype.unbind = function (name, callback) {
 
 
 
+
+if (typeof module == 'object' && module.exports) module.exports.EventEmitter = shine.EventEmitter;
+
+
+
 // vm/src/VM.js:
 
 
@@ -343,7 +348,7 @@ shine.VM.prototype.load = function (url, execute, coConfig) {
 			this._files.push(file);
 
 			file.bind('loaded', function (data) {
-				me._trigger('loaded-file', file);
+				me._trigger('file-loaded', file);
 				if (execute || execute === undefined) me.execute(coConfig, file);
 			});
 
@@ -646,13 +651,13 @@ shine.Closure = function (vm, file, data, globals, upvalues) {
 	this._pc = 0;
 	this._localsUsedAsUpvalues = this._localsUsedAsUpvalues || shine.gc.createArray();
 	this._funcInstances = this._funcInstances || shine.gc.createArray();
-
+	this._localFunctions = shine.gc.createObject();
 	
 	var me = this,
 		result = function () { 
 			var args = shine.gc.createArray();
-			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);
-			return me.execute (args);
+			for (var i = 0, l = arguments.length; i < l; i++) args.push(arguments[i]);
+			return me.execute(args);
 		};
 		
 	result._instance = this;
@@ -694,7 +699,7 @@ shine.Closure.create = function (vm, file, data, globals, upvalues) {
 shine.Closure.prototype.execute = function (args) {
 	this._pc = 0;
 
-	//if (this._data && this._data.sourceName) shine.stddebug.write ('Executing ' + this._data.sourceName + '...'); //? ' ' + this._data.sourceName : ' function') + '...<br><br>');
+	//if (this._data && this._data.sourceName) shine.stddebug.write('Executing ' + this._data.sourceName + '...'); //? ' ' + this._data.sourceName : ' function') + '...<br><br>');
 	//shine.stddebug.write ('\n');
 
 	// ASSUMPTION: Parameter values are automatically copied to R(0) onwards of the function on initialisation. This is based on observation and is neither confirmed nor denied in any documentation. (Different rules apply to v5.0-style VARARG functions)
@@ -724,7 +729,8 @@ shine.Closure.prototype.execute = function (args) {
 		}
 
 		if (!e.luaStack) e.luaStack = shine.gc.createArray();
-		e.luaStack.push ('at ' + (this._data.sourceName || 'function') + (this._data.linePositions? ' on line ' + this._data.linePositions[this._pc - 1] : ''));
+		// e.luaStack.push('at ' + (this._data.sourceName || 'function') + (this._data.linePositions? ' on line ' + this._data.linePositions[this._pc - 1] : ''));
+		e.luaStack.push([this, this._pc - 1]);
 	
 		throw e;
 	}
@@ -746,12 +752,12 @@ shine.Closure.prototype._run = function () {
 	this.terminated = false;
 	
 	
-	if (shine.debug && shine.debug.status == 'resuming') {
-	 	if (shine.debug.resumeStack.length) {
+	if (shine.debug && shine.debug._status == 'resuming') {
+	 	if (shine.debug._resumeStack.length) {
 			this._pc--;
 			
 		} else {
-			shine.debug.status = 'running';
+			shine.debug._setStatus('running');
 		}
 
 	} else if (shine.Coroutine._running && shine.Coroutine._running.status == 'resuming') {
@@ -819,9 +825,9 @@ shine.Closure.prototype._run = function () {
 			return;
 		}
 
-		if (shine.debug && shine.debug.status == 'suspending' && !retval) {
-			shine.debug.resumeStack.push (this);			
-			return retval;
+		if (shine.debug && shine.debug._status == 'suspending' && !retval) {
+			shine.debug._resumeStack.push(this);
+			return;
 		}
 		
 		
@@ -898,7 +904,7 @@ shine.Closure.prototype.hasRetainedScope = function () {
 	// }
 
 	for (var i in this._funcInstances) {
-		if (this._funcInstances.hasOwnProperty(i) && this._funcInstances[i].isRetained ()) return true;
+		if (this._funcInstances.hasOwnProperty(i) && this._funcInstances[i].isRetained()) return true;
 	}
 
 	return false;
@@ -958,7 +964,18 @@ shine.Closure.prototype.dispose = function (force) {
 	
 
 	function move (a, b) {
-		this._register.setItem(a, this._register.getItem(b));
+		var val = this._register.getItem(b),
+			local,
+			i;
+
+		this._register.setItem(a, val);
+
+		if (val && val instanceof shine.Function) {
+			for (i = this._data.locals.length - 1; i >= 0; i--) {
+				local = this._data.locals[i];
+				if (local.startpc == this._pc - 1) this._localFunctions[local.varname] = val;
+			}
+		}
 	}
 
 			
@@ -1011,7 +1028,7 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function gettable (a, b, c) {
-		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
+		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
 		if (this._register.getItem(b) === undefined) {
 			throw new shine.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
@@ -1052,14 +1069,14 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function settable (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
-		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
+		b = (b >= 256)? this._getConstant(b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
 		if ((this._register.getItem(a) || shine.EMPTY_OBJ) instanceof shine.Table) {
 			this._register.getItem(a).setMember (b, c);
 		
 		} else if (this._register.getItem(a) === undefined) {
-			throw new shine.Error ('Attempt to index a missing field (can\'t set "' + b + '" on a nil value)');
+			throw new shine.Error('Attempt to index a missing field (can\'t set "' + b + '" on a nil value)');
 			
 		} else {
 			this._register.getItem(a)[b] = c;
@@ -1419,8 +1436,8 @@ shine.Closure.prototype.dispose = function (force) {
 			f, o, mt;
 
 
-		if (shine.debug && shine.debug.status == 'resuming') {
-			funcToResume = shine.debug.resumeStack.pop ();
+		if (shine.debug && shine.debug._status == 'resuming') {
+			funcToResume = shine.debug._resumeStack.pop ();
 			
 			if ((funcToResume || shine.EMPTY_OBJ) instanceof shine.Coroutine) {
 				retvals = funcToResume.resume ();
@@ -1780,7 +1797,7 @@ shine.Function.prototype._convertInstructions = function () {
 	if ('ArrayBuffer' in window) {
 		if (instructions instanceof Int32Array) return;
 
-		buffer = new ArrayBuffer(instructions.length * 4 * 4);
+		buffer = new ArrayBuffer(instructions.length * 4);
 		result = new Int32Array(buffer);
 
 		if (instructions.length == 0 || instructions[0].op === undefined) {
@@ -1790,7 +1807,7 @@ shine.Function.prototype._convertInstructions = function () {
 		}
 
 	} else {
-		if (instructions.length == 0 || instructions[0].op === undefined) return;
+		if (instructions.length == 0 || typeof instructions[0] == 'number') return;
 		result = [];
 	}
 
@@ -2020,8 +2037,8 @@ shine.Coroutine.prototype.resume = function () {
 
 		shine.Coroutine._add(this);
 		
-		if (shine.debug && shine.debug.status == 'resuming') {
-			var funcToResume = shine.debug.resumeStack.pop();
+		if (shine.debug && shine.debug._status == 'resuming') {
+			var funcToResume = shine.debug._resumeStack.pop();
 			
 			if ((funcToResume || shine.EMPTY_OBJ) instanceof shine.Coroutine) {
 				retval = funcToResume.resume();
@@ -2034,21 +2051,27 @@ shine.Coroutine.prototype.resume = function () {
 			shine.stddebug.write('[coroutine started]\n');
 
 			this._started = true;
-			retval = this._func.apply(null, arguments, true);
+			retval = this._func.apply(null, arguments);
 
 		} else {
 			this.status = 'resuming';
 			shine.stddebug.write('[coroutine resuming]\n');
 
-			var args = shine.gc.createArray();
-			for (var i = 0, l = arguments.length; i < l; i++) args.push(arguments[i]);	
+			if (!arguments.length) {
+				this._yieldVars = undefined;
 
-			this._yieldVars = args;
+			} else {
+				var args = shine.gc.createArray();
+				for (var i = 0, l = arguments.length; i < l; i++) args.push(arguments[i]);	
+
+				this._yieldVars = args;
+			}
+
 			retval = this._resumeStack.pop()._run();
 		}	
 	
-		if (shine.debug && shine.debug.status == 'suspending') {
-			shine.debug.resumeStack.push(this);
+		if (shine.debug && shine.debug._status == 'suspending') {
+			shine.debug._resumeStack.push(this);
 			return;
 		}
 		
@@ -2145,7 +2168,7 @@ shine.Table = function (obj) {
 
 			if (typeof getQualifiedClassName !== 'undefined') {
 				// ActionScript
-				iterate = ((getQualifiedClassName(value) == 'Object') && (!(value instanceof shine.Table)) && (!(value instanceof shine.Coroutine)) && (!(value instanceof shine.Function)) && (!(value instanceof shine.Closure) )) || (getQualifiedClassName(value) == 'Array');
+				iterate = (getQualifiedClassName(value) == 'Object' && !(value instanceof shine.Table) && !(value instanceof shine.Coroutine) && !(value instanceof shine.Function) && !(value instanceof shine.Closure)) || getQualifiedClassName(value) == 'Array';
 			} else {
 				// JavaScript
 				iterate = (typeof value == 'object' && value.constructor === Object) || value instanceof Array;
@@ -2284,19 +2307,11 @@ var shine = shine || {};
  * @param {string} message Error message.
  */
 shine.Error = function (message) {
-	
-	// The following is an ugly frigg to overcome Chromium bug: https://code.google.com/p/chromium/issues/detail?id=228909
-	var err = new Error(message);
-
-	err.constructor = this.constructor;
-	err.__proto__ = this;    
-	err.name = 'shine.Error';
-
-	return err;
+	this.message = message;
 };
 
 
-shine.Error.prototype = new Error ();
+shine.Error.prototype = Object['create']? Object['create'](Error.prototype) : new Error();	// Overcomes Chromium bug: https://code.google.com/p/chromium/issues/detail?id=228909
 shine.Error.prototype.constructor = shine.Error;
 
 
@@ -2312,10 +2327,82 @@ shine.Error.catchExecutionError = function (e) {
 
 	if ((e || shine.EMPTY_OBJ) instanceof shine.Error) {
 		if (!e.luaMessage) e.luaMessage = e.message;
-		e.message = e.luaMessage + '\n    ' + (e.luaStack || shine.gc.createArray()).join('\n    ');
+		// e.message = e.luaMessage + '\n    ' + (e.luaStack || shine.gc.createArray()).join('\n    ');
+		e.message = e.luaMessage + '\n    ' + e._stackToString();
 	}
 
 	throw e;
+};
+
+
+
+
+/**
+ * Coerces the error to a string for logging.
+ * @return {string} String representation of error.
+ */
+shine.Error.prototype._stackToString = function () {
+	var result = [],
+		closure, pc, 
+		funcName, parent, up,
+		filename, path,
+		i, j, l;
+
+	for (i = 0, l = this.luaStack.length; i < l; i++) {
+		if (typeof this.luaStack[i] == 'string') {
+			result.push(this.luaStack[i]);
+
+		} else {
+			closure = this.luaStack[i][0];
+			pc = this.luaStack[i][1];
+
+			if (!(funcName = closure._data.sourceName)) {
+
+				if (parent = this.luaStack[i + 1] && this.luaStack[i + 1][0]) {
+					// Search locals
+					for (j in parent._localFunctions) {
+						if (parent._localFunctions[j]._data === closure._data) {
+							funcName = j;
+							break;
+						} 
+					}
+
+					// Search upvalues
+					if (!funcName) {
+						for (j in parent._upvalues) {
+							up = parent._upvalues[j].getValue();
+
+							if ((up || shine.EMPTY_OBJ) instanceof shine.Function && up._data === closure._data) {
+								funcName = parent._upvalues[j].name;
+								break;
+							} 
+						}
+					}
+				}
+
+				// Search globals
+				if (!funcName) {
+					for (j in closure._globals) {
+						if ((closure._globals[j] || shine.EMPTY_OBJ) instanceof shine.Function && closure._globals[j]._data === closure._data) {
+							funcName = j;
+							break;
+						} 
+					}
+				}
+			}
+
+
+			if (filename = closure._file.data.sourcePath) {
+				filename = closure._file.url.match('^(.*)\/.*?$')[1] + filename;
+			} else {
+				filename = closure._file.url;
+			}
+
+			result.push ((funcName || 'function') + ' [' + (filename || 'file') + ':' + closure._data.linePositions[pc] + ']')
+		}
+	}
+	
+	return result.join('\n    ');
 };
 
 
@@ -2345,7 +2432,7 @@ var shine = shine || {};
 shine.File = function (url) {
 	shine.EventEmitter.call(this);
 
-	this._url = url;
+	this.url = url;
 	this.data = undefined;
 };
 
@@ -2361,27 +2448,39 @@ shine.File.prototype.constructor = shine.File;
  */
 shine.File.prototype.load = function () {
 	var me = this;
-
+console.log ('file load')
 	function success (data) {
-		me.data = JSON.parse(data);
-		me._trigger('loaded', me.data);
+		me._onSuccess(data);
 	}
 
 	function error (code) {
-		me._trigger('error', code);
+		me._onError(code);
 	}
-	
-	shine.utils.get(this._url, success, error);
+
+	shine.utils.get(this.url, success, error);
 };
 
 
 
 
 /**
- * Retrieved the corresponding Lua file, if exists.
- * @todo
+ * Handles a successful response from the server.
+ * @param {String} data Response.
  */
-shine.File.prototype.loadLua = function () {
+shine.File.prototype._onSuccess = function (data) {
+	this.data = JSON.parse(data);
+	this._trigger('loaded', data);
+};
+
+
+
+
+/**
+ * Handles an unsuccessful response from the server.
+ * @param {Number} code HTTP resonse code.
+ */
+shine.File.prototype._onError = function (code) {
+	this._trigger('error', code);
 };
 
 
@@ -2391,7 +2490,7 @@ shine.File.prototype.loadLua = function () {
  * Dump memory associated with file.
  */
 shine.File.prototype.dispose = function () {
-	delete this._url;
+	delete this.url;
 	delete this.data;
 };
 
@@ -2454,11 +2553,11 @@ var shine = shine || {};
 		var n = 0,
 			i, l, character, addSlash;
 					
-		for (i in ROSETTA_STONE) if (ROSETTA_STONE.hasOwnProperty(i)) pattern = pattern.replace (new RegExp(i, 'g'), ROSETTA_STONE[i]);
+		for (i in ROSETTA_STONE) if (ROSETTA_STONE.hasOwnProperty(i)) pattern = pattern.replace(new RegExp(i, 'g'), ROSETTA_STONE[i]);
 		l = pattern.length;
 
 		for (i = 0; i < l; i++) {
-			character = pattern.substr (i, 1);
+			character = pattern.substr(i, 1);
 			addSlash = false;
 
 			if (character == '[') {
@@ -2471,7 +2570,7 @@ var shine = shine || {};
 			}
 
 			if (addSlash) {
-				pattern = pattern.substr (0, i) + '\\' + pattern.substr (i++);
+				pattern = pattern.substr(0, i) + '\\' + pattern.substr(i++);
 				l++;
 			}
 		}			
@@ -2488,26 +2587,26 @@ var shine = shine || {};
 			pathData;
 
 		if (filename.substr(0, 1) != '/') {
-			pathData = (this._thread._file._url || '').match(/^(.*\/).*?$/);
+			pathData = (this._thread._file.url || '').match(/^(.*\/).*?$/);
 			pathData = (pathData && pathData[1]) || '';
 			filename = pathData + filename;
 		}
 
-		file = new shine.File (filename);
+		file = new shine.File(filename);
 
-		file.bind ('loaded', function (data) {
-			var func = new shine.Function (vm, file, file.data, vm._globals);
-			vm._trigger ('module-loaded', file, func);
+		file.bind('loaded', function (data) {
+			var func = new shine.Function(vm, file, file.data, vm._globals);
+			vm._trigger('module-loaded', file, func);
 			
 			callback(func);
 		});
 
-		file.bind ('error', function (code) {
-			vm._trigger ('module-load-error', file, code);
+		file.bind('error', function (code) {
+			vm._trigger('module-load-error', file, code);
 			callback();
 		});
 
-		this._trigger ('loading-module', file);
+		this._trigger('loading-module', file);
 		file.load ();
 	}
 
@@ -2518,7 +2617,7 @@ var shine = shine || {};
 	
 		
 		assert: function (v, m) {
-			if (v === false || v === undefined) throw new shine.Error (m || 'Assertion failed!');
+			if (v === false || v === undefined) throw new shine.Error(m || 'Assertion failed!');
 			return [v, m];
 		},
 	
@@ -2540,7 +2639,7 @@ var shine = shine || {};
 		
 		
 		error: function (message) {	
-			throw new shine.Error (message);
+			throw new shine.Error(message);
 		},
 	
 	
@@ -2558,7 +2657,7 @@ var shine = shine || {};
 		 * @param {object} table The table from which to obtain the metatable.
 		 */
 		getmetatable: function (table) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in getmetatable(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in getmetatable(). Table expected');
 			return table.__shine.metatable;
 		},
 		
@@ -2566,14 +2665,14 @@ var shine = shine || {};
 	
 	
 		ipairs: function (table) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in ipairs(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in ipairs(). Table expected');
 			
 			var iterator = function (table, index) {
-				if (index === undefined) throw new shine.Error ('Bad argument #2 to ipairs() iterator');
+				if (index === undefined) throw new shine.Error('Bad argument #2 to ipairs() iterator');
 
 				var nextIndex = index + 1;
 
-				if (!table.__shine.numValues.hasOwnProperty (nextIndex)) return undefined;
+				if (!table.__shine.numValues.hasOwnProperty(nextIndex)) return undefined;
 				return [nextIndex, table.__shine.numValues[nextIndex]];
 			};
 	
@@ -2584,7 +2683,7 @@ var shine = shine || {};
 	
 		
 		load: function (func, chunkname) {
-			var file = new shine.File,
+			var file = new shine.File(),
 				chunk = '', piece, lastPiece;
 
 			while ((piece = func()) && piece != lastPiece) {
@@ -2635,18 +2734,18 @@ var shine = shine || {};
 					if (!found) {
 						if (i === index) found = true;
 		
-					} else if (numValues.hasOwnProperty (i) && numValues[i] !== undefined) {
+					} else if (numValues.hasOwnProperty(i) && numValues[i] !== undefined) {
 						return [i, numValues[i]];
 					}
 				}
 			}
 			
 			for (i in table) {
-				if (table.hasOwnProperty (i) && !(i in shine.Table.prototype) && i !== '__shine') {
+				if (table.hasOwnProperty(i) && !(i in shine.Table.prototype) && i !== '__shine') {
 					if (!found) {
 						if (i == index) found = true;
 	
-					} else if (table.hasOwnProperty (i) && table[i] !== undefined && ('' + i).substr (0, 2) != '__') {
+					} else if (table.hasOwnProperty(i) && table[i] !== undefined && ('' + i).substr(0, 2) != '__') {
 						return [i, table[i]];
 					}
 				}
@@ -2676,7 +2775,7 @@ var shine = shine || {};
 		 * @param {object} table The table to be iterated over.
 		 */
 		pairs: function (table) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in pairs(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in pairs(). Table expected');
 			return [shine.lib.next, table];
 		},
 	
@@ -2691,13 +2790,13 @@ var shine = shine || {};
 	
 			try {			
 				if (typeof func == 'function') {
-					result = func.apply (null, args);
+					result = func.apply(null, args);
 					
 				} else if ((func || shine.EMPTY_OBJ) instanceof shine.Function) {
-					result = func.apply (null, args, true);
+					result = func.apply(null, args, true);
 
 				} else {
-					throw new shine.Error ('Attempt to call non-function');
+					throw new shine.Error('Attempt to call non-function');
 				}
 	
 			} catch (e) {
@@ -2705,12 +2804,12 @@ var shine = shine || {};
 			}
 			
 			if (!((result || shine.EMPTY_OBJ) instanceof Array)) result = [result];
-			result.unshift (true);
+			result.unshift(true);
 			
 			return result;
 		},
 	
-		
+
 		
 	
 		print: function () {
@@ -2722,21 +2821,21 @@ var shine = shine || {};
 				item = arguments[i];
 				
 				if ((item || shine.EMPTY_OBJ) instanceof shine.Table) {
-					output.push ('table: 0x' + item.__shine.index.toString (16));
+					output.push('table: 0x' + item.__shine.index.toString(16));
 					
 				} else if ((item || shine.EMPTY_OBJ) instanceof Function) {
-					output.push ('JavaScript function: ' + item.toString ());
+					output.push('JavaScript function: ' + item.toString());
 									
 				} else if (item === undefined) {
-					output.push ('nil');
+					output.push('nil');
 					
 				} else {
-					output.push (shine.lib.tostring(item));
+					output.push(shine.lib.tostring(item));
 				}
 //	console.log ('print>>', item);
 			}
 	
-			return shine.stdout.write (output.join ('\t'));
+			return shine.stdout.write(output.join('\t'));
 		},
 	
 	
@@ -2750,7 +2849,7 @@ var shine = shine || {};
 	
 	
 		rawget: function (table, index) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in rawget(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in rawget(). Table expected');
 			return table[index];
 		},
 	
@@ -2758,8 +2857,8 @@ var shine = shine || {};
 	
 	
 		rawset: function (table, index, value) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in rawset(). Table expected');
-			if (index == undefined) throw new shine.Error ('Bad argument #2 in rawset(). Nil not allowed');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in rawset(). Table expected');
+			if (index == undefined) throw new shine.Error('Bad argument #2 in rawset(). Nil not allowed');
 	
 			table[index] = value;
 			return table;
@@ -2771,15 +2870,29 @@ var shine = shine || {};
 		require: function (modname) {
 			var thread,
 				packageLib = shine.lib['package'],
+				running = shine.Coroutine._running._func._instance,
 				vm = this,
 				module,
 				preload,
 				paths,
 				path;
 
+
 			function load (preloadFunc) {
+				var result;
+
 				packageLib.loaded[modname] = true;
-				module = preloadFunc.call(null, modname)[0];
+				result = preloadFunc.call(null, modname);
+
+				if (shine.debug && shine.debug._status == 'suspending' && !result) {
+					// running._pc -= 1;
+					// shine.debug._resumeStack
+					delete packageLib.loaded[modname];
+					shine.debug._resumeStack.push(running);
+					return;
+				}
+
+				module = result[0];
 
 				if (module !== undefined) packageLib.loaded[modname] = module;
 				return packageLib.loaded[modname];
@@ -2803,7 +2916,8 @@ var shine = shine || {};
 
 					loadfile.call(vm, path, function (preload) {
 						if (preload) {
-							thread.resume(load(preload));
+							var result = load(preload);
+							if (result) thread.resume(result);
 						} else {
 							loadNextPath();
 						}
@@ -2822,12 +2936,12 @@ var shine = shine || {};
 			if (index == '#') {
 				return arguments.length - 1;
 				
-			} else if (index = parseInt (index, 10)) {
-				for (var i = index, l = arguments.length; i < l; i++) args.push (arguments[i]);
+			} else if (index = parseInt(index, 10)) {
+				for (var i = index, l = arguments.length; i < l; i++) args.push(arguments[i]);
 				return args;
 				
 			} else {
-				throw new shine.Error ('Bad argument #1 in select(). Number or "#" expected');
+				throw new shine.Error('Bad argument #1 in select(). Number or "#" expected');
 			}
 		},
 		
@@ -2840,8 +2954,8 @@ var shine = shine || {};
 		 * @param {object} metatable The metatable to attach.
 		 */
 		setmetatable: function (table, metatable) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in setmetatable(). Table expected');	
-			if (!(metatable === undefined || (metatable || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #2 in setmetatable(). Nil or table expected');	
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in setmetatable(). Table expected');	
+			if (!(metatable === undefined || (metatable || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #2 in setmetatable(). Nil or table expected');	
 
 			shine.gc.decrRef(table.__shine.metatable);
 			table.__shine.metatable = metatable;
@@ -2854,37 +2968,45 @@ var shine = shine || {};
 	
 		
 		tonumber: function (e, base) {
-			// TODO: Needs a more generic algorithm to check what is valid. Lua supports all bases from 2 to 36 inclusive.
-			if (e === '') return;
+            // TODO: Needs a more generic algorithm to check what is valid. Lua supports all bases from 2 to 36 inclusive.
+            if (e === '') return;
+             
+            e = ('' + e).replace(/^\s+|\s+$/g, '');    // Trim
+            base = base || 10;
+     
+            if (base === 2 && e.match (/[^01]/)) return;
+            if (base === 10 && e.match (/[^0-9e\+\-\.]/)) return;
+            if (base === 16 && e.match (/[^0-9A-Fa-f]/)) return;
+             
+            return (base == 10)? parseFloat (e) : parseInt (e, base);
+
+			// if (e === '') return;
 			
-			e = ('' + e).replace (/^\s+|\s+$/g, '');	// Trim
-			base = base || 10;
-	
-			if (base === 2 && e.match (/[^01]/)) return;
-			if (base === 10 && e.match (/[^0-9e\+\-\.]/)) return;
-			if (base === 16 && e.match (/[^0-9A-Fa-f]/)) return;
-			
-			return (base == 10)? parseFloat (e) : parseInt (e, base);
+			// e = ('' + e).replace(/^\s+|\s+$/g, '');	// Trim
+			// base = base || 10;
+
+			// if (base < 2 || base > 36) throw new shine.Error('bad argument #2 to tonumber() (base out of range)');
+
+
+			// var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+			// 	pattern = new RegExp(chars.substr(0, base), 'gi');
+
+			// if (pattern.test(e)) return;	// Invalid
+			// return (base == 10)? parseFloat(e) : parseInt(e, base);
 		},
 		
 		
 		
 		
 		tostring: function (e) {
-			switch(true) {
-				case e === undefined: return 'nil';
-				case e === Infinity: return 'inf';
-				case e === -Infinity: return '-inf';
-				case typeof e == 'number' && window.isNaN(e): return 'nan';
-				default: return e.toString ();
-			}
+			return shine.utils.coerce(e, 'string');
 		},
 		
 		
 		
 		
 		type: function (v) {
-			var t = typeof (v);
+			var t = typeof v;
 	
 			switch (t) {
 				case 'undefined': 
@@ -2908,7 +3030,7 @@ var shine = shine || {};
 	
 		unpack: function (table, i, j) {
 			// v5.2: shine.warn ('unpack is deprecated. Use table.unpack instead.');
-			return shine.lib.table.unpack (table, i, j);
+			return shine.lib.table.unpack(table, i, j);
 		},
 		
 		
@@ -2924,10 +3046,10 @@ var shine = shine || {};
 				
 			try {
 				if (typeof func == 'function') {
-					result = func.apply ();
+					result = func.apply();
 					
 				} else if ((func || shine.EMPTY_OBJ) instanceof shine.Function) {
-					result = func.apply (null, undefined, true);
+					result = func.apply(null, undefined, true);
 
 				} else {
 					invalid = true;
@@ -2936,16 +3058,16 @@ var shine = shine || {};
 				success = true;
 				
 			} catch (e) {
-				result = err.apply (null, undefined, true);
+				result = err.apply(null, undefined, true);
 				if (((result || shine.EMPTY_OBJ) instanceof Array)) result = result[0];
 	
 				success = false;
 			}
 
-			if (invalid) throw new shine.Error ('Attempt to call non-function');
+			if (invalid) throw new shine.Error('Attempt to call non-function');
 			
 			if (!((result || shine.EMPTY_OBJ) instanceof Array)) result = [result];
-			result.unshift (success);
+			result.unshift(success);
 			
 			return result;
 		}
@@ -2961,17 +3083,19 @@ var shine = shine || {};
 		
 		create: function (closure) {
 			//return new shine.Coroutine (closure);
-			return shine.Coroutine.create (closure);
+			return shine.Coroutine.create(closure);
 		},
 		
 		
 		
 		
 		resume: function (thread) {
-			var args = shine.gc.createArray();
-			for (var i = 1, l = arguments.length; i < l; i++) args.push (arguments[i]);	
+			if (arguments.length < 2) return thread.resume.call(thread);
 
-			return thread.resume.apply (thread, args);
+			var args = shine.gc.createArray();
+			for (var i = 1, l = arguments.length; i < l; i++) args.push(arguments[i]);	
+
+			return thread.resume.apply(thread, args);
 		},
 		
 		
@@ -2992,14 +3116,18 @@ var shine = shine || {};
 		
 		
 		wrap: function (closure) {
-			var co = shine.lib.coroutine.create (closure);
+			var co = shine.lib.coroutine.create(closure);
 			
 			var result = function () {			
 				var args = [co];
-				for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
+				for (var i = 0, l = arguments.length; i < l; i++) args.push(arguments[i]);	
 	
-				var retvals = shine.lib.coroutine.resume.apply (null, args),
-					success = retvals.shift ();
+				var retvals = shine.lib.coroutine.resume.apply(null, args),
+					success;
+				
+				if (shine.debug && shine.debug._status == 'suspending' && !retvals) return;
+
+				success = retvals.shift();
 					
 				if (success) return retvals;
 				throw retvals[0];
@@ -3014,13 +3142,13 @@ var shine = shine || {};
 		
 		yield: function () {
 			// If running in main thread, throw error.
-			if (!shine.Coroutine._running) throw new shine.Error ('attempt to yield across metamethod/C-call boundary (not in coroutine)');
-			if (shine.Coroutine._running.status != 'running') throw new shine.Error ('attempt to yield non-running coroutine in host');
+			if (!shine.Coroutine._running) throw new shine.Error('attempt to yield across metamethod/C-call boundary (not in coroutine)');
+			if (shine.Coroutine._running.status != 'running') throw new shine.Error('attempt to yield non-running coroutine in host');
 
 			var args = shine.gc.createArray(),
 				running = shine.Coroutine._running;
 
-			for (var i = 0, l = arguments.length; i < l; i++) args.push (arguments[i]);	
+			for (var i = 0, l = arguments.length; i < l; i++) args.push(arguments[i]);	
 	
 			running._yieldVars = args;
 			running.status = 'suspending';
@@ -3031,21 +3159,21 @@ var shine = shine || {};
 						i, 
 						l = arguments.length,
 						f = function () { 
-							shine.lib.coroutine.resume.apply (undefined, args); 
+							shine.lib.coroutine.resume.apply(undefined, args); 
 						};
 
-					for (i = 0; i < l; i++) args.push (arguments[i]);
+					if (arguments.length == 1 && arguments[0] === undefined) l = 0;
+					for (i = 0; i < l; i++) args.push(arguments[i]);
 
 					if (running.status == 'suspending') {
-						window.setTimeout (f, 1);
+						window.setTimeout(f, 1);
 					} else {
 						f ();
 					}
 				}
 			}
 		}
-	
-		
+			
 	};
 
 
@@ -3135,12 +3263,12 @@ var shine = shine || {};
 			for (var i in arguments) {
 				if (arguments.hasOwnProperty(i)) {
 					var arg = arguments[i];
-					if (['string', 'number'].indexOf (typeof arg) == -1) throw new shine.Error ('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
+					if (['string', 'number'].indexOf(typeof arg) == -1) throw new shine.Error('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
 					output += arg;
 				}
 			}
 			
-			shine.stdout.write (output);
+			shine.stdout.write(output);
 		}
 		
 		
@@ -3153,49 +3281,49 @@ var shine = shine || {};
 	
 	
 		abs: function (x) {
-			return Math.abs (x);
+			return Math.abs(x);
 		},
 		
 		
 		
 		
 		acos: function (x) {
-			return Math.acos (x);
+			return Math.acos(x);
 		},
 		
 		
 		
 		
 		asin: function (x) {
-			return Math.asin (x);
+			return Math.asin(x);
 		},
 		
 		
 		
 		
 		atan: function (x) {
-			return Math.atan (x);
+			return Math.atan(x);
 		},
 		
 		
 		
 		
 		atan2: function (y, x) {
-			return Math.atan2 (y, x);
+			return Math.atan2(y, x);
 		},
 		
 		
 		
 		
 		ceil: function (x) {
-			return Math.ceil (x);
+			return Math.ceil(x);
 		},
 		
 		
 		
 		
 		cos: function (x) {
-			return Math.cos (x);
+			return Math.cos(x);
 		},
 		
 		
@@ -3216,14 +3344,14 @@ var shine = shine || {};
 		
 		
 		exp: function (x) {
-			return Math.exp (x);
+			return Math.exp(x);
 		},
 		
 		
 		
 		
 		floor: function (x) {
-			return Math.floor (x);
+			return Math.floor(x);
 		},
 		
 		
@@ -3249,15 +3377,15 @@ var shine = shine || {};
 		
 		
 		ldexp: function (m, e) {
-			return m * Math.pow (2, e);
+			return m * Math.pow(2, e);
 		},
 		
 		
 		
 		
 		log: function (x, base) {
-			var result = Math.log (x);
-			if (base !== undefined) return result / Math.log (base);
+			var result = Math.log(x);
+			if (base !== undefined) return result / Math.log(base);
 			return result;
 		},
 		
@@ -3266,38 +3394,28 @@ var shine = shine || {};
 		
 		log10: function (x) {
 			// v5.2: shine.warn ('math.log10 is deprecated. Use math.log with 10 as its second argument, instead.');
-			return Math.log (x) / Math.log (10);
+			return Math.log(x) / Math.log(10);
 		},
 		
 		
 		
 		
 		max: function () {
-			var max = -Infinity,
-				length = arguments.length,
-				i;
-			
-			for (i = 0; i < length; i++) if (arguments[i] > max) max = arguments[i];
-			return max;
+			return Math.max.apply(Math, arguments);
 		},
 		
 		
 		
 		
 		min: function () {
-			var min = Infinity,
-				length = arguments.length,
-				i;
-			
-			for (i = 0; i < length; i++) if (arguments[i] < min) min = arguments[i];
-			return min;
+			return Math.min.apply(Math, arguments);
 		},
 		
 		
 		
 		
 		modf: function (x) {
-			var intValue = Math.floor (x),
+			var intValue = Math.floor(x),
 				mantissa = x - intValue;
 			return [intValue, mantissa];
 		},
@@ -3314,7 +3432,7 @@ var shine = shine || {};
 			var coerce = shine.utils.coerce;
 			x = coerce(x, 'number', "bad argument #1 to 'pow' (number expected)")
 			y = coerce(y, 'number', "bad argument #2 to 'pow' (number expected)")
-			return Math.pow (x, y);
+			return Math.pow(x, y);
 		},
 		
 		
@@ -3335,25 +3453,25 @@ var shine = shine || {};
 			if (min === undefined && max === undefined) return getRandom();
 	
 	
-			if (typeof min !== 'number') throw new shine.Error ("bad argument #1 to 'random' (number expected)");
+			if (typeof min !== 'number') throw new shine.Error("bad argument #1 to 'random' (number expected)");
 	
 			if (max === undefined) {
 				max = min;
 				min = 1;
 	
 			} else if (typeof max !== 'number') {
-				throw new shine.Error ("bad argument #2 to 'random' (number expected)");
+				throw new shine.Error("bad argument #2 to 'random' (number expected)");
 			}
 	
-			if (min > max) throw new shine.Error ("bad argument #2 to 'random' (interval is empty)");
-			return Math.floor (getRandom() * (max - min + 1) + min);
+			if (min > max) throw new shine.Error("bad argument #2 to 'random' (interval is empty)");
+			return Math.floor(getRandom() * (max - min + 1) + min);
 		},
 	
 	
 	
 	
 		randomseed: function (x) {
-			if (typeof x !== 'number') throw new shine.Error ("bad argument #1 to 'randomseed' (number expected)");
+			if (typeof x !== 'number') throw new shine.Error("bad argument #1 to 'randomseed' (number expected)");
 			randomSeed = x;
 		},
 	
@@ -3361,7 +3479,7 @@ var shine = shine || {};
 	
 		
 		sin: function (x) {
-			return Math.sin (x);
+			return Math.sin(x);
 		},
 	
 	
@@ -3375,14 +3493,14 @@ var shine = shine || {};
 	
 		
 		sqrt: function (x) {
-			return Math.sqrt (x);
+			return Math.sqrt(x);
 		},
 	
 	
 	
 		
 		tan: function (x) {
-			return Math.tan (x);
+			return Math.tan(x);
 		},
 	
 	
@@ -3396,7 +3514,7 @@ var shine = shine || {};
 	};
 	
 	
-	
+
 	
 	shine.lib.os = {
 	
@@ -3417,22 +3535,22 @@ var shine = shine || {};
 				daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
 				
 				getWeekOfYear = function (d, firstDay) { 
-					var dayOfYear = parseInt (handlers['%j'](d), 10),
-						jan1 = new Date (d.getFullYear (), 0, 1, 12),
-						offset = (8 - jan1['get' + utc + 'Day'] () + firstDay) % 7;
+					var dayOfYear = parseInt(handlers['%j'](d), 10),
+						jan1 = new Date(d.getFullYear (), 0, 1, 12),
+						offset = (8 - jan1['get' + utc + 'Day']() + firstDay) % 7;
 
-					return ('0' + (Math.floor ((dayOfYear - offset) / 7) + 1)).substr (-2);
+					return ('0' + (Math.floor((dayOfYear - offset) / 7) + 1)).substr(-2);
 				},
 	
 				handlers = {
-					'%a': function (d) { return days[d['get' + utc + 'Day']()].substr (0, 3); },
+					'%a': function (d) { return days[d['get' + utc + 'Day']()].substr(0, 3); },
 					'%A': function (d) { return days[d['get' + utc + 'Day']()]; },
-					'%b': function (d) { return months[d['get' + utc + 'Month']()].substr (0, 3); },
+					'%b': function (d) { return months[d['get' + utc + 'Month']()].substr(0, 3); },
 					'%B': function (d) { return months[d['get' + utc + 'Month']()]; },
 					'%c': function (d) { return d['to' + utc + 'LocaleString'](); },
-					'%d': function (d) { return ('0' + d['get' + utc + 'Date']()).substr (-2); },
-					'%H': function (d) { return ('0' + d['get' + utc + 'Hours']()).substr (-2); },
-					'%I': function (d) { return ('0' + ((d['get' + utc + 'Hours']() + 11) % 12 + 1)).substr (-2); },
+					'%d': function (d) { return ('0' + d['get' + utc + 'Date']()).substr(-2); },
+					'%H': function (d) { return ('0' + d['get' + utc + 'Hours']()).substr(-2); },
+					'%I': function (d) { return ('0' + ((d['get' + utc + 'Hours']() + 11) % 12 + 1)).substr(-2); },
 					'%j': function (d) {
 						var result = d['get' + utc + 'Date'](),
 							m = d['get' + utc + 'Month']();
@@ -3440,61 +3558,61 @@ var shine = shine || {};
 						for (var i = 0; i < m; i++) result += daysInMonth[i];
 						if (m > 1 && d['get' + utc + 'FullYear']() % 4 === 0) result +=1;
 	
-						return ('00' + result).substr (-3);
+						return ('00' + result).substr(-3);
 					},
-					'%m': function (d) { return ('0' + (d['get' + utc + 'Month']() + 1)).substr (-2); },
-					'%M': function (d) { return ('0' + d['get' + utc + 'Minutes']()).substr (-2); },
+					'%m': function (d) { return ('0' + (d['get' + utc + 'Month']() + 1)).substr(-2); },
+					'%M': function (d) { return ('0' + d['get' + utc + 'Minutes']()).substr(-2); },
 					'%p': function (d) { return (d['get' + utc + 'Hours']() < 12)? 'AM' : 'PM'; },
-					'%S': function (d) { return ('0' + d['get' + utc + 'Seconds']()).substr (-2); },
-					'%U': function (d) { return getWeekOfYear (d, 0); },
+					'%S': function (d) { return ('0' + d['get' + utc + 'Seconds']()).substr(-2); },
+					'%U': function (d) { return getWeekOfYear(d, 0); },
 					'%w': function (d) { return '' + (d['get' + utc + 'Day']()); },
-					'%W': function (d) { return getWeekOfYear (d, 1); },
+					'%W': function (d) { return getWeekOfYear(d, 1); },
 					'%x': function (d) { return handlers['%m'](d) + '/' + handlers['%d'](d) + '/' + handlers['%y'](d); },
 					'%X': function (d) { return handlers['%H'](d) + ':' + handlers['%M'](d) + ':' + handlers['%S'](d); },
 					'%y': function (d) { return handlers['%Y'](d).substr (-2); },
 					'%Y': function (d) { return '' + d['get' + utc + 'FullYear'](); },
-					'%Z': function (d) { return utc? 'UTC' : d.toString ().substr (-4, 3); },
+					'%Z': function (d) { return utc? 'UTC' : d.toString ().substr(-4, 3); },
 					'%%': function () { return '%' }
 				},
 	
 				utc = '',
-				date = new Date ();
+				date = new Date();
 	
 			
-			if (time) date.setTime (time * 1000);
+			if (time) date.setTime(time * 1000);
 			
 	
-			if (format.substr (0, 1) === '!') {
-				format = format.substr (1);
+			if (format.substr(0, 1) === '!') {
+				format = format.substr(1);
 				utc = 'UTC';
 			}
 	
 	
 			if (format === '*t') {
 				var isDST = function (d) {
-					var year = d.getFullYear (),
-						jan = new Date (year, 0);
+					var year = d.getFullYear(),
+						jan = new Date(year, 0);
 						
 					// ASSUMPTION: If the time offset of the date is the same as it would be in January of the same year, DST is not in effect.
-					return (d.getTimezoneOffset () !== jan.getTimezoneOffset ());
+					return (d.getTimezoneOffset() !== jan.getTimezoneOffset());
 				};
 				
 				return new shine.Table ({
-					year: parseInt (handlers['%Y'](date), 10),
-					month: parseInt (handlers['%m'](date), 10),
-					day: parseInt (handlers['%d'](date), 10),
-					hour: parseInt (handlers['%H'](date), 10),
-					min: parseInt (handlers['%M'](date), 10),
-					sec: parseInt (handlers['%S'](date), 10),
-					wday: parseInt (handlers['%w'](date), 10) + 1,
-					yday: parseInt (handlers['%j'](date), 10),
-					isdst: isDST (date)
+					year: parseInt(handlers['%Y'](date), 10),
+					month: parseInt(handlers['%m'](date), 10),
+					day: parseInt(handlers['%d'](date), 10),
+					hour: parseInt(handlers['%H'](date), 10),
+					min: parseInt(handlers['%M'](date), 10),
+					sec: parseInt(handlers['%S'](date), 10),
+					wday: parseInt(handlers['%w'](date), 10) + 1,
+					yday: parseInt(handlers['%j'](date), 10),
+					isdst: isDST(date)
 				});	
 			}
 	
 	
 			for (var i in handlers) {
-				if (handlers.hasOwnProperty(i) && format.indexOf (i) >= 0) format = format.replace (i, handlers[i](date));
+				if (handlers.hasOwnProperty(i) && format.indexOf(i) >= 0) format = format.replace(i, handlers[i](date));
 			}
 			
 			return format;
@@ -3511,7 +3629,7 @@ var shine = shine || {};
 	
 	
 		execute: function () {
-			if (arguments.length) throw new shine.Error ('shell is not available. You should always check first by calling os.execute with no parameters');
+			if (arguments.length) throw new shine.Error('shell is not available. You should always check first by calling os.execute with no parameters');
 			return 0;
 		},
 	
@@ -3561,23 +3679,23 @@ var shine = shine || {};
 			var time;
 			
 			if (!table) {
-				time = Date['now']? Date['now'] () : new Date ().getTime ();
+				time = Date['now']? Date['now']() : new Date().getTime();
 				
-			} else {	
+			} else {
 				var day, month, year, hour, min, sec;
 				
-				if (!(day = table.getMember ('day'))) throw new shine.Error ("Field 'day' missing in date table");
-				if (!(month = table.getMember ('month'))) throw new shine.Error ("Field 'month' missing in date table");
-				if (!(year = table.getMember ('year'))) throw new shine.Error ("Field 'year' missing in date table");
-				hour = table.getMember ('hour') || 12;
-				min = table.getMember ('min') || 0;
-				sec = table.getMember ('sec') || 0;
+				if (!(day = table.getMember('day'))) throw new shine.Error("Field 'day' missing in date table");
+				if (!(month = table.getMember('month'))) throw new shine.Error("Field 'month' missing in date table");
+				if (!(year = table.getMember('year'))) throw new shine.Error("Field 'year' missing in date table");
+				hour = table.getMember('hour') || 12;
+				min = table.getMember('min') || 0;
+				sec = table.getMember('sec') || 0;
 				
-				if (table.getMember ('isdst')) hour--;
-				time = new Date (year, month - 1, day, hour, min, sec).getTime ();
+				if (table.getMember('isdst')) hour--;
+				time = new Date(year, month - 1, day, hour, min, sec).getTime();
 			}
 			
-			return Math.floor (time / 1000);
+			return Math.floor(time / 1000);
 		},
 	
 	
@@ -3632,7 +3750,7 @@ var shine = shine || {};
 				length = s.length,
 				index;
 			
-			for (index = i; index <= length && index <= j ; index++) result.push (s.charCodeAt (index - 1) || undefined);
+			for (index = i; index <= length && index <= j ; index++) result.push(s.charCodeAt(index - 1) || undefined);
 			return result;
 		},
 		
@@ -3641,7 +3759,7 @@ var shine = shine || {};
 		
 		'char': function () {
 			var result = '';
-			for (var i = 0, l = arguments.length; i < l; i++) result += String.fromCharCode (arguments[i]);
+			for (var i = 0, l = arguments.length; i < l; i++) result += String.fromCharCode(arguments[i]);
 	
 			return result;			
 		},
@@ -3657,8 +3775,8 @@ var shine = shine || {};
 		
 		
 		find: function (s, pattern, init, plain) {
-			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'find' (string expected, got " + typeof s + ")");
-			if (typeof pattern != 'string' && typeof pattern != 'number') throw new shine.Error ("bad argument #2 to 'find' (string expected, got " + typeof pattern + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("bad argument #1 to 'find' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new shine.Error("bad argument #2 to 'find' (string expected, got " + typeof pattern + ")");
 
 			s = '' + s;
 			init = init || 1;
@@ -3667,13 +3785,13 @@ var shine = shine || {};
 
 			// Regex
 			if (plain === undefined || !plain) {
-				pattern = translatePattern (pattern);
-				reg = new RegExp (pattern);
-				index = s.substr(init - 1).search (reg);
+				pattern = translatePattern(pattern);
+				reg = new RegExp(pattern);
+				index = s.substr(init - 1).search(reg);
 				
 				if (index < 0) return;
 				
-				match = s.substr(init - 1).match (reg);
+				match = s.substr(init - 1).match(reg);
 				result = [index + init, index + init + match[0].length - 1];
 
 				match.shift();
@@ -3681,7 +3799,7 @@ var shine = shine || {};
 			}
 			
 			// Plain
-			index = s.indexOf (pattern, init - 1);
+			index = s.indexOf(pattern, init - 1);
 			return (index === -1)? undefined : [index + 1, index + pattern.length];
 		},
 		
@@ -3831,8 +3949,8 @@ var shine = shine || {};
 		
 		
 		gmatch: function (s, pattern) {
-			pattern = translatePattern (pattern);
-			var reg = new RegExp (pattern, 'g'),
+			pattern = translatePattern(pattern);
+			var reg = new RegExp(pattern, 'g'),
 				matches = ('' + s).match(reg);
 
 			return function () {
@@ -3850,12 +3968,12 @@ var shine = shine || {};
 		
 		
 		gsub: function (s, pattern, repl, n) {
-			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'gsub' (string expected, got " + typeof s + ")");
-			if (typeof pattern != 'string' && typeof pattern != 'number') throw new shine.Error ("bad argument #2 to 'gsub' (string expected, got " + typeof pattern + ")");
-			if (n !== undefined && (n = shine.utils.coerce(n, 'number')) === undefined) throw new shine.Error ("bad argument #4 to 'gsub' (number expected, got " + typeof n + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("bad argument #1 to 'gsub' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new shine.Error("bad argument #2 to 'gsub' (string expected, got " + typeof pattern + ")");
+			if (n !== undefined && (n = shine.utils.coerce(n, 'number')) === undefined) throw new shine.Error("bad argument #4 to 'gsub' (number expected, got " + typeof n + ")");
 
 			s = '' + s;
-			pattern = translatePattern ('' + pattern);
+			pattern = translatePattern('' + pattern);
 
 			var count = 0,
 				result = '',
@@ -3864,15 +3982,15 @@ var shine = shine || {};
 				match,
 				lastMatch;
 
-			while ((n === undefined || count < n) && s && (match = s.match (pattern))) {
+			while ((n === undefined || count < n) && s && (match = s.match(pattern))) {
 
 				if (typeof repl == 'function' || (repl || shine.EMPTY_OBJ) instanceof shine.Function) {
-					str = repl.apply (null, [match[0]], true);
+					str = repl.apply(null, [match[0]], true);
 					if (str instanceof Array) str = str[0];
 					if (str === undefined) str = match[0];
 
 				} else if ((repl || shine.EMPTY_OBJ) instanceof shine.Table) {
-					str = repl.getMember (match[0]);
+					str = repl.getMember(match[0]);
 					
 				} else if (typeof repl == 'object') {
 					str = repl[match];
@@ -3884,7 +4002,7 @@ var shine = shine || {};
 				if (match[0].length == 0 && lastMatch === undefined) {
 				 	prefix = '';
 				} else {
-					prefix = s.split (match[0], 1)[0];
+					prefix = s.split(match[0], 1)[0];
 				}
 	
 				lastMatch = match[0];
@@ -3901,7 +4019,7 @@ var shine = shine || {};
 		
 		
 		len: function (s) {
-			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'len' (string expected, got " + typeof s + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("bad argument #1 to 'len' (string expected, got " + typeof s + ")");
 			return ('' + s).length;
 		},
 		
@@ -3909,26 +4027,26 @@ var shine = shine || {};
 		
 		
 		lower: function (s) {
-			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'lower' (string expected, got " + typeof s + ")");
-			return ('' + s).toLowerCase ();
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("bad argument #1 to 'lower' (string expected, got " + typeof s + ")");
+			return ('' + s).toLowerCase();
 		},
 		
 		
 		
 		
 		match: function (s, pattern, init) {
-			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'match' (string expected, got " + typeof s + ")");
-			if (typeof pattern != 'string' && typeof pattern != 'number') throw new shine.Error ("bad argument #2 to 'match' (string expected, got " + typeof pattern + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("bad argument #1 to 'match' (string expected, got " + typeof s + ")");
+			if (typeof pattern != 'string' && typeof pattern != 'number') throw new shine.Error("bad argument #2 to 'match' (string expected, got " + typeof pattern + ")");
 
 			init = init? init - 1 : 0;
-			s = ('' + s).substr (init);
+			s = ('' + s).substr(init);
 		
-			var matches = s.match(new RegExp (translatePattern (pattern)));
+			var matches = s.match(new RegExp(translatePattern (pattern)));
 			
 			if (!matches) return;
 			if (!matches[1]) return matches[0];
 
-			matches.shift ();
+			matches.shift();
 			return matches;
 		},
 		
@@ -3950,7 +4068,7 @@ var shine = shine || {};
 			var result = '',
 			i;
 			
-			for (i = s.length; i >= 0; i--) result += s.charAt (i);
+			for (i = s.length; i >= 0; i--) result += s.charAt(i);
 			return result;
 		},
 		
@@ -3958,7 +4076,7 @@ var shine = shine || {};
 		
 		
 		sub: function (s, i, j) {
-			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error ("bad argument #1 to 'sub' (string expected, got " + typeof s + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("bad argument #1 to 'sub' (string expected, got " + typeof s + ")");
 			s = '' + s;
 			i = i || 1;
 			j = j || s.length;
@@ -3971,14 +4089,14 @@ var shine = shine || {};
 			
 			if (j < 0) j = s.length + j + 1;
 			
-			return s.substring (i, j);
+			return s.substring(i, j);
 		},
 		
 		
 		
 		
 		upper: function (s) {
-			return s.toUpperCase ();
+			return s.toUpperCase();
 		}	
 		
 		
@@ -3991,21 +4109,21 @@ var shine = shine || {};
 		
 		
 		concat: function (table, sep, i, j) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in table.concat(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.concat(). Table expected');
 	
 			sep = sep || '';
 			i = i || 1;
-			j = j || shine.lib.table.maxn (table);
+			j = j || shine.lib.table.maxn(table);
 
-			var result = shine.gc.createArray().concat(table.__shine.numValues).splice (i, j - i + 1);
-			return result.join (sep);
+			var result = shine.gc.createArray().concat(table.__shine.numValues).splice(i, j - i + 1);
+			return result.join(sep);
 		},
 		
 	
 	
 	
 		getn: function (table) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in table.getn(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.getn(). Table expected');
 
 			var vals = table.__shine.numValues, 
 				keys = shine.gc.createArray(),
@@ -4021,7 +4139,7 @@ var shine = shine || {};
 				var i = 0;
 	
 				while (j - i > 1) {
-					var m = Math.floor ((i + j) / 2);
+					var m = Math.floor((i + j) / 2);
 	
 					if (vals[m] === undefined) {
 						j = m;
@@ -4046,7 +4164,7 @@ var shine = shine || {};
 		 * @param {object} obj The value to insert.
 		 */
 		insert: function (table, index, obj) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in table.insert(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.insert(). Table expected');
 	
 			if (obj == undefined) {
 				obj = index;
@@ -4058,7 +4176,7 @@ var shine = shine || {};
 			var oldValue = table.getMember(index);
 			table.setMember(index, obj);
 	
-			if (oldValue) shine.lib.table.insert (table, index + 1, oldValue);
+			if (oldValue) shine.lib.table.insert(table, index + 1, oldValue);
 		},	
 		
 		
@@ -4067,7 +4185,7 @@ var shine = shine || {};
 		maxn: function (table) {
 			// v5.2: shine.warn ('table.maxn is deprecated');
 			
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in table.maxn(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.maxn(). Table expected');
 	
 			// // length = 0;
 			// // while (table[length + 1] != undefined) length++;
@@ -4093,7 +4211,7 @@ var shine = shine || {};
 		 * @param {object} index The position of the element to remove.
 		 */
 		remove: function (table, index) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in table.remove(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.remove(). Table expected');
 	
 			var max = shine.lib.table.getn(table),
 				vals = table.__shine.numValues,
@@ -4116,16 +4234,16 @@ var shine = shine || {};
 		
 		
 		sort: function (table, comp) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ("Bad argument #1 to 'sort' (table expected)");
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error("Bad argument #1 to 'sort' (table expected)");
 	
 			var sortFunc, 
 				arr = table.__shine.numValues;
 		
 			if (comp) {
-				if (!((comp || shine.EMPTY_OBJ) instanceof shine.Function)) throw new shine.Error ("Bad argument #2 to 'sort' (function expected)");
+				if (!((comp || shine.EMPTY_OBJ) instanceof shine.Function)) throw new shine.Error("Bad argument #2 to 'sort' (function expected)");
 	
 				sortFunc = function (a, b) {
-					return comp.apply (null, [a, b], true)[0]? -1 : 1;
+					return comp.apply(null, [a, b], true)[0]? -1 : 1;
 				}
 			
 			} else {
@@ -4142,15 +4260,15 @@ var shine = shine || {};
 
 
 		unpack: function (table, i, j) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error ('Bad argument #1 in unpack(). Table expected');	
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in unpack(). Table expected');	
 	
 			i = i || 1;
-			if (j === undefined) j = shine.lib.table.getn (table);
+			if (j === undefined) j = shine.lib.table.getn(table);
 			
 			var vals = shine.gc.createArray(),
 				index;
 	
-			for (index = i; index <= j; index++) vals.push (table.getMember (index));
+			for (index = i; index <= j; index++) vals.push(table.getMember(index));
 			return vals;
 		}
 
@@ -4209,10 +4327,12 @@ var shine = shine || {};
 						case val === Infinity: return 'inf';
 						case val === -Infinity: return '-inf';
 						case typeof val == 'number' && window.isNaN(val): return 'nan';
-						default: return e.toString();
+						case typeof val == 'function': return 'function: [host code]'
+						default: return val.toString();
 					}
 
 				case 'number':
+					if (val === undefined) return;
 					if (val === Infinity || val === -Infinity || (typeof val == 'number' && window.isNaN(val))) return val;
 					if (('' + val).match(FLOATING_POINT_PATTERN)) n = parseFloat(val);
 					if (n === undefined && errorMessage) throw new shine.Error(errorMessage);
@@ -4243,7 +4363,7 @@ var shine = shine || {};
 			}
 
 			for (i in table) {
-				if (table.hasOwnProperty (i) && !(i in shine.Table.prototype) && i !== '__shine') {
+				if (table.hasOwnProperty(i) && !(i in shine.Table.prototype) && i !== '__shine') {
 					result[i] = ((table[i] || shine.EMPTY_OBJ) instanceof shine.Table)? shine.utils.toObject(table[i]) : table[i];
 				}
 			}
@@ -4296,12 +4416,13 @@ var shine = shine || {};
 
 			xhr.onload = function (e) {
 				if (this.status == 200) {
+console.log ('loaded', url);
 					if (success) success(this.response);
 				} else {
 					if (error) error(this.status);
 				}
 			}
-
+console.log ('loading', url);
 			xhr.send(shine.EMPTY_OBJ);
 	    }
 
@@ -4354,4 +4475,4 @@ shine.stderr.write = function (message, level) {
 	if (console && console[level]) console[level](message);
 };
 
-;if (typeof module != 'undefined') module.exports = shine;
+;var module = module; if (typeof module != 'undefined') module.exports = shine;

@@ -96,7 +96,7 @@ shine.VM.prototype.load = function (url, execute, coConfig) {
 			this._files.push(file);
 
 			file.bind('loaded', function (data) {
-				me._trigger('loaded-file', file);
+				me._trigger('file-loaded', file);
 				if (execute || execute === undefined) me.execute(coConfig, file);
 			});
 

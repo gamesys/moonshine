@@ -1,5 +1,8 @@
 /**
  * @fileOverview Debug engine.
+ *
+ * Icons from Fugue icon set by Yusuke Kamiyamane (http://p.yusukekamiyamane.com).
+ *
  * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
  * @copyright Gamesys Limited 2013
  * @todo Refactor the entirety of this.
@@ -11,111 +14,197 @@ var shine = shine || {};
 
 
 
-shine.debug = { 
-	active: true,
-	stepping: false,
-	breakpoints: [],
-	stopAtBreakpoints: true,
-	loaded: {},
-	ui: {},
-	resumeStack: [],
-	callbackQueue: [],
-	status: 'running'
-};
+shine.debug = new shine.EventEmitter();
 
+
+shine.debug.AUTO_STEP_DELAY = 500;
 
 
 
 shine.debug._init = function () {
-	shine.debug.ui.container = $('<div>').addClass ('shine-debug')[0];
-	shine.debug.ui.buttons = $('<div>').text ('shine.debug ').addClass ('buttons').appendTo (shine.debug.ui.container)[0];
-	shine.debug.ui.codeWrap = $('<div>').addClass ('code').appendTo (shine.debug.ui.container)[0];
-	shine.debug.ui.code = $('<ol>').appendTo (shine.debug.ui.codeWrap)[0];
 
-	shine.debug.ui.inspector = $('<div>').addClass ('inspector').appendTo (shine.debug.ui.container)[0];	
-	$('<h6>Locals</h6>').appendTo (shine.debug.ui.inspector);
-	shine.debug.ui.locals = $('<dl>').addClass ('locals').appendTo (shine.debug.ui.inspector)[0];
-	$('<h6>Upvalues</h6>').appendTo (shine.debug.ui.inspector);
-	shine.debug.ui.upvalues = $('<dl>').addClass ('upvalues').appendTo (shine.debug.ui.inspector)[0];
-
-	shine.debug.ui.tableInspector = $('<p>').addClass ('table-inspector').appendTo (shine.debug.ui.container).mouseleave (function (e) {
-		$(this).hide ();
-	})[0];
-
-	shine.debug.ui.error = $('<p>').addClass ('error').appendTo (shine.debug.ui.container)[0];
+	this._ready = false;
+	this._loadQueue = [];
+	this._active = true;
+	this._stepping = false;
+	this._breakpoints = {};
+	this._stopAtBreakpoints = true;
+	this._loaded = {};
+	this._resumeStack = [];
+	this._callbackQueue = [];
+	this._errorLog = [];
+	this._status = 'running';
 
 
-	$('<button>').text ('Pause/resume').addClass ('pause-resume').appendTo (shine.debug.ui.buttons).click (function () {
-		shine.debug[shine.debug.status == 'running'? 'pause' : 'resume'] ();
-	});
-	
-	$('<button>').text ('Step over').addClass ('step-over').appendTo (shine.debug.ui.buttons).click (shine.debug.stepOver);
-	$('<button>').text ('Step in').addClass ('step-in').appendTo (shine.debug.ui.buttons).click (shine.debug.stepIn);
-	$('<button>').text ('Step out').addClass ('step-out').appendTo (shine.debug.ui.buttons).click (shine.debug.stepOut);
-	$('<button>').text ('Toggle breakpoints').addClass ('breakpoints').appendTo (shine.debug.ui.buttons).click (shine.debug._toggleStopAtBreakpoints);
-	$('<button>').text ('Toggle code').addClass ('toggle-code').appendTo (shine.debug.ui.buttons).click (shine.debug._toggleCode);
-
-
-	$(window).load (function () { 
-		$('body').append (shine.debug.ui.container); 
-	});
-	
 	if (window.sessionStorage) {
-		var data = JSON.parse (window.sessionStorage.getItem ('breakpoints') || '{}'),
-			i;
-		
-		for (i in data) shine.debug.breakpoints[i] = data[i];
-		
-		shine.debug.stopAtBreakpoints = (window.sessionStorage.getItem ('stopAtBreakpoints') == 'true');
-		if (shine.debug.stopAtBreakpoints === null) shine.debug.stopAtBreakpoints = true;
+		this._breakpoints = JSON.parse(window.sessionStorage.getItem('breakpoints') || '{}'),
+		this._stopAtBreakpoints = (window.sessionStorage.getItem('stopAtBreakpoints') == 'true');
+		if (this._stopAtBreakpoints === null) this._stopAtBreakpoints = true;
+
+		this._trigger('breakpoints-updated', [this._breakpoints]);
+		this._trigger('stop-at-breakpoints-updated', [this._stopAtBreakpoints]);
+	}
+};
+
+
+
+	
+shine.debug._clearLoadQueue = function () {
+	this._ready = true;
+
+	while (this._loadQueue.length) {
+		var data = this._loadQueue.pop();
+		data[0].load.apply(data[0], data[1]);
+	}
+};
+
+
+
+
+shine.debug._getSuspendedGlobals = function () {
+	var globals = this._resumeStack[0]._globals,
+		result = {},
+		i, val;
+
+	for (i in globals) {
+		val = globals[i];
+		if (globals.hasOwnProperty(i) && i != '_G' && i != '__shine') result[i] = typeof val == 'number'? val : shine.utils.coerce(val, 'string');
 	}
 
-
-	if (shine.debug.stopAtBreakpoints) $(shine.debug.ui.container).addClass ('stop-at-breakpoints');
+	return result;
 };
 
 
-	
-
-shine.debug.loadScript = function (jsonUrl, callback) {
-	var url = jsonUrl.replace (/(.lua)?.json$/, '.lua');
-	
-	jQuery.ajax ({
-		url: url, 
-		success: function (data) {
-			shine.debug.loaded[jsonUrl] = data;
-			shine.debug.showScript (jsonUrl);
-		
-			callback ();
-		},
-		error: function () {
-			$(shine.debug.ui.code).html ('<li class="load-error">' + url + ' could not be loaded.</li>');
-			callback ();
-		}
-	});
-};
 
 
-	
+shine.debug._getSuspendedLocals = function () {
+	var closure = this._resumeStack[0],
+		result = {},
+		index = 0,
+		i, local, pc, val;
 
-shine.debug.showScript = function (jsonUrl) {
-	var lines = shine.debug.loaded[jsonUrl].toString ().split ('\n'),
-		index, li, code;
-
-	shine.debug.ui.code.innerHTML = '';
-	shine.debug.ui.lines = [];
-	
-	for (index in lines) {
-		(function (index) {
-			li = $('<li>').appendTo (shine.debug.ui.code).click (function (e) {
-				if (e.pageX < $(this).offset ().left) shine.debug._toggleBreakpoint (index);
-			})[0];
+	for (i in closure._data.locals) {
+		local = closure._data.locals[i];
+		pc = closure._pc + 1;
 			
-			$('<code>').text (lines[index]).appendTo (li);
-			if (shine.debug.breakpoints[index]) $(li).addClass ('breakpoint');
+		if (local.startpc < pc && local.endpc >= pc) {
+			val = closure._register.getItem(index++);
+			result[local.varname] = typeof val == 'number'? val : shine.utils.coerce(val, 'string');
+		}
+	}
 
-			shine.debug.ui.lines.push (li);
-		})(index);
+	return result;
+};
+
+
+
+
+shine.debug._getSuspendedUpvalues = function () {
+	var closure = this._resumeStack[0],
+		result = {},
+		i, up, val;
+
+	for (i in closure._upvalues) {
+		up = closure._upvalues[i];
+		val = up.getValue();
+		result[up.name] = typeof val == 'number'? val : shine.utils.coerce(val, 'string');
+	}
+
+	return result;
+};
+
+
+
+
+shine.debug._getSuspendedCallStack = function () {
+	var result = [],
+		stack = this._resumeStack,
+		closure,
+		i, l,
+		offset = 0;
+
+	for (i = 0, l = stack.length; i < l; i++) {
+		closure = stack[i];
+		if (closure instanceof shine.Closure) {
+			result.push([closure, closure._pc + offset]);
+			offset = -1;
+		}
+	}
+
+	result = shine.Error.prototype._stackToString.call({ luaStack: result }).replace('    ', '').split('\n');
+	return result;
+};
+
+
+
+
+shine.debug.getCurrentState = function () {
+	return {
+		loaded: this._loaded,
+		breakpoints: this._breakpoints,
+		stopAtBreakpoints: this._stopAtBreakpoints,
+		errorLog: this._errorLog,
+		engine: {
+			state: this._status,
+			data: this._statusData
+		}
+	}
+};
+
+
+
+
+shine.debug.handleFileLoaded = function (file, callback) {
+	var debug = this,
+		jsonUrl = file.url,
+		pathData,
+		url,
+		sourcePath = file.data.sourcePath;
+
+	if (sourcePath) {
+		pathData = (jsonUrl || '').match(/^(.*)\/.*?$/);
+		pathData = (pathData && pathData[1]) || '';
+		url = pathData + sourcePath;
+
+	} else {
+		url = jsonUrl.replace (/(.lua)?.json$/, '.lua');
+	}
+
+	this._breakpoints[jsonUrl] = this._breakpoints[jsonUrl] || [];
+
+	function success (data) {
+		debug._loaded[jsonUrl] = {
+			filename: url,
+			source: data
+		};
+
+		debug._trigger('lua-loaded', [jsonUrl, url, data]);
+		callback();
+	}
+
+	function error (e) {
+		debug._trigger('lua-load-failed', [jsonUrl, url, e]);
+		callback();
+	}
+	
+	shine.utils.get(url, success, error);
+};
+
+
+
+
+shine.debug.loadScript = function (jsonUrl, sourceUrl) {
+	var pathData,
+		url, 
+		debug = this;
+
+	if (sourceUrl) {
+		pathData = (jsonUrl || '').match(/^(.*\/).*?$/),
+		pathData = (pathData && pathData[1]) || '';
+		url = pathData + sourceUrl;
+
+	} else {
+		url = jsonUrl.replace(/(.lua)?.json$/, '.lua');
 	}
 
 };
@@ -123,196 +212,169 @@ shine.debug.showScript = function (jsonUrl) {
 	
 
 
-shine.debug._toggleBreakpoint = function (lineNumber) {
-	var breakOn = shine.debug.breakpoints[lineNumber] = !shine.debug.breakpoints[lineNumber];
-	$(shine.debug.ui.lines[lineNumber])[breakOn? 'addClass' : 'removeClass'] ('breakpoint');
-	
-	if (window.sessionStorage) window.sessionStorage.setItem ('breakpoints', JSON.stringify (shine.debug.breakpoints));
+shine.debug.toggleBreakpoint = function (jsonUrl, lineNumber) {
+	if (this._breakpoints[jsonUrl] === undefined) this._breakpoints[jsonUrl] = [];
+
+	var fileBreakpoints = this._breakpoints[jsonUrl],
+		breakOn = fileBreakpoints[lineNumber] = !fileBreakpoints[lineNumber];
+
+	if (window.sessionStorage) window.sessionStorage.setItem('breakpoints', JSON.stringify(this._breakpoints));
+	this._trigger('breakpoint-updated', [jsonUrl, lineNumber, breakOn]);
+
+	if (breakOn && !this._stopAtBreakpoints) this.toggleStopAtBreakpoints();
 };
 
 
 
 
-shine.debug._toggleCode = function () {
-	var showing = shine.debug.showingCode = !shine.debug.showingCode;
-	$(shine.debug.ui.container)[showing? 'addClass' : 'removeClass'] ('showing-code'); 
-};
-
-
-
-
-shine.debug._toggleStopAtBreakpoints = function () {
-	var stop = shine.debug.stopAtBreakpoints = !shine.debug.stopAtBreakpoints;
+shine.debug.toggleStopAtBreakpoints = function () {
+	var stop = this._stopAtBreakpoints = !this._stopAtBreakpoints;
 	
-	window.sessionStorage.setItem ('stopAtBreakpoints', stop);
-	$(shine.debug.ui.container)[stop? 'addClass' : 'removeClass'] ('stop-at-breakpoints'); 
+	window.sessionStorage.setItem('stopAtBreakpoints', stop);
+	this._trigger('stop-at-breakpoints-updated', [stop]);
 };
 
 
 
 
 shine.debug._formatValue = function (val) {
-	if (typeof val == 'string') {
-		val = '"' + val + '"';
-
-	} else if (val === undefined) {
-		val = 'nil';
-
-	} else if (val.constructor == shine.Table) {	// In case table has a toString field in the Lua code.
-		val = shine.Table.prototype.toString.call (val);
-
-	} else {
-		val = '' + val;
-	}
-	
-	return val;
+	return shine.utils.coerce(val, 'string');
+	// switch (true) {
+	// 	case typeof val == 'string': return '"' + val + '"';
+	// 	case val instanceof shine.Table: return shine.Table.prototype.toString.call(val);
+	// 	default: return shine.utils.coerce(val, 'string');
+	// }
 };
 
 
 
-	
-shine.debug._showVariables = function () {
-	var index = 0,
-		dd;
-	
-	
-	// locals
-	$(shine.debug.ui.locals).empty ();
-	for (var i in shine.debug.resumeStack[0]._data.locals) {
-		(function (i) {
-			var local = shine.debug.resumeStack[0]._data.locals[i],
-				pc = shine.debug.resumeStack[0]._pc + 1;
-			
-			if (local.startpc < pc && local.endpc >= pc) {
-				var val = shine.debug.resumeStack[0]._register[index++];
-				
-				$('<dt>').attr ({ title: local.varname }).text (local.varname).appendTo (shine.debug.ui.locals);
-				dd = $('<dd>').text (shine.debug._formatValue (val)).appendTo (shine.debug.ui.locals)[0];
-				
-				shine.debug._addToolTip (dd, val);
+
+shine.debug._setStatus = function (status, data) {
+	data = data || {};
+	this._status = status;
+
+	var me = this;
+
+	switch (status) {
+		case 'suspended':
+			data.globals = this._getSuspendedGlobals();
+			data.locals = this._getSuspendedLocals();
+			data.upvalues = this._getSuspendedUpvalues();
+			data.callStack = this._getSuspendedCallStack();
+
+			if (this._autoStepping) {
+	console.log (this.AUTO_STEP_DELAY)
+				window.setTimeout(function () {
+					me.stepIn();
+				}, this.AUTO_STEP_DELAY);
 			}
-		})(i);
+			break;
 	}
+
+	this._statusData = data;
+	this._trigger('state-updated', [status, data]);
+}
+
+
+
+
+shine.debug.autoStep = function () {
+	if (this._autoStepping = !this._autoStepping) this.stepIn();
+};
+
+
+
+
+shine.debug.stepIn = function () {
+	this._stepping = true;
+	delete this._steppingTo;
+	this._resumeThread();
+};
+
+
+
+
+shine.debug.stepOver = function () {
+	this._stepping = true;
+	this._autoStepping = false;
+	this._steppingTo = this._resumeStack[0];
+	this._resumeThread();
+};
+
+
+
+
+shine.debug.stepOut = function () {
+	if (this._resumeStack.length < 2) return this.resume();
 	
+	var target,
+		i = 1;
 
-	// upvalues
-	$(shine.debug.ui.upvalues).empty ();
-	for (var i in shine.debug.resumeStack[0]._upvalues) {
-		var up = shine.debug.resumeStack[0]._upvalues[i];
-		
-		$('<dt>').text (up.name).appendTo (shine.debug.ui.upvalues);
-		dd = $('<dd>').text (shine.debug._formatValue (up.getValue ())).appendTo (shine.debug.ui.upvalues)[0];
+	// do {
+		target = this._resumeStack[i++];
+	// } while (target !== undefined && !(target instanceof shine.Closure));
 
-		shine.debug._addToolTip (dd, up.getValue ());
-	}
-	
+	// if (!target) return this.resume();
+
+	this._steppingTo = target;
+	this._stepping = true;
+	this._autoStepping = false;
+	this._resumeThread();
 };
 
 
 
 
-shine.debug._addToolTip = function (dd, val) {
+shine.debug.resume = function () {
+	this._stepping = false;
+	this._autoStepping = false;
+	delete this._steppingTo;
+	this._resumeThread();
 
-	if (val && (val.constructor == shine.Table || val instanceof shine.Function)) {
-		var p = $('<p>').addClass ('table-inspector').appendTo (dd)[0],
-			text = '';
-			
-		if (val instanceof shine.Table) {
-			for (var j in val) {
-				if (val.hasOwnProperty (j) && !(j in shine.Table.prototype) && j !== '__shine') text += j + ' = ' + shine.debug._formatValue (val[j]) + '</br>';
-			}
-			
-		} else {
-			var vars = [];
-			for (var j = 0; j < val._data.paramCount; j++) vars.push (val._data.locals[j].varname);
-			text = vars.join (', ');
-			if (val._data.is_vararg) text += ', ...';
-			text = 'function (' + text + ') &hellip; end';
-		}
-		
-		p.innerHTML = text;
-
-		$(dd).mouseenter (function () {
-			var ppos = $(p).show ().offset (),
-				contpos = $(shine.debug.ui.container).offset ();
-			
-			$(p).hide ();
-			$(shine.debug.ui.tableInspector).css ({ top: ppos.top - contpos.top, left: ppos.left - contpos.left }).html ($(p).html ()).show ();
-
-		}).mouseleave (function (e) {
-			if (e.toElement != shine.debug.ui.tableInspector) $(shine.debug.ui.tableInspector).hide ();
-		});					
-	}
+	this._trigger('resumed');
 };
 
 
 
 
-shine.debug._clearVariables = function () {
-	$(shine.debug.ui.locals).empty ();
-	$(shine.debug.ui.upvalues).empty ();
+shine.debug.pause = function () {
+	this._setStatus('suspending');
+	this._stepping = true;
 };
 
 
 
 
-shine.debug.highlightLine = function (lineNumber, error) {
-	if (shine.debug.ui.lines) {
-		$(shine.debug.ui.highlighted).removeClass ('highlighted');
-		shine.debug.ui.highlighted = $(shine.debug.ui.lines[lineNumber - 1]).addClass ('highlighted' + (error? ' error' : ''))[0];	
-
-		if (!shine.debug.showingCode) shine.debug._toggleCode ();
-
-		var currentTop = $(shine.debug.ui.codeWrap).scrollTop (),
-			offset = currentTop + $(shine.debug.ui.highlighted).position ().top,
-			visibleRange = $(shine.debug.ui.codeWrap).height () - $(shine.debug.ui.highlighted).height ();
-		
-		offset -= visibleRange / 2;
-		if (offset < 0) offset = 0;
-	
-		if (Math.abs (offset - currentTop) > (visibleRange / 2) * 0.8) {
-			$(shine.debug.ui.codeWrap).scrollTop (offset);
-		}
-		
-		if (error) {
-			var containerOffset = $(shine.debug.ui.container).offset (),
-				codeOffset = $(shine.debug.ui.highlighted).offset (),
-				top = codeOffset.top - containerOffset.top - 5;
-				
-			$(shine.debug.ui.error).css ({ top: top + 'px' }).text (error);
-			$(shine.debug.ui.container).addClass ('showing-error');
-			
-			$(shine.debug.ui.codeWrap).bind ('scroll.error', function () { 
-				$(shine.debug.ui.container).removeClass ('showing-error');
-				$(this).unbind ('scroll.error');
-			});
-		}
-	}
-};
 
 
-
-
-shine.debug._clearLineHighlight = function () {
-	$(shine.debug.ui.highlighted).removeClass ('highlighted');
-	$(shine.debug.ui.error).hide ();
-
-	shine.debug.ui.highlighted = null;
-};
-
-	
 
 (function () {
 	
 	
 	var load = shine.VM.prototype.load;
 	
-	shine.VM.prototype.load = function (url, execute, asCoroutine) {
-		var me = this,
-			args = arguments;
-		
-		shine.debug.loadScript (url, function () {
-			load.apply (me, args);
+	shine.VM.prototype.load = function (url, execute, coConfig) {
+		var args = arguments;
+
+		if (!shine.debug._ready) {
+			shine.debug._loadQueue.push([this, arguments]);
+		} else {
+			// shine.debug.handleFileLoaded(url, function () {
+				load.apply(this, args);
+			// });
+		}
+	};
+
+
+
+
+	shine.File.prototype._onSuccess = function (data) {
+		var me = this;
+
+		this.data = JSON.parse(data);
+
+		shine.debug.handleFileLoaded(this, function () {
+			me._trigger('loaded', data);
 		});
 	};
 
@@ -325,20 +387,30 @@ shine.debug._clearLineHighlight = function () {
 		var me = this,
 			args = arguments;
 		
-		if (shine.debug.status != 'running') {
-			shine.debug.callbackQueue.push (function () {
+		if (shine.debug._status != 'running') {
+			shine.debug._callbackQueue.push(function () {
 
 			try {
-				me.execute.apply (me, args);
+				me.execute.apply(me, args);
 			
 			} catch (e) {
-				if (e instanceof shine.Error && console) throw new Error ('[shine] ' + e.message + '\n    ' + (e.luaStack || []).join ('\n    '));
-				throw e;
+				if (!((e || shine.EMPTY_OBJ) instanceof shine.Error)) {
+					var stack = (e.stack || '');
+
+					e = new shine.Error ('Error in host call: ' + e.message);
+					e.stack = stack;
+					e.luaStack = stack.split ('\n');
+				}
+
+				if (!e.luaStack) e.luaStack = shine.gc.createArray();
+				e.luaStack.push([me, me._pc - 1]);
+
+				shine.Error.catchExecutionError(e);
 			}
 
 			});
 		} else {
-			return execute.apply (this, arguments);
+			return execute.apply(this, arguments);
 		}
 	};
 	
@@ -347,51 +419,57 @@ shine.debug._clearLineHighlight = function () {
 
 	var executeInstruction = shine.Closure.prototype._executeInstruction;
 	
-	shine.Closure.prototype._executeInstruction = function (instruction, lineNumber) {
+	shine.Closure.prototype._executeInstruction = function (pc, lineNumber) {
+		var debug = shine.debug,
+			jsonUrl = this._file.url,
+			opcode = this._instructions[pc * 4];
+
 		if ((
-				(shine.debug.stepping && (!shine.debug.steppingTo || shine.debug.steppingTo == this)) || 				// Only break if stepping in, out or over  
-				(shine.debug.stopAtBreakpoints && shine.debug.breakpoints[lineNumber - 1])								// or we've hit a breakpoint.
+				(debug._stepping && (!debug._steppingTo || debug._steppingTo == this)) || 			// Only break if stepping in, out or over  
+				(debug._stopAtBreakpoints && debug._breakpoints[jsonUrl][lineNumber - 1])			// or we've hit a breakpoint.
 			) &&		
-			!shine.debug.resumeStack.length && 																			// Don't break if we're in the middle of resuming from the previous debug step.
-			lineNumber != shine.debug.currentLine && 																	// Don't step more than once per line.
-			[35, 36].indexOf (instruction.op) < 0 && 																	// Don't break on closure declarations.
-			!(shine.Coroutine._running && shine.Coroutine._running.status == 'resuming')) {						// Don't break while a coroutine is resuming.
+			!debug._resumeStack.length && 															// Don't break if we're in the middle of resuming from the previous debug step.
+			lineNumber != debug._currentLine && 													// Don't step more than once per line.
+			[35, 36].indexOf(opcode) < 0 && 														// Don't break on closure declarations.
+			!(shine.Coroutine._running && shine.Coroutine._running.status == 'resuming')) {			// Don't break while a coroutine is resuming.
 
 				// Break execution
 
-				shine.debug.highlightLine (lineNumber);
-				shine.debug.status = 'suspending';
-				shine.debug.currentLine = lineNumber;
+				debug._setStatus('suspending');
+				debug._currentFileUrl = jsonUrl;
+				debug._currentLine = lineNumber;
 				this._pc--;
 
 
 				window.setTimeout (function () { 
-					shine.debug.status = 'suspended';
-					shine.debug._showVariables ();
+					debug._setStatus('suspended', { url: jsonUrl, line: lineNumber });
+					// debug._trigger('suspended', );
 				}, 1);
 
 				return;
 		}
 
 
-		shine.debug.lastLine = lineNumber;
+		debug._lastFileUrl = jsonUrl;
+		debug._lastLine = lineNumber;
 
 
 		try {
-			var result = executeInstruction.apply (this, arguments);
+			var result = executeInstruction.apply(this, arguments);
 
 		} catch (e) {
 			if (e instanceof shine.Error) {
 				if (!e.luaStack) e.luaStack = [];
+
 				var message = 'at ' + (this._data.sourceName || 'function') + ' on line ' + this._data.linePositions[this._pc - 1];	
-				if (message != e.luaStack[e.luaStack.length - 1]) e.luaStack.push ();
+				// if (message != e.luaStack[e.luaStack.length - 1]) e.luaStack.push(message);
 			} 
 	
 			throw e;
 		}
 
-		if ([30, 35].indexOf (instruction.op) >= 0) {	// If returning from or closing a function call, step out = step over = step in
-			delete shine.debug.steppingTo;
+		if ([30, 35].indexOf(opcode) >= 0) {	// If returning from or closing a function call, step out = step over = step in
+			delete debug._steppingTo;
 		}
 
 		return result;
@@ -403,12 +481,20 @@ shine.debug._clearLineHighlight = function () {
 	var error = shine.Error;
 	 
 	shine.Error = function (message) {
-		shine.debug.highlightLine (shine.debug.lastLine, message);
-		error.apply (this, arguments);
+		error.apply(this, arguments);
 
+// TODO: This is logging errors when error objects are being created, not when they are thrown. This needs to be corected.
+		var err = {
+			jsonUrl: shine.debug._lastFileUrl,
+			lineNumber: shine.debug._lastLine,
+			message: message
+		};
+
+		shine.debug._errorLog.push(err);
+		shine.debug._trigger('error', [err]);
 	};
 	
-	shine.Error.prototype = error.prototype;	
+	shine.Error.prototype = error.prototype;
 	shine.Error.catchExecutionError = error.catchExecutionError;	
 		
 })();
@@ -416,78 +502,467 @@ shine.debug._clearLineHighlight = function () {
 
 
 
-shine.debug.stepIn = function () {
-	shine.debug.stepping = true;
-	delete shine.debug.steppingTo;
-	shine.debug._resumeThread ();
-};
-
-
-
-
-shine.debug.stepOver = function () {
-	shine.debug.stepping = true;
-	shine.debug.steppingTo = shine.debug.resumeStack[0];
-	shine.debug._resumeThread ();
-};
-
-
-
-
-shine.debug.stepOut = function () {
-	if (shine.debug.resumeStack.length < 2) return shine.debug.resume ();
-	
-	shine.debug.stepping = true;
-	shine.debug.steppingTo = shine.debug.resumeStack[1];
-	shine.debug._resumeThread ();
-};
-
-
-
-
-shine.debug.resume = function () {
-	shine.debug.stepping = false;
-	delete shine.debug.steppingTo;
-	shine.debug._resumeThread ();
-};
-
-
-
-
-shine.debug.pause = function () {
-	shine.debug.stepping = true;
-};
-
-
-
 
 shine.debug._resumeThread = function () {
-	shine.debug.status = 'resuming';
-	shine.debug._clearLineHighlight ();
+	this._setStatus('resuming');
 
-	var f = shine.debug.resumeStack.pop ();
-
+	var f = this._resumeStack.pop();
 
 	if (f) {
 		try {
 			if (f instanceof shine.Coroutine) {
-				f.resume ();
+				f.resume();
 			} else {
-				f._run ();
+				f._run();
 			}
 			
 		} catch (e) {
-			if (e instanceof shine.Error && console) throw new Error ('[shine] ' + e.message + '\n    ' + (e.luaStack || []).join ('\n    '));
-			throw e;
+			if (!((e || shine.EMPTY_OBJ) instanceof shine.Error)) {
+				var stack = (e.stack || '');
+
+				e = new shine.Error ('Error in host call: ' + e.message);
+				e.stack = stack;
+				e.luaStack = stack.split ('\n');
+			}
+
+			if (!e.luaStack) e.luaStack = shine.gc.createArray();
+			e.luaStack.push([f, f._pc - 1]);
+
+			shine.Error.catchExecutionError(e);
 		}
 	}
 	
-	if (shine.debug.status == 'running') shine.debug._clearVariables ();
-
-	while (shine.debug.callbackQueue[0]) shine.debug.callbackQueue.shift () ();
+	// if (this._status == 'running') this._trigger('running');
+	while (this._callbackQueue[0]) this._callbackQueue.shift()();
 };
 
 
 
 
 shine.debug._init ();
+
+
+
+
+
+
+
+////////////////
+//  Local UI  //
+////////////////
+
+
+shine.debug.ui = {
+
+	init: function () {
+
+		var me = this,
+			iframe = this.iframe = document.createElement('iframe');
+
+		iframe.src = '../debug/ui/index.html';
+		iframe.style.position = 'fixed';
+		iframe.style.top = '0';
+		iframe.style.right = '20px';
+		iframe.style.width = '232px';
+		iframe.style.height = '30px';
+		iframe.style.overflow = 'hidden';
+		iframe.style.border = 'none';
+
+		// window.addEventListener('load', function () {
+			document.body.appendChild(iframe);
+
+			iframe.contentWindow.addEventListener('load', function () {
+				me._initIFrame(iframe);
+			});			
+		// });
+
+	},
+
+
+
+
+	_initIFrame: function (iframe) {
+		var doc = iframe.contentDocument,
+			toggle = document.createElement('button');
+
+		// Toggle size;
+		toggle.className = 'toggle';
+		toggle.title = 'Toggle size';
+		toggle.textContent = 'Size';
+
+
+		function toggleExpanded () {
+			var expand = toggle.className == 'toggle';
+
+			if (expand) {
+				iframe.style.width = '50%';
+				iframe.style.right = '0';
+				iframe.style.height = '100%';
+				toggle.className = 'toggle expanded';
+
+			} else {
+				iframe.style.right = '20px';
+				iframe.style.width = '232px';
+				iframe.style.height = '30px';
+				toggle.className = 'toggle';
+			}
+
+			if (sessionStorage) sessionStorage.setItem('expanded', expand? '1' : '');
+		}
+
+		toggle.addEventListener('click', toggleExpanded);	
+		if (sessionStorage && sessionStorage.getItem('expanded')) toggleExpanded();
+
+
+		iframe.contentDocument.querySelector('.buttons').appendChild(toggle);
+		iframe.contentWindow.registerDebugEngine(shine.debug);
+		shine.debug._clearLoadQueue();
+	},
+
+};
+
+
+// Give time for the ui to be overridden
+window.addEventListener('load', function () { shine.debug.ui.init(); });
+
+
+
+
+
+shine.debug.ui = {
+
+	
+	_socket: null,
+	_files: {},
+
+
+	messageTypes: {
+		ENGINE_STATE_CHANGED: 0,
+		LUA_LOADED: 1,
+		LUA_LOAD_FAILED: 2,
+		BREAKPOINTS_UPDATED: 3,
+		BREAKPOINT_UPDATED: 4,
+		STOP_AT_BREAKPOINTS_UPDATED: 5,
+		ERROR: 6,
+
+		GET_STATE: 100,
+		TOGGLE_BREAKPOINT: 101,
+		TOGGLE_STOP_AT_BREAKPOINTS: 102,
+		STEP_IN: 103,
+		STEP_OVER: 104,
+		STEP_OUT: 105,
+		PAUSE: 106,
+		RESUME: 107,
+		RELOAD: 108,
+		AUTO_STEP: 109
+	},
+
+
+
+
+	init: function () {
+		this._setupHooks();
+		shine.debug._clearLoadQueue();
+		this._initUI();
+		this.start();
+	},
+
+
+
+	start: function () {
+		var ip, port, autoConnect;
+
+		if (localStorage) {
+			ip = localStorage.getItem('ip');
+			port = localStorage.getItem('port');
+			autoConnect = localStorage.getItem('autoConnect') == 'true';
+		}
+
+		ip = ip || '127.0.0.1';
+		port = port || '1959';
+
+		if (!autoConnect) {
+			this.showForm(ip, port);
+		} else {
+			this.connect(ip, port);
+		}
+	},
+
+
+
+
+	connect: function (ip, port) {
+		var me = this,
+			url = 'http://' + ip + ':' + port,
+			script;
+
+		this.showStatus(false, 'Attempting to connect...');
+
+		if (typeof io == 'object') {
+			this._initSocket(url);
+
+		} else {
+			script = document.createElement('script');
+
+			script.src = url + '/socket.io/socket.io.js';
+			document.head.appendChild(script);
+			script.addEventListener('load', function () { me._initSocket(url); });
+			script.addEventListener('error', function (e) { me.showStatus(false, 'Not found.'); });
+		}
+
+	},
+
+
+
+
+	_initSocket: function (url) {
+		var me = this,
+			socket = this._socket = io.connect(url);
+
+
+		// Protocol 
+
+		socket.on('connect', function () {
+			console.log('Connected to debug server', arguments);
+			me.showStatus(true, 'Connected');
+		});
+
+		socket.on('disconnect', function () {
+			me.showStatus(false, 'Disconnected');
+		});
+
+
+		socket.on('status', function (status) {
+			console.log('Status changed:', status);
+		});			
+
+		socket.on('error', function (data) {
+			var message = data.message? 'Error from Moonshine debug server:' + data.message : 'Disconnected'
+			me.showStatus(false, message);
+		});
+
+
+		// Events
+
+		socket.on(me.messageTypes.GET_STATE, function (data, callback) {
+			callback(shine.debug.getCurrentState());
+		});
+
+		socket.on(me.messageTypes.TOGGLE_BREAKPOINT, function (data) {
+			shine.debug.toggleBreakpoint(data[0], data[1]);
+		});
+
+		socket.on(me.messageTypes.TOGGLE_STOP_AT_BREAKPOINT, function () {
+			shine.debug.toggleStopAtBreakpoints();
+		});
+
+		socket.on(me.messageTypes.AUTO_STEP, function () {
+			shine.debug.autoStep();
+		});
+
+		socket.on(me.messageTypes.STEP_IN, function () {
+			shine.debug.stepIn();
+		});
+
+		socket.on(me.messageTypes.STEP_OVER, function () {
+			shine.debug.stepOver();
+		});
+
+		socket.on(me.messageTypes.STEP_OUT, function () {
+			shine.debug.stepOut();
+		});
+
+		socket.on(me.messageTypes.PAUSE, function () {
+			shine.debug.pause();
+		});
+
+		socket.on(me.messageTypes.RESUME, function () {
+			shine.debug.resume();
+		});
+
+		socket.on(me.messageTypes.RELOAD, function () {
+			document.location.reload();
+		});
+	},
+
+
+
+
+	_setupHooks: function () {
+		var me = this,
+			debug = shine.debug;
+
+		debug.bind('state-updated', function (state, data) {
+			me._send(me.messageTypes.ENGINE_STATE_CHANGED, [state, data]);
+		});
+
+
+		debug.bind('error', function (error) {
+			me._send(me.messageTypes.ERROR, error);
+		});
+
+		debug.bind('lua-loaded', function (jsonUrl, luaUrl, data) {
+			me._files[jsonUrl] = {
+				filename: luaUrl,
+				source: data
+			};
+
+			me._send(me.messageTypes.LUA_LOADED, [jsonUrl, luaUrl, data]);
+		});
+
+		debug.bind('lua-load-failed', function (jsonUrl, url) {
+			me._send(me.messageTypes.LUA_LOAD_FAILED, [jsonUrl, url]);
+		});
+
+		debug.bind('breakpoints-updated', function (data) {
+			me._send(me.messageTypes.BREAKPOINTS_UPDATED, [data]);
+		});
+
+		debug.bind('breakpoint-updated', function (jsonUrl, lineNumber, breakOn) {
+			me._send(me.messageTypes.BREAKPOINT_UPDATED, [jsonUrl, lineNumber, breakOn]);
+		});
+
+		debug.bind('stop-at-breakpoints-updated', function (stop) {
+			me._send(me.messageTypes.STOP_AT_BREAKPOINTS_UPDATED, [stop]);
+		});
+
+	},
+
+
+
+
+	_send: function (event, data) {
+		if (this._socket) this._socket.emit('message', [event, data]);
+	},
+
+
+
+
+	_initUI: function () {
+		var me = this;
+
+		this.elements = {
+			main: document.createElement('div'),
+			ip: document.createElement('input'),
+			port: document.createElement('input'),
+			connect: document.createElement('button'),
+			stop: document.createElement('button'),
+			status: document.createElement('p')
+		};
+		
+		var style = this.elements.main.style;
+		style.position = 'fixed';
+		style.top = style.right = '0';
+		style.backgroundColor = '#ddd';
+		style.fontFamily = 'monospace';
+		style.padding = '1px';
+		style.borderBottomLeftRadius = '3px'
+
+		style = this.elements.status.style;
+		style.paddingLeft = '22px';
+		style.background = 'url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABACAYAAAB7jnWuAAACzUlEQVRoQ+2YMUgbURjH/xetd4lJrBka1ArBYjVIY8GSUtpJPAg4FLrq4CSI1EXJ4OTkEHSxSMHJQVfXBq67rVSw2kIUa46mxkuxuZrzcr1cvOuzQyzYIW84pPAOPt7y3vv+73ff98H3cbjhj7th/2ACGAFGgBH4DwmshYJo5EbAeUQ4aCOl7ASOLaHqrGO0WKKtrHQElojzkGehp7Nb7O3oCfuafLxu6mbmeL9w8O1QQtGewRSdCDoBq60T9zvvJ6Pt0YhhGLXH8jyPT7nPclY5SmFMfU1DgU7ASmhjcGAwUdZ0r23bME3zjzmOA6GZNz7Ke2mMF1+4J2C5ZXMwPhQ/Vo49qqbCqlpXFJp4W/mR38Lk2RP3BCwGNqIPHyQUXfFec2I5hiqfpjGtuUhg3j8R7GhNCt2+iOVcvZ5kA8oHmmwqRgqz5y7GwByCsHwLQpdX5KPNYc7fwF9oVbOS0Qvm0S8Jt8ozmANVKtIF4SX3l0TEuYfUAU4k1kYikNQBR4LfXscrOueX19ELoImwOvYyAYwAI8AIMAKMACPACDACjAAjQE1gDQg2AiPkoEgaojaynpBVqgLro3C5L1gizkPAwr1YTOyKxcJCIMAbpZKZ3d0tfNnbk4rAzBSlCCoCq8BEV19fMtLfH9F1vdZ2CIKA7M6O/HV/PzUGuNcbrgAbz4aHE6eqem0+EPD5jMPt7fQ44F53vAxsPk0k4rls1qOpKqrWX/MBr9c+zee3JgH35gOLhMBALJYo5XLX5gMWxxlysZiedpPAPImBuy0tyW5BiNiVSi0GSBbgoFyWFdNMzboZA49JFgxdZoEgiL08H/ZzHK9dXJiZSqVwZJrSW5IF793MAvLQplagNw48bwceeYA7NvA9D3x4B7w5AzJkz3kdXXltC1UaklMNxG4T4//hhNQi/CR29W/qUEIroI4r6bYwAYwAI8AIMAK/Aaa5C1CpdopDAAAAAElFTkSuQmCC) -4px -36px no-repeat';
+
+		var main = this.elements.main;
+		main.appendChild(this.elements.ip);
+		main.appendChild(this.elements.port);
+		main.appendChild(this.elements.connect);
+		main.appendChild(this.elements.status);
+		main.appendChild(this.elements.stop);
+
+		this.elements.ip.placeholder = 'Debug IP';
+		this.elements.ip.name = 'ip';
+		this.elements.ip.value = '127.0.0.1';
+		this.elements.ip.style.width = '80px';
+		this.elements.ip.style.margin = '0 2px';
+
+		this.elements.port.placeholder = 'Port';
+		this.elements.port.name = 'port';
+		this.elements.port.value = '1959';
+		this.elements.port.style.width = '40px';
+
+		this.elements.connect.textContent = 'Connect';
+		this.elements.connect.addEventListener('click', function () { me._handleConnectClick(); });
+
+		this.elements.status.style.lineHeight = '24px';
+		this.elements.status.style.marginRight = '4px';
+
+		this.elements.stop.textContent = 'Stop';
+		this.elements.stop.addEventListener('click', function () { me._handleStopClick(); });
+
+		this.clear();
+		document.body.appendChild(main);
+	},
+
+
+
+
+	_handleConnectClick: function () {
+		var ip = this.elements.ip.value,
+			port = this.elements.port.value;
+
+		if (localStorage) {
+			localStorage.setItem('ip', ip);
+			localStorage.setItem('port', port);
+			localStorage.setItem('autoConnect', 'true');
+		}
+
+		if (ip && port) this.connect(ip, port);
+	},
+
+
+
+
+	_handleStopClick: function () {
+		if (localStorage) localStorage.setItem('autoConnect', 'false');
+
+		if (this._socket && this._socket.socket.connected) {
+			this.showStatus(false, 'Disconnecting...');
+			this._socket.disconnect();
+
+			for (var i in io.sockets) {
+				if (io.sockets[i] === this._socket.socket) {
+					delete io.sockets[i];
+					break;
+				}
+			}
+
+			delete this._socket;
+		}
+
+		this.start();
+	},
+
+
+
+
+	clear: function () {
+		for (var i in this.elements) {
+			if (i != 'main') this.elements[i].style.display = 'none';
+		}
+	},
+
+
+
+
+	showForm: function (ip, port) {
+		this.clear();
+		this.elements.ip.value = ip;
+		this.elements.port.value = port;
+		this.elements.ip.style.display = this.elements.port.style.display = this.elements.connect.style.display = 'inline';
+	},
+
+
+
+
+	showStatus: function (connected, caption) {
+		this.clear();
+		this.elements.status.style.backgroundPositionY = connected? '-4px' : '-36px';
+		this.elements.status.textContent = caption;
+		this.elements.status.style.display = this.elements.stop.style.display = 'inline-block';
+	}
+
+
+};
+
+
+

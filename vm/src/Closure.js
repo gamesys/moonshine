@@ -37,7 +37,7 @@ shine.Closure = function (vm, file, data, globals, upvalues) {
 	this._pc = 0;
 	this._localsUsedAsUpvalues = this._localsUsedAsUpvalues || shine.gc.createArray();
 	this._funcInstances = this._funcInstances || shine.gc.createArray();
-
+	this._localFunctions = shine.gc.createObject();
 	
 	var me = this,
 		result = function () { 
@@ -115,7 +115,8 @@ shine.Closure.prototype.execute = function (args) {
 		}
 
 		if (!e.luaStack) e.luaStack = shine.gc.createArray();
-		e.luaStack.push ('at ' + (this._data.sourceName || 'function') + (this._data.linePositions? ' on line ' + this._data.linePositions[this._pc - 1] : ''));
+		// e.luaStack.push('at ' + (this._data.sourceName || 'function') + (this._data.linePositions? ' on line ' + this._data.linePositions[this._pc - 1] : ''));
+		e.luaStack.push([this, this._pc - 1]);
 	
 		throw e;
 	}
@@ -137,12 +138,12 @@ shine.Closure.prototype._run = function () {
 	this.terminated = false;
 	
 	
-	if (shine.debug && shine.debug.status == 'resuming') {
-	 	if (shine.debug.resumeStack.length) {
+	if (shine.debug && shine.debug._status == 'resuming') {
+	 	if (shine.debug._resumeStack.length) {
 			this._pc--;
 			
 		} else {
-			shine.debug.status = 'running';
+			shine.debug._setStatus('running');
 		}
 
 	} else if (shine.Coroutine._running && shine.Coroutine._running.status == 'resuming') {
@@ -319,6 +320,8 @@ shine.Closure.prototype.dispose = function (force) {
 	
 //		delete this._listeners;
 		shine.gc.collect(this._params);
+		shine.gc.collect(this._localFunctions);
+
 		delete this._params;
 	
 		delete this._constants;
@@ -349,7 +352,18 @@ shine.Closure.prototype.dispose = function (force) {
 	
 
 	function move (a, b) {
-		this._register.setItem(a, this._register.getItem(b));
+		var val = this._register.getItem(b),
+			local,
+			i;
+
+		this._register.setItem(a, val);
+
+		if (val && val instanceof shine.Function) {
+			for (i = this._data.locals.length - 1; i >= 0; i--) {
+				local = this._data.locals[i];
+				if (local.startpc == this._pc - 1) this._localFunctions[local.varname] = val;
+			}
+		}
 	}
 
 			

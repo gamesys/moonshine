@@ -258,6 +258,15 @@ assertTrue (b == nil, 'tonumber() should return nil with passed an empty string 
 assertTrue (c == nil, 'tonumber() should return nil with passed an empty string with base 10')
 assertTrue (d == nil, 'tonumber() should return nil with passed an empty string with base 16')
 
+local a = tonumber (nil)
+local b = tonumber (0/0)
+local c = tonumber (math.huge)
+local d = tonumber (-math.huge)
+assertTrue (a == nil, 'tonumber() should return nil when passed nil')
+assertTrue (tostring(b) == 'nan', 'tonumber() should return nan when passed nan')
+assertTrue (c == math.huge, 'tonumber() should return a number when passed inf')
+assertTrue (d == -math.huge, 'tonumber() should return a number when passed -inf')
+
 
 
 
