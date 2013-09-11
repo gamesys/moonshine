@@ -7,16 +7,24 @@
  *
  * command can be one of:
  *	distil 			Distils a Lua script for use with Moonshine VM.
+ *	debug 			Starts a Moonshite remote debugging server.
  *
- * options can be one or more of:
+ *
+ * When using distil command, options can be one or more of:
+ *	-f:filename 	Output filename. The distilled file will be named according to filename.
+ *					Default = input_basename.lua.json
  * 	-j 				Use old JSON format to encode instructions in the output. 
  *					For use with older versions.
  * 	-m 				Minimise output. Strips out unnecessary debugging information. 
  *					Be aware that debugger will not work with this output.
- *	-o:filename 	Output filename. The distilled file will be named according to filename.
- *					Default = input_basename.lua.json
- *	-p:path 		Output path. The folder in which to place the output files.
+ *	-o:path 		Output path. The folder in which to place the output files.
  *					Default = current path
+ *  -p:filename 	Package output to a single file. All 
+
+ *  -pm:filename 
+ *	-r 				Recursive distil. All files in subfolders will be distilled too.
+ *					Note that option will distil all Lua files in the sub-folders and not
+ *					follow any given file masks.
  *
  * filepattern can be:
  * 	filename 		Input filename. 
@@ -24,7 +32,7 @@
  * 	*				All files in current path.
  *
  * Examples:
- * 	moonshine distil -m -o:myoutput.json myinput.lua
+ * 	moonshine distil -m -f:myoutput.json myinput.lua
  * 					Distils myinput.lua, removes debugging information and writes the
  *					output to myoutput.json
  *
@@ -36,8 +44,17 @@
  * 					Distils all files matching the pattern and myothermod.lua, strips
  *					out debugging and writes to the default filenames.
  * 
- *	moonshine distil -p:./json *
+ *	moonshine distil -o:./json *
  * 					Distils all files to 'json' subfolder.
+ * 
+ * 
+ * When using debug command, options can be one or more of:
+ *  -ap:port		App port. The debug server will listen for your app on this port.
+ *  -cp:port		Console port. The debug server will server the debug console on this port of
+ *					the local machine.
+ *  -src:path 		Source path. Uses local source files instead of any stored on the remote
+ *					file path.
+ * 
  * 
  * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
  * @copyright Gamesys Ltd 2013
@@ -53,6 +70,7 @@ var command = process.argv[2],
 	exec = require('child_process').exec,
 	fs = require('fs'),
 	match,
+	packageData,
 	arg, i, l;
 
 
@@ -85,10 +103,42 @@ switch (command) {
 function distil (filenames) {
 	var filename, i, l;
 
+	if (switches['-p']) {
+		packageData = {
+			format: 'moonshine.package',
+			files: {},
+			count: 0
+		};
+	}
+
 	for (i = 0, l = filenames.length; i < l; i++) {
 		filename = filenames[i];
-		if (/^.*\.lua$/.test(filename)) distilLua(filename);
+
+		if (fs.statSync(filename).isDirectory()) {
+			if (switches['-r']) distilPath(filename);
+
+		} else if (/^.*\.lua$/.test(filename)) {
+			distilLua(filename);
+		}
 	}
+}
+
+
+
+
+/**
+ * Distils all files in a given list of file patterns.
+ * @param {Array} filenames List of file patterns to distil.
+ */
+function distilPath (path) {
+	var filenames = fs.readdirSync(path),
+		i, l;
+
+	for (i = 0, l = filenames.length; i < l; i++) {
+		filenames[i] = path + '/' + filenames[i];
+	}
+
+	distil(filenames);
 }
 
 
@@ -124,31 +174,70 @@ function distilLuac (luacFilename, luaFilename) {
 			useInstructionObjects: switches['-j']
 		};
 
+	if (packageData) packageData.count++;
+
 	parser.parse(luacFilename, config, function (tree) {
-		var path = switches['-p'],
-			reversePath = pathLib.relative(path, '.') + '/' + luaFilename,
-			outputFilename = switches['-o'],
+		var path = switches['-o'] || '.',
+			reversePath = (pathLib.relative(pathLib.dirname(path), '.') || '.') + '/' + pathLib.basename(luaFilename),
+			outputFilename = switches['-f'],
 			filename;
 
-		tree.sourcePath = reversePath;
 		path = (!path || path === true)? './' : path + '/';
 
 		if (outputFilename && outputFilename !== true) {
-			filename = outputFilename;
+			filename = path + outputFilename;
 
 		} else {
 			//if (match = filename.match(/^(.*)\.luac$/)) filename = match[1];
-			filename = luaFilename + '.json';
+			filename = path + luaFilename + '.json';
 		}
 
 
-		fs.writeFile(path + filename, JSON.stringify(tree), function (err) {
-			if (err) throw new Error(err);
-			console.log('File written: ' + path + filename);
-		});
+		if (packageData) {
+			packageData.files[filename] = tree;
+			console.log('Added to package: ' + luaFilename);
+
+			if (switches['-pm'] == luaFilename) packageData.main = filename;
+			if (!--packageData.count) writePackage();
+
+		} else {
+			tree.sourcePath = reversePath;
+			createPath(filename);
+
+			fs.writeFile(filename, JSON.stringify(tree), function (err) {
+				if (err) throw new Error(err);
+				console.log('File written: ' + filename);
+			});
+		}
 	});
 }
 
+
+
+
+function writePackage () {
+	var filename = switches['-p'] === true? './package.json' : switches['-p'];
+
+	delete packageData.count;
+
+	fs.writeFile(filename, JSON.stringify(packageData), function (err) {
+		if (err) throw new Error(err);
+		console.log('File written: ' + filename);
+	});
+}
+
+
+
+
+function createPath(path) {
+	var pos = -1,
+		name;
+
+	while ((pos = path.indexOf('/', pos + 1)) >= 0) {
+		name = path.substr(0, pos);
+		if (!fs.existsSync(name)) fs.mkdirSync(name);
+	}
+}
 
 
 
@@ -156,7 +245,9 @@ function distilLuac (luacFilename, luaFilename) {
 function startDebugServer () {
 	var DebugServer = require('../debug/server/DebugServer'),
 		config = {
-			sourcePath: switches['-src']
+			sourcePaths: switches['-src'] && switches['-src'].split(':'),
+			appPort: switches['-ap'],
+			consolePort: switches['-cp']
 		};
 
 	new DebugServer(config);

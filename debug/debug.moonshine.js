@@ -164,7 +164,9 @@ shine.debug.handleFileLoaded = function (file, callback) {
 	if (sourcePath) {
 		pathData = (jsonUrl || '').match(/^(.*)\/.*?$/);
 		pathData = (pathData && pathData[1]) || '';
-		url = pathData + sourcePath;
+
+		url = pathData + '/' + sourcePath;
+		url = url.replace(/\/\.\//g, '/').replace(/\/.*?\/\.\.\//g, '/');
 
 	} else {
 		url = jsonUrl.replace (/(.lua)?.json$/, '.lua');
@@ -183,6 +185,11 @@ shine.debug.handleFileLoaded = function (file, callback) {
 	}
 
 	function error (e) {
+		debug._loaded[jsonUrl] = {
+			filename: url,
+			source: false
+		};
+
 		debug._trigger('lua-load-failed', [jsonUrl, url, e]);
 		callback();
 	}
@@ -263,7 +270,6 @@ shine.debug._setStatus = function (status, data) {
 			data.callStack = this._getSuspendedCallStack();
 
 			if (this._autoStepping) {
-	console.log (this.AUTO_STEP_DELAY)
 				window.setTimeout(function () {
 					me.stepIn();
 				}, this.AUTO_STEP_DELAY);
@@ -368,13 +374,11 @@ shine.debug.pause = function () {
 
 
 
-	shine.File.prototype._onSuccess = function (data) {
+	shine.FileManager.prototype._onFileLoaded = function (file, callback) {
 		var me = this;
 
-		this.data = JSON.parse(data);
-
-		shine.debug.handleFileLoaded(this, function () {
-			me._trigger('loaded', data);
+		shine.debug.handleFileLoaded(file, function () {
+			callback(null, file);
 		});
 	};
 
@@ -723,7 +727,6 @@ shine.debug.ui = {
 		// Protocol 
 
 		socket.on('connect', function () {
-			console.log('Connected to debug server', arguments);
 			me.showStatus(true, 'Connected');
 		});
 
@@ -733,7 +736,7 @@ shine.debug.ui = {
 
 
 		socket.on('status', function (status) {
-			console.log('Status changed:', status);
+			// console.log('Status changed:', status);
 		});			
 
 		socket.on('error', function (data) {
@@ -810,8 +813,13 @@ shine.debug.ui = {
 			me._send(me.messageTypes.LUA_LOADED, [jsonUrl, luaUrl, data]);
 		});
 
-		debug.bind('lua-load-failed', function (jsonUrl, url) {
-			me._send(me.messageTypes.LUA_LOAD_FAILED, [jsonUrl, url]);
+		debug.bind('lua-load-failed', function (jsonUrl, luaUrl) {
+			me._files[jsonUrl] = {
+				filename: luaUrl,
+				source: false
+			};
+
+			me._send(me.messageTypes.LUA_LOAD_FAILED, [jsonUrl, luaUrl]);
 		});
 
 		debug.bind('breakpoints-updated', function (data) {

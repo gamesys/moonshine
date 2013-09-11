@@ -20,7 +20,8 @@
 			stepIn: document.querySelector('.step-in'),
 			stepOut: document.querySelector('.step-out'),
 			breakpoints: document.querySelector('.breakpoints'),
-			files: document.querySelector('#files'),
+			files: document.getElementById('files'),
+			error: document.getElementById('error'),
 			globals: {
 				header: document.querySelector('.inspector.globals h6'),
 				counter: document.querySelector('.inspector.globals h6 span'),
@@ -97,10 +98,9 @@
 
 
 
-	function reset (debug) {
-		var i;
+	function reset (debug, state) {
 
-		debug.getCurrentState(function (state) {
+		function updateState (state) {
 			clearErrors();
 
 			loaded = state.loaded;
@@ -112,21 +112,27 @@
 
 			updateErrorLog();
 			loadScript();
-		});
+		}
 
 		elements.pauseResume.textContent = 'Pause/Resume';
 		elements.pauseResume.className = 'pause-resume';
 
 		clearInspectors();
 		loadScript();
+
+		if (state) {
+			updateState(state);
+		} else {
+			debug.getCurrentState(updateState);
+		}
 	}
 
 
 
 
 	function clearInspectors () {
-		elements.globals.list.textContent = elements.locals.list.textContent = elements.upvalues.list.textContent = elements.callStack.list.textContent = '';
-		elements.globals.counter.textContent = elements.locals.counter.textContent = elements.upvalues.counter.textContent = '0';
+		elements.globals.list.textContent = elements.locals.list.textContent = elements.upvalues.list.textContent = elements.callStack.list.textContent = elements.errorLog.list.textContent = '';
+		elements.globals.counter.textContent = elements.locals.counter.textContent = elements.upvalues.counter.textContent = elements.errorLog.counter.textContent = '0';
 	}
 
 
@@ -196,8 +202,8 @@
 			}
 		});
 
-		debug.bind('reset', function (debug) {
-			reset(debug);
+		debug.bind('reset', function (debug, state) {
+			reset(debug, state);
 		});
 
 		debug.bind('error', function (e) {
@@ -214,8 +220,13 @@
 			updateFileDropdown();
 		});
 
-		debug.bind('lua-load-failed', function (jsonUrl) {
-			loaded[jsonUrl] = false;
+		debug.bind('lua-load-failed', function (jsonUrl, luaUrl) {
+			loaded[jsonUrl] = {
+				filename: luaUrl,
+				source: false
+			};
+
+			updateFileDropdown();
 		});
 
 		debug.bind('breakpoints-updated', function (data) {
@@ -385,14 +396,17 @@
 
 	function loadScript (jsonUrl) {
 		var session = ide.getSession(),
-			i, err;
+			source, i, err;
 
 		jsonUrl = jsonUrl || elements.files.value;
+		source = (loaded[jsonUrl] || {}).source || '';
 
 		clearHighlight();
 		clearErrors();
+		elements.error.textContent = '';
+		elements.error.className = '';
 
-		ide.setValue((loaded[jsonUrl] || {}).source || '');
+		ide.setValue(source);
 		ide.scrollToLine(1, true);
 		ide.clearSelection();
 
@@ -401,6 +415,11 @@
 
 		} else {
 			updateBreakpoints();
+
+			if (!source) {
+				elements.error.textContent = 'This source file could not be loaded.';
+				elements.error.className = 'not-loaded';
+			}
 
 			if (highlightedLine && highlightedLine.url == jsonUrl) {
 				executionMarker = session.addMarker(new ide.Range(highlightedLine.line - 1, 0, highlightedLine.line - 1, Infinity), 'exec');
@@ -504,7 +523,8 @@
 
 
 	function goToLine (jsonUrl, lineNumber) {
-		loadScript(jsonUrl);
+		elements.files.value = jsonUrl;
+		loadScript();
 
 		var session = ide.getSession(),
 			marker = session.addMarker(new ide.Range(lineNumber - 1, 0, lineNumber - 1, Infinity), 'goto');

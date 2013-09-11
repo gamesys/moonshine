@@ -1,6 +1,8 @@
 
 var AppConnection = require('./AppConnection'),
-	ConsoleConnection = require('./ConsoleConnection');
+	ConsoleConnection = require('./ConsoleConnection'),
+	fs = require('fs'),
+	path = require('path');
 
 
 
@@ -8,8 +10,7 @@ var AppConnection = require('./AppConnection'),
 DebugServer = function (config) {
 	config = config || {};
 
-	this._sourcePath = config.sourcePath;
-console.log ('src', this._sourcePath)
+	this._sourcePaths = config.sourcePaths;
 	this._initAppConnection(config);
 	this._initConsoleConnection(config);
 };
@@ -46,16 +47,14 @@ DebugServer.prototype._initAppConnection = function (config) {
 
 
 	conn.bind('lua-loaded', function (jsonUrl, url, code) {
-console.log ('loaded', me._sourcePath, url);
-
+		if (me._sourcePaths.length) code = me.getLocalSourceCode(url, code);
 		if (me._consoleConnection) me._consoleConnection.luaLoaded(jsonUrl, url, code);
 	});
 
 
 	conn.bind('lua-load-failed', function (jsonUrl, url) {
-console.log ('failed', me._sourcePath, jsonUrl, url);
-		// if (me._consoleConnection) me._consoleConnection.luaLoadFailed(jsonUrl);
-		console.log ('lua-load-failed', arguments);
+		if (me._sourcePaths) code = me.getLocalSourceCode(url);
+		if (me._consoleConnection) me._consoleConnection.luaLoadFailed(jsonUrl, url);
 	});
 
 
@@ -106,7 +105,27 @@ DebugServer.prototype._initConsoleConnection = function (config) {
 	// Events
 
 	conn.bind('get-state-request', function (callback) {
-		callback(me._appConnection.state);
+		var state, loaded, i;
+
+		if (!me._sourcePaths) {
+			state = me._appConnection.state;
+
+		} else {
+			state = {};
+			loaded = me._appConnection.state.loaded;
+
+			for (i in me._appConnection.state) state[i] = me._appConnection.state[i];
+			state.loaded = {};
+
+			for (i in loaded) {
+				state.loaded[i] = {
+					filename: loaded[i].filename,
+					source: me.getLocalSourceCode(loaded[i].filename, loaded[i].source)
+				}
+			}
+		}
+		
+		callback(state);
 	});
 
 
@@ -152,6 +171,24 @@ DebugServer.prototype._initConsoleConnection = function (config) {
 		if (me._appConnection) me._appConnection.reload();
 	});
 
+};
+
+
+
+
+DebugServer.prototype.getLocalSourceCode = function (url, defaultCode) {
+	var attempts = [],
+		i, filename;
+
+	for (i = this._sourcePaths.length - 1; i >= 0; i--) {
+		filename = path.resolve(this._sourcePaths[i] + '/' + url);
+
+		if (fs.existsSync(filename)) return fs.readFileSync(filename).toString();
+		attempts.push('\tno file: ' + filename);
+	}
+
+	console.log ('Source file \'' + url + '\' not found:\n' + attempts.join('\n'));
+	return defaultCode || false;
 };
 
 

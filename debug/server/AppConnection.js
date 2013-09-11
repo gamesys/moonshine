@@ -119,7 +119,12 @@ AppConnection.prototype._processMessage = function (type, data, callback) {
 
 
  		case messageTypes.LUA_LOAD_FAILED:
- 			this._trigger('lua-load-failed', data);
+ 			this.state.loaded[data[0]] = {
+ 				filename: data[1],
+ 				source: false
+ 			};
+
+  			this._trigger('lua-load-failed', data);
 
  			break;
 

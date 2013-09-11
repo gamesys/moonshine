@@ -97,22 +97,37 @@ var shine = shine || {};
 			filename = pathData + filename;
 		}
 
-		file = new shine.File(filename);
+		// file = new shine.File(filename);
 
-		file.bind('loaded', function (data) {
+		// file.bind('loaded', function (data) {
+		// 	var func = new shine.Function(vm, file, file.data, vm._globals);
+		// 	vm._trigger('module-loaded', file, func);
+			
+		// 	callback(func);
+		// });
+
+		// file.bind('error', function (code) {
+		// 	vm._trigger('module-load-error', file, code);
+		// 	callback();
+		// });
+
+		// this._trigger('loading-module', file);
+		// file.load ();
+
+		this.fileManager.load(filename, function (err, file) {
+			if (err) {
+				vm._trigger('module-load-error', file, err);
+				callback();
+				return;
+			}
+
 			var func = new shine.Function(vm, file, file.data, vm._globals);
 			vm._trigger('module-loaded', file, func);
 			
-			callback(func);
+			callback(func);			
 		});
 
-		file.bind('error', function (code) {
-			vm._trigger('module-load-error', file, code);
-			callback();
-		});
-
-		this._trigger('loading-module', file);
-		file.load ();
+		this._trigger('loading-module', filename);
 	}
 
 
@@ -195,8 +210,8 @@ var shine = shine || {};
 				chunk += (lastPiece = piece);
 			}
 
-			file._data = JSON.parse(chunk);
-			return new shine.Function(this, file, file._data, this._globals, shine.gc.createArray());
+			file.data = JSON.parse(chunk);
+			return new shine.Function(this, file, file.data, this._globals, shine.gc.createArray());
 		},
 	
 	
@@ -380,7 +395,8 @@ var shine = shine || {};
 				module,
 				preload,
 				paths,
-				path;
+				path,
+				failedPaths = [];
 
 
 			function load (preloadFunc) {
@@ -414,7 +430,8 @@ var shine = shine || {};
 				path = paths.shift()
 
 				if (!path) {
-					thread.resume();
+					throw new shine.Error('module \'' + modname + '\' not found:' + '\n	no field package.preload[\'' + modname + '\']\n' + failedPaths.join('\n'));
+					// thread.resume();
 			
 				} else {
 					path = path.replace(/\?/g, modname);
@@ -424,6 +441,7 @@ var shine = shine || {};
 							var result = load(preload);
 							if (result) thread.resume(result);
 						} else {
+							failedPaths.push('	no file \'' + path + '\'');
 							loadNextPath();
 						}
 					});
@@ -433,6 +451,7 @@ var shine = shine || {};
 			loadNextPath();
 		},	
 	
+
 
 	
 		select: function (index) {
@@ -884,7 +903,7 @@ var shine = shine || {};
 		
 		
 		log10: function (x) {
-			// v5.2: shine.warn ('math.log10 is deprecated. Use math.log with 10 as its second argument, instead.');
+			// v5.2: shine.warn ('math.log10 is deprecated. Use math.log with 10 as its second argument instead.');
 			return Math.log(x) / Math.log(10);
 		},
 		
@@ -1215,7 +1234,7 @@ var shine = shine || {};
 		},
 
 
-		path: '?.lua.json;?.json;./modules/?.json;./modules/?/?.json;./modules/?/index.json',
+		path: '?.lua.json;?.json;modules/?.lua.json;modules/?.json;modules/?/?.lua.json;modules/?/index.lua.json',
 
 
 		preload: {},

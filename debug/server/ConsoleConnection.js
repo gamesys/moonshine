@@ -132,8 +132,8 @@ ConsoleConnection.prototype.luaLoaded = function (jsonUrl, url, code) {
 
 
 
-ConsoleConnection.prototype.luaLoadFailed = function (jsonUrl) {
-	this._send(this.constructor.messageTypes.LUA_LOAD_FAILED, [jsonUrl]);
+ConsoleConnection.prototype.luaLoadFailed = function (jsonUrl, url) {
+	this._send(this.constructor.messageTypes.LUA_LOAD_FAILED, [jsonUrl, url]);
 };
 
 

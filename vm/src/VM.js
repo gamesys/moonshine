@@ -17,14 +17,16 @@ var shine = shine || {};
 shine.VM = function (env) {
 	shine.EventEmitter.call(this);
 	
-	this._files = [];
+	// this._files = [];
+	// this._packagedFiles = {};
+	this.fileManager = new shine.FileManager();
 	this._env = env || {};
 	this._coroutineStack = [];
 	
 	this._resetGlobals();
 };
 
-shine.VM.prototype = new shine.EventEmitter ();
+shine.VM.prototype = new shine.EventEmitter();
 shine.VM.prototype.constructor = shine.VM;
 
 
@@ -55,6 +57,7 @@ shine.VM.prototype._bindLib = function (lib) {
 
 	for (var i in lib) {
 		if (lib.hasOwnProperty(i)) {
+
 			if (lib[i] && lib[i].constructor === shine.Table) {
 				result[i] = new shine.Table(shine.utils.toObject(lib[i]));
 
@@ -85,39 +88,14 @@ shine.VM.prototype._bindLib = function (lib) {
  * @param {object} [coConfig] Coroutine configuration. Only applicable if execute == true.
  */
 shine.VM.prototype.load = function (url, execute, coConfig) {
-	var me = this,
-		file;
+	var me = this;
 
-	switch (typeof url) {
+	this.fileManager.load(url, function (err, file) {
+		if (err) throw new URIError('Failed to load file: ' + url + ' (' + err + ')');
 
-		case 'string':
-			file = new shine.File(url);
-			
-			this._files.push(file);
-
-			file.bind('loaded', function (data) {
-				me._trigger('file-loaded', file);
-				if (execute || execute === undefined) me.execute(coConfig, file);
-			});
-
-			this._trigger('loading-file', file);
-			file.load();
-
-			break;
-
-
-		case 'object':
-			file = new shine.File();
-			file.data = url;
-			if (execute || execute === undefined) me.execute(coConfig, file);
-
-			break
-
-
-		default: 
-			console.warn('Object of unknown type passed to shine.VM.load()');
-	}
-
+		me._trigger('file-loaded', file);
+		if (execute || execute === undefined) me.execute(coConfig, file);
+	});
 };
 
 
@@ -211,6 +189,9 @@ shine.VM.prototype.dispose = function () {
 	delete this._globals;
 	delete this._env;
 	delete this._coroutineStack;
+
+	this.fileManager.dispose();
+	delete this.fileManager;
 
 
 	// Clear static stacks -- Very dangerous for environments that contain multiple VMs!

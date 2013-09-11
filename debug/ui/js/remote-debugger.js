@@ -127,7 +127,7 @@
 		document.head.appendChild(script);
 
 		script.addEventListener('load', function () {
-			socket = io.connect('127.0.0.1:1969');
+			socket = io.connect();
 
 			socket.on('connect', function () {
 				updateRemoteStatus('waiting', 'Debug server connected. Waiting for remote app...');
@@ -136,6 +136,15 @@
 
 			socket.on('disconnect', function () {
 				updateRemoteStatus('disconnected', 'Debug server disconnected.');
+
+				var state = {
+					loaded: {},
+					breakpoints: {},
+					stopAtBreakpoints: false,
+					errorLog: []
+				};
+				
+				api._trigger('reset', [api, state]);
 			});			
 
 

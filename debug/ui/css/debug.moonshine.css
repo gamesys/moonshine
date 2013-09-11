@@ -255,6 +255,26 @@ section.shine-debug #code.ace-github .ace_marker-layer .ace_active-line {
 }
 
 
+section.shine-debug #error {
+	position: absolute;
+	top: 70px;
+	left: 10%;
+	right: 40%;
+	background: url('../img/information-italic.png') 6px center no-repeat #ffa;
+	border: 1px solid #ee9;
+	font-family: monospace;
+	padding: 4px 8px 4px 30px;
+	font-size: 12px;
+	z-index: 9;
+	border-radius: 6px;
+	display: none;
+}
+
+section.shine-debug #error.not-loaded {
+	display: block;
+}
+
+
 /*
 section.shine-debug ol {
 	display: inline-block;
