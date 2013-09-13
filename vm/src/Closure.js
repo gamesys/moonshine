@@ -104,7 +104,7 @@ shine.Closure.prototype.execute = function (args) {
 	
 	try {
 		return this._run ();
-		
+
 	} catch (e) {
 		if (!((e || shine.EMPTY_OBJ) instanceof shine.Error)) {
 			var stack = (e.stack || '');
@@ -115,7 +115,6 @@ shine.Closure.prototype.execute = function (args) {
 		}
 
 		if (!e.luaStack) e.luaStack = shine.gc.createArray();
-		// e.luaStack.push('at ' + (this._data.sourceName || 'function') + (this._data.linePositions? ' on line ' + this._data.linePositions[this._pc - 1] : ''));
 		e.luaStack.push([this, this._pc - 1]);
 	
 		throw e;
@@ -191,7 +190,6 @@ shine.Closure.prototype._run = function () {
 
 	while (this._instructions[this._pc * 4] !== undefined) {
 		line = this._data.linePositions && this._data.linePositions[this._pc];
-
 		retval = this._executeInstruction (this._pc++, line);
 
 		if (shine.Coroutine._running && shine.Coroutine._running.status == 'suspending') {

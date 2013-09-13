@@ -1,5 +1,7 @@
 
-var AbstractConnection = require('./AbstractConnection.js');
+var AbstractConnection = require('./AbstractConnection'),
+	messageTypes = require('./messageTypes');
+
 
 
 
@@ -17,28 +19,6 @@ AppConnection.prototype = new AbstractConnection();
 AppConnection.prototype.constructor = AppConnection;
 
 
-AppConnection.messageTypes = {
-	ENGINE_STATE_CHANGED: 0,
-	LUA_LOADED: 1,
-	LUA_LOAD_FAILED: 2,
-	BREAKPOINTS_UPDATED: 3,
-	BREAKPOINT_UPDATED: 4,
-	STOP_AT_BREAKPOINTS_UPDATED: 5,
-	ERROR: 6,
-
-	GET_STATE: 100,
-	TOGGLE_BREAKPOINT: 101,
-	TOGGLE_STOP_AT_BREAKPOINTS: 102,
-	STEP_IN: 103,
-	STEP_OVER: 104,
-	STEP_OUT: 105,
-	PAUSE: 106,
-	RESUME: 107,
-	RELOAD: 108,
-	AUTO_STEP: 109
-};
-
-
 
 
 AppConnection.prototype._onReady = function () {
@@ -53,7 +33,7 @@ AppConnection.prototype._onConnection = function () {
 
 	console.log ('App found.');
 
-	this._send(this.constructor.messageTypes.GET_STATE, undefined, function (state) {
+	this._send(messageTypes.GET_STATE, undefined, function (state) {
 		console.log ('App connected.');
 
 		me.state = state;
@@ -93,7 +73,6 @@ AppConnection.prototype._reset = function () {
 
 
 AppConnection.prototype._processMessage = function (type, data, callback) {
- 	var messageTypes = this.constructor.messageTypes;
 
  	switch (type) {
 
@@ -166,63 +145,63 @@ AppConnection.prototype._processMessage = function (type, data, callback) {
 
 
 AppConnection.prototype.toggleBreakpoint = function (jsonUrl, line) {
-	this._send(this.constructor.messageTypes.TOGGLE_BREAKPOINT, [jsonUrl, line]);
+	this._send(messageTypes.TOGGLE_BREAKPOINT, [jsonUrl, line]);
 };
 
 
 
 
 AppConnection.prototype.toggleStopAtBreakpoints = function (stops) {
-	this._send(this.constructor.messageTypes.TOGGLE_STOPS_AT_BREAKPOINTS, stops);
+	this._send(messageTypes.TOGGLE_STOPS_AT_BREAKPOINTS, stops);
 };
 
 
 
 
 AppConnection.prototype.autoStep = function () {
-	this._send(this.constructor.messageTypes.AUTO_STEP);
+	this._send(messageTypes.TOGGLE_AUTO_STEP);
 };
 
 
 
 
 AppConnection.prototype.stepIn = function () {
-	this._send(this.constructor.messageTypes.STEP_IN);
+	this._send(messageTypes.STEP_IN);
 };
 
 
 
 
 AppConnection.prototype.stepOver = function () {
-	this._send(this.constructor.messageTypes.STEP_OVER);
+	this._send(messageTypes.STEP_OVER);
 };
 
 
 
 
 AppConnection.prototype.stepOut = function () {
-	this._send(this.constructor.messageTypes.STEP_OUT);
+	this._send(messageTypes.STEP_OUT);
 };
 
 
 
 
 AppConnection.prototype.pause = function () {
-	this._send(this.constructor.messageTypes.PAUSE);
+	this._send(messageTypes.PAUSE);
 };
 
 
 
 
 AppConnection.prototype.resume = function () {
-	this._send(this.constructor.messageTypes.RESUME);
+	this._send(messageTypes.RESUME);
 };
 
 
 
 
 AppConnection.prototype.reload = function () {
-	this._send(this.constructor.messageTypes.RELOAD);
+	this._send(messageTypes.RELOAD);
 };
 
 

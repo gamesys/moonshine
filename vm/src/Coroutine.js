@@ -131,6 +131,9 @@ shine.Coroutine.prototype.resume = function () {
 		if (retval) retval.unshift(true);
 
 	} catch (e) {
+		if (!e.luaStack) e.luaStack = shine.gc.createArray();
+		e.luaStack.push([this._func._instance, this._func._instance._pc - 1]);
+
 		retval = [false, e];
 		this.status = 'dead';
 	}

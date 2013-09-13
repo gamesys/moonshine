@@ -250,16 +250,31 @@
 
 
 	function showVariables (data) {
-		var i, l, li, anchor, match;
+		var i, l, li, anchor, match, title;
 
 		function appendPair (term, def, section) {
-			var el = document.createElement('dt');
+			var el = document.createElement('dt'),
+				i;
+
 			el.textContent = term;
 			section.list.appendChild(el);
 			
 			el = document.createElement('dd');
-			el.textContent = def;
 			section.list.appendChild(el);
+
+			if (typeof def != 'object') {
+				el.textContent = def;
+
+			} else {
+				el.textContent = def.caption;
+				title = [];
+
+				for (i in def.fields) {
+					if (def.fields.hasOwnProperty(i)) title.push(i + ': ' + def.fields[i]);
+				}
+
+				el.title = title.join('\n');
+			}
 		}
 
 		function showVars (obj, section) {
@@ -267,7 +282,7 @@
 
 			for (var i in obj) {
 				if (obj.hasOwnProperty(i)) {
-					appendPair(i, formatValue(obj[i]), section);
+					appendPair(i, obj[i], section);
 					count++;
 				}
 			}			

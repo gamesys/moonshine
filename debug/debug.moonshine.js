@@ -61,14 +61,45 @@ shine.debug._clearLoadQueue = function () {
 
 
 
+shine.debug._formatValue = function (val) {
+	var result, fields, i;
+
+	switch(true) {
+		case typeof val == 'number':
+			return val;
+
+		case val && val instanceof shine.Table:
+			result = {
+				caption: shine.utils.coerce(val, 'string')
+			};
+
+			fields = {};
+
+			for (i in val) {
+				if (val.hasOwnProperty(i) && i != '__shine') fields[i] = typeof val[i] == 'number'? val[i] : shine.utils.coerce(val[i], 'string');
+			}
+
+			result.fields = fields;
+			return result;
+
+		default:
+			return shine.utils.coerce(val, 'string');
+	}			
+};
+
+
+
+
 shine.debug._getSuspendedGlobals = function () {
 	var globals = this._resumeStack[0]._globals,
 		result = {},
 		i, val;
 
 	for (i in globals) {
-		val = globals[i];
-		if (globals.hasOwnProperty(i) && i != '_G' && i != '__shine') result[i] = typeof val == 'number'? val : shine.utils.coerce(val, 'string');
+		if (globals.hasOwnProperty(i)) {
+			val = globals[i];
+			if (globals.hasOwnProperty(i) && i != '_G' && i != '__shine') result[i] = this._formatValue(val);
+		}
 	}
 
 	return result;
@@ -84,12 +115,14 @@ shine.debug._getSuspendedLocals = function () {
 		i, local, pc, val;
 
 	for (i in closure._data.locals) {
-		local = closure._data.locals[i];
-		pc = closure._pc + 1;
-			
-		if (local.startpc < pc && local.endpc >= pc) {
-			val = closure._register.getItem(index++);
-			result[local.varname] = typeof val == 'number'? val : shine.utils.coerce(val, 'string');
+		if (closure._data.locals.hasOwnProperty(i)) {
+			local = closure._data.locals[i];
+			pc = closure._pc + 1;
+				
+			if (local.startpc < pc && local.endpc >= pc) {
+				val = closure._register.getItem(index++);
+				result[local.varname] = this._formatValue(val);
+			}
 		}
 	}
 
@@ -105,9 +138,11 @@ shine.debug._getSuspendedUpvalues = function () {
 		i, up, val;
 
 	for (i in closure._upvalues) {
-		up = closure._upvalues[i];
-		val = up.getValue();
-		result[up.name] = typeof val == 'number'? val : shine.utils.coerce(val, 'string');
+		if (closure._upvalues.hasOwnProperty(i)) {
+			up = closure._upvalues[i];
+			val = up.getValue();
+			result[up.name] = this._formatValue(val);
+		}
 	}
 
 	return result;
@@ -239,18 +274,6 @@ shine.debug.toggleStopAtBreakpoints = function () {
 	
 	window.sessionStorage.setItem('stopAtBreakpoints', stop);
 	this._trigger('stop-at-breakpoints-updated', [stop]);
-};
-
-
-
-
-shine.debug._formatValue = function (val) {
-	return shine.utils.coerce(val, 'string');
-	// switch (true) {
-	// 	case typeof val == 'string': return '"' + val + '"';
-	// 	case val instanceof shine.Table: return shine.Table.prototype.toString.call(val);
-	// 	default: return shine.utils.coerce(val, 'string');
-	// }
 };
 
 
@@ -658,7 +681,7 @@ shine.debug.ui = {
 		PAUSE: 106,
 		RESUME: 107,
 		RELOAD: 108,
-		AUTO_STEP: 109
+		TOGGLE_AUTO_STEP: 109
 	},
 
 
@@ -759,7 +782,7 @@ shine.debug.ui = {
 			shine.debug.toggleStopAtBreakpoints();
 		});
 
-		socket.on(me.messageTypes.AUTO_STEP, function () {
+		socket.on(me.messageTypes.TOGGLE_AUTO_STEP, function () {
 			shine.debug.autoStep();
 		});
 

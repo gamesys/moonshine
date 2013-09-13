@@ -55,7 +55,17 @@ shine.Error.prototype._stackToString = function () {
 		filename, path,
 		i, j, l;
 
+	this.luaStack = this.luaStack || [];
+
 	for (i = 0, l = this.luaStack.length; i < l; i++) {
+		if (this.luaStack[i - 1] 
+			&& this.luaStack[i][0] === this.luaStack[i - 1][0] 
+			&& this.luaStack[i][1] === this.luaStack[i - 1][1]
+		) {
+			continue;	// Filter out repeated items (due to lib.require).
+		}
+
+
 		if (typeof this.luaStack[i] == 'string') {
 			result.push(this.luaStack[i]);
 

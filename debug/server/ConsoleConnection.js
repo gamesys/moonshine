@@ -1,6 +1,7 @@
 
 var express = require('express'),
-	AbstractConnection = require('./AbstractConnection.js');
+	AbstractConnection = require('./AbstractConnection'),
+	messageTypes = require('./messageTypes');
 
 
 
@@ -15,28 +16,6 @@ ConsoleConnection = function (config) {
 
 ConsoleConnection.prototype = new AbstractConnection();
 ConsoleConnection.prototype.constructor = ConsoleConnection;
-
-
-ConsoleConnection.messageTypes = {
-	ENGINE_STATE_CHANGED: 0,
-	LUA_LOADED: 1,
-	LUA_LOAD_FAILED: 2,
-	BREAKPOINTS_UPDATED: 3,
-	BREAKPOINT_UPDATED: 4,
-	STOP_AT_BREAKPOINTS_UPDATED: 5,
-	ERROR: 6,
-
-	GET_STATE: 100,
-	TOGGLE_BREAKPOINT: 101,
-	TOGGLE_STOP_AT_BREAKPOINTS: 102,
-	STEP_IN: 103,
-	STEP_OVER: 104,
-	STEP_OUT: 105,
-	PAUSE: 106,
-	RESUME: 107,
-	RELOAD: 108,
-	AUTO_STEP: 109
-};
 
 
 
@@ -65,7 +44,6 @@ ConsoleConnection.prototype._onDisconnect = function () {
 
 
 ConsoleConnection.prototype._processMessage = function (type, data, callback) {
- 	var messageTypes = this.constructor.messageTypes;
 
  	switch (type) {
 
@@ -81,7 +59,7 @@ ConsoleConnection.prototype._processMessage = function (type, data, callback) {
  			this._trigger('toggle-stop-at-breakpoints-request');
  			break;
 
- 		case messageTypes.AUTO_STEP:
+ 		case messageTypes.TOGGLE_AUTO_STEP:
  			this._trigger('auto-step-request');
  			break;
 
@@ -119,49 +97,49 @@ ConsoleConnection.prototype._processMessage = function (type, data, callback) {
 
 
 ConsoleConnection.prototype.updateState = function (state, data) {
-	this._send(this.constructor.messageTypes.ENGINE_STATE_CHANGED, [state, data]);
+	this._send(messageTypes.ENGINE_STATE_CHANGED, [state, data]);
 };
 
 
 
 
 ConsoleConnection.prototype.luaLoaded = function (jsonUrl, url, code) {
-	this._send(this.constructor.messageTypes.LUA_LOADED, [jsonUrl, url, code]);
+	this._send(messageTypes.LUA_LOADED, [jsonUrl, url, code]);
 };
 
 
 
 
 ConsoleConnection.prototype.luaLoadFailed = function (jsonUrl, url) {
-	this._send(this.constructor.messageTypes.LUA_LOAD_FAILED, [jsonUrl, url]);
+	this._send(messageTypes.LUA_LOAD_FAILED, [jsonUrl, url]);
 };
 
 
 
 
 ConsoleConnection.prototype.updateBreakpoints = function (data) {
-	this._send(this.constructor.messageTypes.BREAKPOINTS_UPDATED, [data]);
+	this._send(messageTypes.BREAKPOINTS_UPDATED, [data]);
 };
 
 
 
 
 ConsoleConnection.prototype.updateBreakpoint = function (jsonUrl, lineNumber, breakOn) {
-	this._send(this.constructor.messageTypes.BREAKPOINT_UPDATED, [jsonUrl, lineNumber, breakOn]);
+	this._send(messageTypes.BREAKPOINT_UPDATED, [jsonUrl, lineNumber, breakOn]);
 };
 
 
 
 
 ConsoleConnection.prototype.updateStopAtBreakpoints = function (stops) {
-	this._send(this.constructor.messageTypes.STOP_AT_BREAKPOINTS_UPDATED, stops);
+	this._send(messageTypes.STOP_AT_BREAKPOINTS_UPDATED, stops);
 };
 
 
 
 
 ConsoleConnection.prototype.handleError = function (error) {
-	this._send(this.constructor.messageTypes.ERROR, error);
+	this._send(messageTypes.ERROR, error);
 };
 
 

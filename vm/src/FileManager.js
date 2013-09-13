@@ -97,7 +97,7 @@ shine.FileManager.prototype._onSuccess = function (url, data, callback) {
  * Hook called when a distilled file is loaded successfully. Overridden by debug engine.
  * @param {String} data Response.
  */
-shine.FileManager.prototype._onFileLoaded = function (callback) {
+shine.FileManager.prototype._onFileLoaded = function (file, callback) {
 	callback();
 };
 
@@ -119,7 +119,6 @@ shine.FileManager.prototype._onError = function (code, callback) {
  * Dump memory associated with FileManager.
  */
 shine.FileManager.prototype.dispose = function () {
-	delete this.url;
-	delete this.data;
+	delete this._cache;
 };
 

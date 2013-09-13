@@ -26,7 +26,7 @@
 			PAUSE: 106,
 			RESUME: 107,
 			RELOAD: 108,
-			AUTO_STEP: 109
+			TOGGLE_AUTO_STEP: 109
 		};
 
 
@@ -46,7 +46,7 @@
 
 
 	api.autoStep = function () {
-		send(messageTypes.AUTO_STEP);
+		send(messageTypes.TOGGLE_AUTO_STEP);
 	};
 
 
@@ -143,7 +143,7 @@
 					stopAtBreakpoints: false,
 					errorLog: []
 				};
-				
+
 				api._trigger('reset', [api, state]);
 			});			
 
