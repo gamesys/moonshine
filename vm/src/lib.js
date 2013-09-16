@@ -492,17 +492,30 @@ var shine = shine || {};
 	
 		
 		tonumber: function (e, base) {
-			// TODO: Needs a more generic algorithm to check what is valid. Lua supports all bases from 2 to 36 inclusive.
-			if (e === '') return;
-			
-			e = ('' + e).replace(/^\s+|\s+$/g, '');	// Trim
-			base = base || 10;
-	
-			if (base === 2 && e.match (/[^01]/)) return;
-			if (base === 10 && e.match (/[^0-9e\+\-\.]/)) return;
-			if (base === 16 && e.match (/[^0-9A-Fa-f]/)) return;
-			
-			return (base == 10)? parseFloat (e) : parseInt (e, base);
+			var match, chars, pattern;
+
+            if (e === '') return;            
+			if (val === undefined) return;
+			if (val === Infinity || val === -Infinity || (typeof val == 'number' && window.isNaN(val))) return val;
+             
+            e = ('' + e).replace(/^\s+|\s+$/g, '');    // Trim
+            base = base || 10;
+
+			if (base < 2 || base > 36) throw new shine.Error('bad argument #2 to tonumber() (base out of range)');
+
+            // If using base 10, use normal coercion.
+			if (base == 10) return shine.utils.coerce(e, 'number');
+
+			e = shine.utils.coerce(e, 'string');
+
+            // If using base 16, ingore any "0x" prefix
+			if (base == 16 && (match = e.match(/^(\-)?0[xX](.+)$/))) e = (match[1] || '') + match[2];
+
+			chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+			pattern = new RegExp('^[' + chars.substr(0, base) + ']*$', 'gi');
+
+			if (!pattern.test(e)) return;	// Invalid
+			return parseInt(e, base);
 		},
 		
 		

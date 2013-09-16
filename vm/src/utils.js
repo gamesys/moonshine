@@ -16,7 +16,12 @@ var shine = shine || {};
 	 * @private
 	 * @constant
 	 */
-	var FLOATING_POINT_PATTERN = /^[-+]?[0-9]*\.?([0-9]+([eE][-+]?[0-9]+)?)?$/;
+	var FLOATING_POINT_PATTERN = /^[-+]?[0-9]*\.?([0-9]+([eE][-+]?[0-9]+)?)?$/,
+
+
+
+
+		HEXIDECIMAL_CONSTANT_PATTERN = /^(\-)?0x([0-9a-fA-F]*)\.?([0-9a-fA-F]*)$/;
 
 
 
@@ -36,7 +41,7 @@ var shine = shine || {};
 		 * @returns {Object} The converted value.
 		 */
 		coerce: function (val, type, errorMessage) {
-			var n;
+			var n, match, mantissa;
 
 			switch (type) {
 				case 'boolean':
@@ -55,7 +60,20 @@ var shine = shine || {};
 				case 'number':
 					if (val === undefined) return;
 					if (val === Infinity || val === -Infinity || (typeof val == 'number' && window.isNaN(val))) return val;
-					if (('' + val).match(FLOATING_POINT_PATTERN)) n = parseFloat(val);
+
+					if (('' + val).match(FLOATING_POINT_PATTERN)) {
+						n = parseFloat(val);
+
+					} else if (match = ('' + val).match(HEXIDECIMAL_CONSTANT_PATTERN)) {
+						mantissa = match[3];
+						
+						if ((n = match[2]) || mantissa) {
+							n = parseInt(n, 16) || 0;
+							if (mantissa) n += parseInt(mantissa, 16) / Math.pow(16, mantissa.length);
+							if (match[1]) n *= -1;
+						}
+					}
+
 					if (n === undefined && errorMessage) throw new shine.Error(errorMessage);
 					return n;
 
