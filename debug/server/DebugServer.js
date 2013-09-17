@@ -10,7 +10,7 @@ var AppConnection = require('./AppConnection'),
 DebugServer = function (config) {
 	config = config || {};
 
-	this._sourcePaths = config.sourcePaths;
+	this._sourcePaths = config.sourcePaths || [];
 	this._initAppConnection(config);
 	this._initConsoleConnection(config);
 };
