@@ -818,16 +818,16 @@ shine.debug.ui = {
 		var me = this,
 			debug = shine.debug;
 
-		debug.bind('state-updated', function (state, data) {
+		debug.on('state-updated', function (state, data) {
 			me._send(me.messageTypes.ENGINE_STATE_CHANGED, [state, data]);
 		});
 
 
-		debug.bind('error', function (error) {
+		debug.on('error', function (error) {
 			me._send(me.messageTypes.ERROR, error);
 		});
 
-		debug.bind('lua-loaded', function (jsonUrl, luaUrl, data) {
+		debug.on('lua-loaded', function (jsonUrl, luaUrl, data) {
 			me._files[jsonUrl] = {
 				filename: luaUrl,
 				source: data
@@ -836,7 +836,7 @@ shine.debug.ui = {
 			me._send(me.messageTypes.LUA_LOADED, [jsonUrl, luaUrl, data]);
 		});
 
-		debug.bind('lua-load-failed', function (jsonUrl, luaUrl) {
+		debug.on('lua-load-failed', function (jsonUrl, luaUrl) {
 			me._files[jsonUrl] = {
 				filename: luaUrl,
 				source: false
@@ -845,15 +845,15 @@ shine.debug.ui = {
 			me._send(me.messageTypes.LUA_LOAD_FAILED, [jsonUrl, luaUrl]);
 		});
 
-		debug.bind('breakpoints-updated', function (data) {
+		debug.on('breakpoints-updated', function (data) {
 			me._send(me.messageTypes.BREAKPOINTS_UPDATED, [data]);
 		});
 
-		debug.bind('breakpoint-updated', function (jsonUrl, lineNumber, breakOn) {
+		debug.on('breakpoint-updated', function (jsonUrl, lineNumber, breakOn) {
 			me._send(me.messageTypes.BREAKPOINT_UPDATED, [jsonUrl, lineNumber, breakOn]);
 		});
 
-		debug.bind('stop-at-breakpoints-updated', function (stop) {
+		debug.on('stop-at-breakpoints-updated', function (stop) {
 			me._send(me.messageTypes.STOP_AT_BREAKPOINTS_UPDATED, [stop]);
 		});
 

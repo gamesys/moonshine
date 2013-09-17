@@ -49,7 +49,7 @@ shine.EventEmitter.prototype._trigger = function (name, data) {
  * @param {string} name Name of the event.
  * @param {Function} Callback Listener function.
  */
-shine.EventEmitter.prototype.bind = function (name, callback) {
+shine.EventEmitter.prototype.on = function (name, callback) {
 	if (!this._listeners[name]) this._listeners[name] = [];
 	this._listeners[name].push(callback);
 }

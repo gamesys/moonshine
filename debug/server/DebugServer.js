@@ -25,7 +25,7 @@ DebugServer.prototype._initAppConnection = function (config) {
 
 	// Protocol
 
-	conn.bind('connect', function () {
+	conn.on('connect', function () {
 		var consoleConnected = me._consoleConnection.connected;
 
 		conn._sendStatus({ consoleConnected: consoleConnected });
@@ -33,7 +33,7 @@ DebugServer.prototype._initAppConnection = function (config) {
 	});
 
 
-	conn.bind('disconnect', function () {
+	conn.on('disconnect', function () {
 		var consoleConn = me._consoleConnection;
 		if (consoleConn.connected) consoleConn._sendStatus({ appConnected: false });
 	});
@@ -41,38 +41,45 @@ DebugServer.prototype._initAppConnection = function (config) {
 
 	// Events
 
-	conn.bind('engine-state-changed', function (state, data) {
+	conn.on('engine-state-changed', function (state, data) {
 		if (me._consoleConnection) me._consoleConnection.updateState(state, data);
 	});
 
 
-	conn.bind('lua-loaded', function (jsonUrl, url, code) {
+	conn.on('lua-loaded', function (jsonUrl, url, code) {
 		if (me._sourcePaths.length) code = me.getLocalSourceCode(url, code);
 		if (me._consoleConnection) me._consoleConnection.luaLoaded(jsonUrl, url, code);
 	});
 
 
-	conn.bind('lua-load-failed', function (jsonUrl, url) {
+	conn.on('lua-load-failed', function (jsonUrl, url) {
 		if (me._sourcePaths) code = me.getLocalSourceCode(url);
-		if (me._consoleConnection) me._consoleConnection.luaLoadFailed(jsonUrl, url);
+
+		if (me._consoleConnection) {
+			if (code) {
+				me._consoleConnection.luaLoaded(jsonUrl, url, code);
+			} else {
+				me._consoleConnection.luaLoadFailed(jsonUrl, url);
+			}
+		}
 	});
 
 
-	conn.bind('breakpoints-updated', function (data) {
+	conn.on('breakpoints-updated', function (data) {
 		if (me._consoleConnection) me._consoleConnection.updateBreakpoints(data);
 	});
 
 
-	conn.bind('breakpoint-updated', function (jsonUrl, lineNumber, breakOn) {
+	conn.on('breakpoint-updated', function (jsonUrl, lineNumber, breakOn) {
 		if (me._consoleConnection) me._consoleConnection.updateBreakpoint(jsonUrl, lineNumber, breakOn);
 	});
 
 
-	conn.bind('stop-at-breakpoints-updated', function (stops) {
+	conn.on('stop-at-breakpoints-updated', function (stops) {
 		if (me._consoleConnection) me._consoleConnection.updateStopAtBreakpoints(stops);
 	});
 
-	conn.bind('error', function (error) {
+	conn.on('error', function (error) {
 		if (me._consoleConnection) me._consoleConnection.handleError(error);
 	});
 
@@ -88,7 +95,7 @@ DebugServer.prototype._initConsoleConnection = function (config) {
 	
 	// Protocol
 
-	conn.bind('connect', function () {
+	conn.on('connect', function () {
 		var appConnected = me._appConnection.connected;
 
 		conn._sendStatus({ appConnected: appConnected });
@@ -96,7 +103,7 @@ DebugServer.prototype._initConsoleConnection = function (config) {
 	});
 
 
-	conn.bind('disconnect', function () {
+	conn.on('disconnect', function () {
 		var appConn = me._appConnection;
 		if (appConn.connected) appConn._sendStatus({ consoleConnected: false });
 	});
@@ -104,7 +111,7 @@ DebugServer.prototype._initConsoleConnection = function (config) {
 
 	// Events
 
-	conn.bind('get-state-request', function (callback) {
+	conn.on('get-state-request', function (callback) {
 		var state, loaded, i;
 
 		if (!me._sourcePaths) {
@@ -129,45 +136,45 @@ DebugServer.prototype._initConsoleConnection = function (config) {
 	});
 
 
-	conn.bind('toggle-breakpoint-request', function (jsonUrl, lineNumber) {
+	conn.on('toggle-breakpoint-request', function (jsonUrl, lineNumber) {
 		if (me._appConnection) me._appConnection.toggleBreakpoint(jsonUrl, lineNumber);
 	});
 
 
-	conn.bind('toggle-stop-at-breakpoints-request', function () {
+	conn.on('toggle-stop-at-breakpoints-request', function () {
 		if (me._appConnection) me._appConnection.toggleStopAtBreakpoints();
 	});
 
 
-	conn.bind('auto-step-request', function () {
+	conn.on('auto-step-request', function () {
 		if (me._appConnection) me._appConnection.autoStep();
 	});
 
 
-	conn.bind('step-in-request', function () {
+	conn.on('step-in-request', function () {
 		if (me._appConnection) me._appConnection.stepIn();
 	});
 
 
-	conn.bind('step-over-request', function () {
+	conn.on('step-over-request', function () {
 		if (me._appConnection) me._appConnection.stepOver();
 	});
 
 
-	conn.bind('step-out-request', function () {
+	conn.on('step-out-request', function () {
 		if (me._appConnection) me._appConnection.stepOut();
 	});
 
 
-	conn.bind('pause-request', function () {
+	conn.on('pause-request', function () {
 		if (me._appConnection) me._appConnection.pause();
 	});
 
-	conn.bind('resume-request', function () {
+	conn.on('resume-request', function () {
 		if (me._appConnection) me._appConnection.resume();
 	});
 
-	conn.bind('reload-request', function () {
+	conn.on('reload-request', function () {
 		if (me._appConnection) me._appConnection.reload();
 	});
 

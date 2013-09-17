@@ -104,7 +104,7 @@
 
 
 
-	api.bind = function (event, listener) {
+	api.on = function (event, listener) {
 		listeners[event] = listener;
 	};
 

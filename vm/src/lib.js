@@ -99,14 +99,14 @@ var shine = shine || {};
 
 		// file = new shine.File(filename);
 
-		// file.bind('loaded', function (data) {
+		// file.on('loaded', function (data) {
 		// 	var func = new shine.Function(vm, file, file.data, vm._globals);
 		// 	vm._trigger('module-loaded', file, func);
 			
 		// 	callback(func);
 		// });
 
-		// file.bind('error', function (code) {
+		// file.on('error', function (code) {
 		// 	vm._trigger('module-load-error', file, code);
 		// 	callback();
 		// });

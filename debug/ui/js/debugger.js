@@ -173,7 +173,7 @@
 
 	function setupHooks (debug) {
 
-		debug.bind('state-updated', function (state, data) {
+		debug.on('state-updated', function (state, data) {
 			switch (state) {
 				case 'running':
 					clearHighlight();
@@ -202,16 +202,16 @@
 			}
 		});
 
-		debug.bind('reset', function (debug, state) {
+		debug.on('reset', function (debug, state) {
 			reset(debug, state);
 		});
 
-		debug.bind('error', function (e) {
+		debug.on('error', function (e) {
 			showError(e);
 			updateErrorLog();
 		});
 
-		debug.bind('lua-loaded', function (jsonUrl, luaUrl, data) {
+		debug.on('lua-loaded', function (jsonUrl, luaUrl, data) {
 			loaded[jsonUrl] = {
 				filename: luaUrl,
 				source: data
@@ -220,7 +220,7 @@
 			updateFileDropdown();
 		});
 
-		debug.bind('lua-load-failed', function (jsonUrl, luaUrl) {
+		debug.on('lua-load-failed', function (jsonUrl, luaUrl) {
 			loaded[jsonUrl] = {
 				filename: luaUrl,
 				source: false
@@ -229,18 +229,18 @@
 			updateFileDropdown();
 		});
 
-		debug.bind('breakpoints-updated', function (data) {
+		debug.on('breakpoints-updated', function (data) {
 			breakpoints = data;
 		});
 
-		debug.bind('breakpoint-updated', function (jsonUrl, lineNumber, breakOn) {
+		debug.on('breakpoint-updated', function (jsonUrl, lineNumber, breakOn) {
 			if (breakpoints[jsonUrl] === undefined) breakpoints[jsonUrl] = [];
 			breakpoints[jsonUrl][lineNumber] = breakOn;
 
 			if (jsonUrl == elements.files.value) updateBreakpoints();
 		});
 
-		debug.bind('stop-at-breakpoints-updated', function (stop) {
+		debug.on('stop-at-breakpoints-updated', function (stop) {
 			stopAtBreakpoints = stop;
 			updateBreakpointButton();
 		});
