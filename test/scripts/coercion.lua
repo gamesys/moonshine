@@ -7,6 +7,21 @@ assertTrue (-1, 'Negative number should coerce to true.')
 assertTrue ('Test', 'String should coerce to true.')
 assertTrue ('', 'Empty string should coerce to true.')
 
+assertTrue (0 + '123' == 123, 'Integer strings should coerce to integers')
+assertTrue (0 + '123.45' == 123.45, 'Floating point strings should coerce to floats')
+assertTrue (0 + '0xa' == 10, 'Hexidecimal syntax strings should coerce to decimal integers')
+assertTrue (0 + '0xa.2' == 10.125, 'Floating point hexidecimal syntax strings should coerce to decimal floats')
+assertTrue (0 + '0123' == 123, 'JS Octal syntax strings should be coerced as normal decimal strings in Lua')
+
+assertTrue (0 + '-123' == -123, 'Negative integer strings should coerce to negative integers')
+assertTrue (0 + '-0xa.2' == -10.125, 'Negative floating point hexidecimal syntax strings should coerce to negative decimal floats')
+assertTrue (0 + 'inf' == math.huge, '"inf" should coerce to inf')
+assertTrue (0 + '-inf' == -math.huge, '"-inf" should coerce to negative inf')
+
+local a = 0 + 'nan'
+assertTrue (a ~= a, '"nan" should coerce to nan')
+
+
 assertTrue (not (nil), 'Nil should coerce to false.')
 assertTrue (not (false), 'False should be false.')
 assertTrue (not (10 == '10'), 'String should coerce to number.')
@@ -173,4 +188,6 @@ c = pcall (neg, {})
 assertTrue (not (a), 'Negation operator should error when passed a string')
 assertTrue (b, 'Negation operator should not error when passed a number')
 assertTrue (not (c), 'Negation operator should error when passed a table')
+
+
 

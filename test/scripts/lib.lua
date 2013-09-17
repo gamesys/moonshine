@@ -263,10 +263,53 @@ local b = tonumber (0/0)
 local c = tonumber (math.huge)
 local d = tonumber (-math.huge)
 assertTrue (a == nil, 'tonumber() should return nil when passed nil')
-assertTrue (tostring(b) == 'nan', 'tonumber() should return nan when passed nan')
+assertTrue (b ~= b, 'tonumber() should return nan when passed nan')
 assertTrue (c == math.huge, 'tonumber() should return a number when passed inf')
 assertTrue (d == -math.huge, 'tonumber() should return a number when passed -inf')
 
+local a = tonumber (123)
+local b = tonumber (-123)
+local c = tonumber (0)
+local d = tonumber { value = 123 }
+local e = tonumber (function () return 123 end)
+
+assertTrue (a == 123, 'tonumber() should return a number when passed a number')
+assertTrue (b == -123, 'tonumber() should return a negative number when passed a negative number')
+assertTrue (c == 0, 'tonumber() should return a zero when passed a zero')
+assertTrue (d == nil, 'tonumber() should return nil when passed a table')
+assertTrue (e == nil, 'tonumber() should return nil when passed a function')
+
+local a = tonumber ('0xa.2')
+local b = tonumber ('0xa.2', 10)
+local c = tonumber ('0xa.2', 16)
+local d = tonumber ('0xa', 10)
+local e = tonumber ('0xa', 16)
+local f = tonumber ('0xa', 12)
+
+assertTrue (a == 10.125, 'tonumber() should coerce string when using base 10 [1]')
+assertTrue (b == 10.125, 'tonumber() should coerce string when using base 10 [2]')
+assertTrue (c == nil, 'tonumber() should return nil when string is invalid [1]')
+assertTrue (d == 10, 'tonumber() should coerce string when using base 10 [3]')
+assertTrue (e == 10, 'tonumber() should ignore leading "0x" when converting to base 16.')
+assertTrue (f == nil, 'tonumber() should return nil when string is invalid [2]')
+
+local a = tonumber (10, 16)
+local b = tonumber (0xa, 16)
+local c = tonumber ('0xa', 34)
+local d = tonumber ('inf')
+local e = tonumber ('inf', 16)
+local f = tonumber (math.huge, 16)
+
+assertTrue (a == 16, 'tonumber() should coerce first argument to a string [1]')
+assertTrue (b == 16, 'tonumber() should coerce first argument to a string [2]')
+assertTrue (c == 1132, 'tonumber() should convert "x" correctly for bases greater than 33')
+assertTrue (d == math.huge, 'tonumber() should coerce "inf" to inf with base 10')
+assertTrue (e == nil, 'tonumber() should coerce "inf" to nil with bases other than 10')
+assertTrue (f == nil, 'tonumber() should return nil when passed inf with bases other than 10')
+
+local a = tonumber (0/0, 16)
+
+assertTrue (a == nil, 'tonumber() should return nil when passed inf for bases other than 10')
 
 
 

@@ -58,24 +58,34 @@ var shine = shine || {};
 					}
 
 				case 'number':
-					if (val === undefined) return;
-					if (val === Infinity || val === -Infinity || (typeof val == 'number' && window.isNaN(val))) return val;
+					switch (val) {
+						case undefined: return;
+						case Infinity:
+						case -Infinity: return val;
+						case 'inf': return Infinity;
+						case '-inf': return -Infinity;
+						case 'nan': return NaN;
 
-					if (('' + val).match(FLOATING_POINT_PATTERN)) {
-						n = parseFloat(val);
+						default:
 
-					} else if (match = ('' + val).match(HEXIDECIMAL_CONSTANT_PATTERN)) {
-						mantissa = match[3];
-						
-						if ((n = match[2]) || mantissa) {
-							n = parseInt(n, 16) || 0;
-							if (mantissa) n += parseInt(mantissa, 16) / Math.pow(16, mantissa.length);
-							if (match[1]) n *= -1;
-						}
+							if (typeof val == 'number' && window.isNaN(val)) return val;
+
+							if (('' + val).match(FLOATING_POINT_PATTERN)) {
+								n = parseFloat(val);
+
+							} else if (match = ('' + val).match(HEXIDECIMAL_CONSTANT_PATTERN)) {
+								mantissa = match[3];
+
+								if ((n = match[2]) || mantissa) {
+									n = parseInt(n, 16) || 0;
+									if (mantissa) n += parseInt(mantissa, 16) / Math.pow(16, mantissa.length);
+									if (match[1]) n *= -1;
+								}
+							}
+
+							if (n === undefined && errorMessage) throw new shine.Error(errorMessage);
+							return n;
 					}
-
-					if (n === undefined && errorMessage) throw new shine.Error(errorMessage);
-					return n;
 
 				default:
 					throw new ReferenceError('Can not coerce to type: ' + type);

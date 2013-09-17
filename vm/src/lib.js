@@ -494,14 +494,15 @@ var shine = shine || {};
 		tonumber: function (e, base) {
 			var match, chars, pattern;
 
-            if (e === '') return;            
-			if (val === undefined) return;
-			if (val === Infinity || val === -Infinity || (typeof val == 'number' && window.isNaN(val))) return val;
+			if (e === '') return;
              
-            e = ('' + e).replace(/^\s+|\s+$/g, '');    // Trim
             base = base || 10;
 
 			if (base < 2 || base > 36) throw new shine.Error('bad argument #2 to tonumber() (base out of range)');
+			if (base == 10 && (e === Infinity || e === -Infinity || (typeof e == 'number' && window.isNaN(e)))) return e;
+
+			if (base != 10 && e == undefined) throw new shine.Error('bad argument #1 to \'tonumber\' (string expected, got nil)');
+            e = ('' + e).replace(/^\s+|\s+$/g, '');    // Trim
 
             // If using base 10, use normal coercion.
 			if (base == 10) return shine.utils.coerce(e, 'number');
