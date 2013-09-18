@@ -3,7 +3,9 @@
 var shine = require('./vm/moonshine.js'),
 	fs = require('fs');
 
-module.exports.distillery = require('./distillery/distillery.moonshine.js');
+shine.distillery = require('./distillery/distillery.moonshine.js');
+shine.DebugServer = require('./debug/server/DebugServer');
+
 window = global;
 
 
