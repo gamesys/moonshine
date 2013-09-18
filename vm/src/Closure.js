@@ -792,19 +792,18 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function test (a, b, c) {
-		if (this._register.getItem(a) === 0 || this._register.getItem(a) === '') {
-			if (!c) this._pc++;
-		} else {
-			if (!this._register.getItem(a) !== !c) this._pc++;
-		}
+		a = this._register.getItem(a);
+		if (shine.utils.coerce(a, 'boolean') !== !!c) this._pc++;
 	}
 
 
 
 
 	function testset (a, b, c) {
-		if (!this._register.getItem(b) !== !c) {
-			this._register.setItem(a, this._register.getItem(b));
+		b = this._register.getItem(b);
+
+		if (shine.utils.coerce(b, 'boolean') === !!c) {
+			this._register.setItem(a, b);
 		} else {
 			this._pc++;
 		}

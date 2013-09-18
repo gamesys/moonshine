@@ -73,26 +73,30 @@ assertTrue (b >= a, 'Greater than or equal to should return true if first operan
 assertTrue (a >= a, 'Greater than or equal to should return true if first operand is equal to second')
 assertTrue (not (a >= b), 'Greater than or equal to should return false if first operand is less than second')
 
-assertTrue (true, 'True should be true')
+local t = true
+local f = false
+local n
+
+assertTrue (t, 'True should be true')
 assertTrue (0, '0 should coerce to true')
 assertTrue (1, '1 should coerce to true')
 assertTrue ('moo', 'A string should coerce to true')
 assertTrue ('', 'An empty string should coerce to true')
 assertTrue ({}, 'An empty table should coerce to true')
 
-assertTrue (not false, 'False should coerce to false')
-assertTrue (not nil, 'nil should coerce to false')
+assertTrue (not f, 'False should coerce to false')
+assertTrue (not n, 'nil should coerce to false')
 
 
-assertTrue (true and true, 'And operator should return true if both operands are true')
-assertTrue (not (false and true), 'And operator should return false if first operand is false')
-assertTrue (not (true and false), 'And operator should return false if second operand is false')
-assertTrue (not (false and false), 'And operator should return false if both operands are false')
+assertTrue (t and t, 'And operator should return true if both operands are true')
+assertTrue (not (f and t), 'And operator should return false if first operand is false')
+assertTrue (not (t and f), 'And operator should return false if second operand is false')
+assertTrue (not (f and f), 'And operator should return false if both operands are false')
 
-assertTrue (true or true, 'Or operator should return true if both operands are true')
-assertTrue (false or true, 'Or operator should return true even if first operand is false')
-assertTrue (true or false, 'Or operator should return true even if second operand is false')
-assertTrue (not (false or false), 'Or operator should return false if both operands are false')
+assertTrue (t or t, 'Or operator should return true if both operands are true')
+assertTrue (f or t, 'Or operator should return true even if first operand is false')
+assertTrue (t or f, 'Or operator should return true even if second operand is false')
+assertTrue (not (f or f), 'Or operator should return false if both operands are false')
 
 
 
