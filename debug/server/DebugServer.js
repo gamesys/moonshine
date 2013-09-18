@@ -10,7 +10,7 @@ var AppConnection = require('./AppConnection'),
 DebugServer = function (config) {
 	config = config || {};
 
-	this._sourcePaths = config.sourcePaths || [];
+	this._sourcePaths = config.sourcePaths;
 	this._initAppConnection(config);
 	this._initConsoleConnection(config);
 };
@@ -47,7 +47,7 @@ DebugServer.prototype._initAppConnection = function (config) {
 
 
 	conn.on('lua-loaded', function (jsonUrl, url, code) {
-		if (me._sourcePaths.length) code = me.getLocalSourceCode(url, code);
+		if (me._sourcePaths) code = me.getLocalSourceCode(url, code);
 		if (me._consoleConnection) me._consoleConnection.luaLoaded(jsonUrl, url, code);
 	});
 
