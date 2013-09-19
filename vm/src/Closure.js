@@ -312,11 +312,9 @@ shine.Closure.prototype.dispose = function (force) {
 		delete this._functions;
 		delete this._instructions;
 	
-		// delete this._register;
 		delete this._pc;
 		// delete this._funcInstances;
 	
-//		delete this._listeners;
 		shine.gc.collect(this._params);
 		shine.gc.collect(this._localFunctions);
 
@@ -325,8 +323,6 @@ shine.Closure.prototype.dispose = function (force) {
 		delete this._constants;
 
 //		delete this._localsUsedAsUpvalues;
-
-		shine.gc.collect(this._upvalues);
 		delete this._upvalues;
 
 		this._register.reset();
