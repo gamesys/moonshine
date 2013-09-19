@@ -49,13 +49,13 @@ var shine = shine || {};
 
 				case 'string':
 					switch(true) {
-						case val === undefined: return 'nil';
+						case val === undefined || val === null: return 'nil';
 						case val === Infinity: return 'inf';
 						case val === -Infinity: return '-inf';
 						case typeof val == 'number' && window.isNaN(val): return 'nan';
-						case typeof val == 'function': return 'function: [host code]'
-						default: return val.toString();
-					}
+						case typeof val == 'function': return 'function: [host code]';
+						case val instanceof shine.Table: return shine.Table.prototype.toString.call(val);
+						default: return val.toString();					}
 
 				case 'number':
 					switch (val) {
@@ -67,7 +67,6 @@ var shine = shine || {};
 						case 'nan': return NaN;
 
 						default:
-
 							if (typeof val == 'number' && window.isNaN(val)) return val;
 
 							if (('' + val).match(FLOATING_POINT_PATTERN)) {
