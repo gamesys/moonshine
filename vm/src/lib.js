@@ -389,7 +389,7 @@ var shine = shine || {};
 
 		require: function (modname) {
 			var thread,
-				packageLib = shine.lib['package'],
+				packageLib = this._globals['package'],
 				running = shine.Coroutine._running._func._instance,
 				vm = this,
 				module,
