@@ -1052,7 +1052,13 @@ shine.Closure.prototype.dispose = function (force) {
 								return this.open? me._register.getItem(B) : this.value;
 							},
 							setValue: function (val) {
-								this.open? me._register.setItem(B, val) : this.value = val;
+								if (this.open) {
+									me._register.setItem(B, val);
+								} else {
+									shine.gc.decrRef(this.value);
+									this.value = val;
+									shine.gc.incrRef(val);
+								}
 							},
 							name: me._functions[bx].upvalues[upvalues.length]
 						};
