@@ -368,7 +368,7 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function loadk (a, bx) {
-		this._register.setItem(a, this._getConstant (bx));
+		this._register.setItem(a, this._getConstant(bx));
 	}
 
 
@@ -391,10 +391,10 @@ shine.Closure.prototype.dispose = function (force) {
 
 	function getupval (a, b) {
 		if (this._upvalues[b] === undefined) return;
-		this._register.setItem(a, this._upvalues[b].getValue ());
+		this._register.setItem(a, this._upvalues[b].getValue());
 	}
 
-		
+
 
 
 	function getglobal (a, b) {
@@ -473,7 +473,7 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function newtable (a, b, c) {
-		var t = new shine.Table ();
+		var t = new shine.Table();
 		t.__shine.refCount = 0;
 		this._register.setItem(a, t);
 	}
@@ -504,15 +504,15 @@ shine.Closure.prototype.dispose = function (force) {
 
 	function add (a, b, c) {
 		//TODO: Extract the following RK(x) logic into a separate method.
-		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
-		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
+		b = (b >= 256)? this._getConstant(b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
 		var coerce = shine.utils.coerce,
 			mt, f, bn, cn;
 
 		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__add')))
 		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__add')))) {
-			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
+			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
 			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
@@ -525,15 +525,15 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function sub (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
-		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
+		b = (b >= 256)? this._getConstant(b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
 		var coerce = shine.utils.coerce,
 			mt, f;
 
 		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__sub')))
 		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__sub')))) {
-			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
+			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
 			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
@@ -546,15 +546,15 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function mul (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
-		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
+		b = (b >= 256)? this._getConstant(b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
 		var coerce = shine.utils.coerce,
 			mt, f;
 
 		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__mul')))
 		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__mul')))) {
-			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
+			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
 			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
@@ -567,15 +567,15 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function div (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
-		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
+		b = (b >= 256)? this._getConstant(b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
 		var coerce = shine.utils.coerce,
 			mt, f;
 
 		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__div')))
 		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__div')))) {
-			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
+			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
 			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
@@ -588,15 +588,15 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function mod (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
-		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
+		b = (b >= 256)? this._getConstant(b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 		
 		var coerce = shine.utils.coerce,
 			mt, f, result, absC;
 
 		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__mod')))
 		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__mod')))) {
-			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
+			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
 			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
@@ -619,20 +619,20 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function pow (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
-		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
+		b = (b >= 256)? this._getConstant(b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
 		var coerce = shine.utils.coerce,
 			mt, f;
 
 		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__pow')))
 		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__pow')))) {
-			this._register.setItem(a, f.apply (null, [b, c], true)[0]);
+			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
 			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
 			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
-			this._register.setItem(a, Math.pow (b, c));
+			this._register.setItem(a, Math.pow(b, c));
 		}
 	}
 
@@ -643,7 +643,7 @@ shine.Closure.prototype.dispose = function (force) {
 		var mt, f;
 
 		if ((this._register.getItem(b) || shine.EMPTY_OBJ) instanceof shine.Table && (mt = this._register.getItem(b).__shine.metatable) && (f = mt.getMember ('__unm'))) {
-			this._register.setItem(a, f.apply (null, [this._register.getItem(b)], true)[0]);
+			this._register.setItem(a, f.apply(null, [this._register.getItem(b)], true)[0]);
 
 		} else {
 			b = shine.utils.coerce(this._register.getItem(b), 'number', 'attempt to perform arithmetic on a non-numeric value');
@@ -822,6 +822,8 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 		if (shine.debug && shine.debug._status == 'resuming') {
+			// If we're resuming from a breakpoint/stepping, resume call stack first.
+
 			funcToResume = shine.debug._resumeStack.pop ();
 			
 			if ((funcToResume || shine.EMPTY_OBJ) instanceof shine.Coroutine) {
@@ -831,10 +833,14 @@ shine.Closure.prototype.dispose = function (force) {
 			}
 			
 		} else if (shine.Coroutine._running && shine.Coroutine._running.status == 'resuming') {
+			// If we're resuming a coroutine function...
+			
 			funcToResume = shine.Coroutine._running._resumeStack.pop ()
 			retvals = funcToResume._run ();
 			
 		} else {
+			// Prepare to run this function as usual
+
 			if (b === 0) {
 				l = this._register.getLength();
 			
@@ -923,17 +929,6 @@ shine.Closure.prototype.dispose = function (force) {
 			}
 		}
 
-
-		// for (var i = 0, l = this._localsUsedAsUpvalues.length; i < l; i++) {
-		// 	var local = this._localsUsedAsUpvalues[i];
-
-		// 	local.upvalue.value = this._register.getItem(local.registerIndex);
-		// 	local.upvalue.open = false;
-
-		// 	this._localsUsedAsUpvalues.splice (i--, 1);
-		// 	l--;
-		// 	this._register.clearItem(local.registerIndex);
-		// }
 		close.call(this, 0);
 		
 //		this._register.reset();
@@ -1107,7 +1102,7 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	shine.Closure.OPERATIONS = [move, loadk, loadbool, loadnil, getupval, getglobal, gettable, setglobal, setupval, settable, newtable, self, add, sub, mul, div, mod, pow, unm, not, len, concat, jmp, eq, lt, le, test, testset, call, tailcall, return_, forloop, forprep, tforloop, setlist, close, closure, vararg];
-	shine.Closure.OPERATION_NAMES = ["move", "loadk", "loadbool", "loadnil", "getupval", "getglobal", "gettable", "setglobal", "setupval", "settable", "newtable", "self", "add", "sub", "mul", "div", "mod", "pow", "unm", "not", "len", "concat", "jmp", "eq", "lt", "le", "test", "testset", "call", "tailcall", "return", "forloop", "forprep", "tforloop", "setlist", "close", "closure", "vararg"];
+	shine.Closure.OPERATION_NAMES = ['move', 'loadk', 'loadbool', 'loadnil', 'getupval', 'getglobal', 'gettable', 'setglobal', 'setupval', 'settable', 'newtable', 'self', 'add', 'sub', 'mul', 'div', 'mod', 'pow', 'unm', 'not', 'len', 'concat', 'jmp', 'eq', 'lt', 'le', 'test', 'testset', 'call', 'tailcall', 'return', 'forloop', 'forprep', 'tforloop', 'setlist', 'close', 'closure', 'vararg'];
 
 })();
 
