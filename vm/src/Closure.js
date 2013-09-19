@@ -398,36 +398,39 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function getglobal (a, b) {
+		var result;
 
-		if (this._getConstant (b) == '_G') {	// Special case
-			this._register.setItem(a, new shine.Table (this._globals));
+		if (this._getConstant(b) == '_G') {	// Special case
+			result = new shine.Table(this._globals);
 			
-		} else if (this._globals[this._getConstant (b)] !== undefined) {
-			this._register.setItem(a, this._globals[this._getConstant (b)]);
-
-		} else {
-			this._register.setItem(a, undefined);
+		} else if (this._globals[this._getConstant(b)] !== undefined) {
+			result = this._globals[this._getConstant(b)];
 		}
+
+		this._register.setItem(a, result);
 	}
 
 		
 
 
 	function gettable (a, b, c) {
+		var result;
+		b = this._register.getItem(b);
 		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
-		if (this._register.getItem(b) === undefined) {
-			throw new shine.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
+		if (b === undefined) throw new shine.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
 
-		} else if ((this._register.getItem(b) || shine.EMPTY_OBJ) instanceof shine.Table) {
-			this._register.setItem(a, this._register.getItem(b).getMember(c));
+		if (b instanceof shine.Table) {
+			result = b.getMember(c);
 
-		} else if (typeof this._register.getItem(b) == 'string' && shine.lib.string[c]) {
-			this._register.setItem(a, shine.lib.string[c]);
+		} else if (typeof b == 'string' && shine.lib.string[c]) {
+			result = shine.lib.string[c];
 
 		} else {
-			this._register.setItem(a, this._register.getItem(b)[c]);
+			result = b[c];
 		}
+
+		this._register.setItem(a, result);
 	}
 
 
@@ -455,17 +458,17 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function settable (a, b, c) {
+		a = this._register.getItem(a);
 		b = (b >= 256)? this._getConstant(b - 256) : this._register.getItem(b);
 		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
-		if ((this._register.getItem(a) || shine.EMPTY_OBJ) instanceof shine.Table) {
-			this._register.getItem(a).setMember (b, c);
-		
-		} else if (this._register.getItem(a) === undefined) {
-			throw new shine.Error('Attempt to index a missing field (can\'t set "' + b + '" on a nil value)');
-			
+		if (a === undefined) throw new shine.Error('Attempt to index a missing field (can\'t set "' + b + '" on a nil value)');
+
+		if (a instanceof shine.Table) {
+			a.setMember(b, c);		
+
 		} else {
-			this._register.getItem(a)[b] = c;
+			a[b] = c;
 		}
 	}
 
@@ -482,21 +485,25 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function self (a, b, c) {
-		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
-		this._register.setItem(a + 1, this._register.getItem(b));
+		var result;
+		b = this._register.getItem(b);
+		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
-		if (this._register.getItem(b) === undefined) {
-			throw new shine.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
+		this._register.setItem(a + 1, b);
 
-		} else if ((this._register.getItem(b) || shine.EMPTY_OBJ) instanceof shine.Table) {
-			this._register.setItem(a, this._register.getItem(b).getMember (c));
+		if (b === undefined) throw new shine.Error('Attempt to index a nil value (' + c + ' not present in nil)');
 
-		} else if (typeof this._register.getItem(b) == 'string' && shine.lib.string[c]) {
-			this._register.setItem(a, shine.lib.string[c]);
+		if (b instanceof shine.Table) {
+			result = b.getMember(c);
+
+		} else if (typeof b == 'string' && shine.lib.string[c]) {
+			result = shine.lib.string[c];
 
 		} else {
-			this._register.setItem(a, this._register.getItem(b)[c]);					
+			result = b[c];
 		}
+
+		this._register.setItem(a, result);
 	}
 
 
