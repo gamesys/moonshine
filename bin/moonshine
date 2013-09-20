@@ -71,7 +71,11 @@ var command = process.argv[2],
 	fs = require('fs'),
 	match,
 	packageData,
-	arg, i, l;
+	arg, i, l,
+
+	COLOR_RED = '\033[31m',
+	COLOR_GREEN = '\033[32m',
+	COLOR_RESET = '\033[0m';
 
 
 // Sort through arguments for switches and filenames
@@ -149,10 +153,17 @@ function distilPath (path) {
  * @param {string} filename Input Lua filename.
  */
 function distilLua (filename) {
-	var luacFilename = filename + '.luac';
+	var luacFilename = filename + '.luac',
+		errPart;
 
 	exec('luac -o ' + luacFilename + ' ' + filename, function (err, stdout, stderr) {
-		if (err) throw new Error(err);
+		if (err) {
+			errPart = err.message.split(/:\s?/);
+			if (errPart[1] != 'luac') throw e;
+			
+			console.error(COLOR_RED + 'Luac compile error in file ' + errPart[2] + ' on line ' + errPart[3] + ':\n\t' + errPart[4] + COLOR_RESET);
+			return;
+		}
 
 		distilLuac(luacFilename, filename);
 		fs.unlink(luacFilename);
@@ -206,7 +217,7 @@ function distilLuac (luacFilename, luaFilename) {
 
 			fs.writeFile(filename, JSON.stringify(tree), function (err) {
 				if (err) throw new Error(err);
-				console.log('File written: ' + filename);
+				console.log(COLOR_GREEN + 'File written: ' + filename + COLOR_RESET);
 			});
 		}
 	});

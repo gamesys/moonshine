@@ -1,6 +1,8 @@
 
 var AbstractConnection = require('./AbstractConnection'),
-	messageTypes = require('./messageTypes');
+	MESSAGE_TYPES = require('./constants').MESSAGE_TYPES,
+	COLORS = require('./constants').COLORS,
+	os = require('os');
 
 
 
@@ -22,7 +24,24 @@ AppConnection.prototype.constructor = AppConnection;
 
 
 AppConnection.prototype._onReady = function () {
-	console.log('Debug server listening on port: ' + this._port);	
+	var interfaces = os.networkInterfaces(),
+		device,
+		ip,
+		i, j;
+
+	for (i in interfaces) {
+		device = interfaces[i]
+
+		for (j in device) {
+			if (device[j].family == 'IPv4') {
+				ip = device[j].address;
+				break;
+			}
+		}
+	}
+
+	ip = ip? ' IP ' + COLORS.CYAN + ip + COLORS.RESET : '';
+	console.log('Debug server listening for app on:' + ip + ' Port ' + COLORS.CYAN + this._port + COLORS.RESET);
 };
 
 
@@ -33,7 +52,7 @@ AppConnection.prototype._onConnection = function () {
 
 	console.log ('App found.');
 
-	this._send(messageTypes.GET_STATE, undefined, function (state) {
+	this._send(MESSAGE_TYPES.GET_STATE, undefined, function (state) {
 		console.log ('App connected.');
 
 		me.state = state;
@@ -76,7 +95,7 @@ AppConnection.prototype._processMessage = function (type, data, callback) {
 
  	switch (type) {
 
- 		case messageTypes.ENGINE_STATE_CHANGED:
+ 		case MESSAGE_TYPES.ENGINE_STATE_CHANGED:
  			this.state.engine = {
  				state: data[0],
  				data: data[1]
@@ -86,7 +105,7 @@ AppConnection.prototype._processMessage = function (type, data, callback) {
  			break;
 
 
- 		case messageTypes.LUA_LOADED:
+ 		case MESSAGE_TYPES.LUA_LOADED:
  			this.state.loaded[data[0]] = {
  				filename: data[1],
  				source: data[2]
@@ -97,7 +116,7 @@ AppConnection.prototype._processMessage = function (type, data, callback) {
  			break;
 
 
- 		case messageTypes.LUA_LOAD_FAILED:
+ 		case MESSAGE_TYPES.LUA_LOAD_FAILED:
  			this.state.loaded[data[0]] = {
  				filename: data[1],
  				source: false
@@ -108,14 +127,14 @@ AppConnection.prototype._processMessage = function (type, data, callback) {
  			break;
 
 
- 		case messageTypes.BREAKPOINTS_UPDATED:
+ 		case MESSAGE_TYPES.BREAKPOINTS_UPDATED:
  			this.state.breakpoints = data;
  			this._trigger('breakpoints-updated', data);
 
  			break;
 
 
- 		case messageTypes.BREAKPOINT_UPDATED:
+ 		case MESSAGE_TYPES.BREAKPOINT_UPDATED:
  			var breakpoints = this.state.breakpoints;
  			if (breakpoints[data[0]] === undefined) breakpoints[data[0]] = [];
  			
@@ -125,14 +144,14 @@ AppConnection.prototype._processMessage = function (type, data, callback) {
  			break;
 
 
- 		case messageTypes.STOP_AT_BREAKPOINTS_UPDATED:
+ 		case MESSAGE_TYPES.STOP_AT_BREAKPOINTS_UPDATED:
  			this.state.stopAtBreakpoints = data[0];
  			this._trigger('stop-at-breakpoints-updated', data);
 
  			break;
 
 
- 		case messageTypes.ERROR:
+ 		case MESSAGE_TYPES.ERROR:
  			this.state.errorLog.push(data);
  			this._trigger('error', data);
 
@@ -145,63 +164,63 @@ AppConnection.prototype._processMessage = function (type, data, callback) {
 
 
 AppConnection.prototype.toggleBreakpoint = function (jsonUrl, line) {
-	this._send(messageTypes.TOGGLE_BREAKPOINT, [jsonUrl, line]);
+	this._send(MESSAGE_TYPES.TOGGLE_BREAKPOINT, [jsonUrl, line]);
 };
 
 
 
 
 AppConnection.prototype.toggleStopAtBreakpoints = function (stops) {
-	this._send(messageTypes.TOGGLE_STOPS_AT_BREAKPOINTS, stops);
+	this._send(MESSAGE_TYPES.TOGGLE_STOPS_AT_BREAKPOINTS, stops);
 };
 
 
 
 
 AppConnection.prototype.autoStep = function () {
-	this._send(messageTypes.TOGGLE_AUTO_STEP);
+	this._send(MESSAGE_TYPES.TOGGLE_AUTO_STEP);
 };
 
 
 
 
 AppConnection.prototype.stepIn = function () {
-	this._send(messageTypes.STEP_IN);
+	this._send(MESSAGE_TYPES.STEP_IN);
 };
 
 
 
 
 AppConnection.prototype.stepOver = function () {
-	this._send(messageTypes.STEP_OVER);
+	this._send(MESSAGE_TYPES.STEP_OVER);
 };
 
 
 
 
 AppConnection.prototype.stepOut = function () {
-	this._send(messageTypes.STEP_OUT);
+	this._send(MESSAGE_TYPES.STEP_OUT);
 };
 
 
 
 
 AppConnection.prototype.pause = function () {
-	this._send(messageTypes.PAUSE);
+	this._send(MESSAGE_TYPES.PAUSE);
 };
 
 
 
 
 AppConnection.prototype.resume = function () {
-	this._send(messageTypes.RESUME);
+	this._send(MESSAGE_TYPES.RESUME);
 };
 
 
 
 
 AppConnection.prototype.reload = function () {
-	this._send(messageTypes.RELOAD);
+	this._send(MESSAGE_TYPES.RELOAD);
 };
 
 
