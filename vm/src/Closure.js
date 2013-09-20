@@ -21,8 +21,6 @@ var shine = shine || {};
 shine.Closure = function (vm, file, data, globals, upvalues) {
 	var me = this;
 	
-	//shine.EventEmitter.call (this);
-
 	this._vm = vm;
 	this._globals = globals;
 	this._file = file;
@@ -57,7 +55,7 @@ shine.Closure = function (vm, file, data, globals, upvalues) {
 };
 
 
-shine.Closure.prototype = {};//new shine.EventEmitter ();
+shine.Closure.prototype = {};
 shine.Closure.prototype.constructor = shine.Closure;
 
 shine.Closure._graveyard = [];
@@ -65,7 +63,7 @@ shine.Closure._graveyard = [];
 
 shine.Closure.create = function (vm, file, data, globals, upvalues) {
 	var instance = shine.Closure._graveyard.pop();
-	//console.log (instance? 'reusing' : 'creating');
+	//console.log(instance? 'reusing' : 'creating');
 	
 	if (instance) {
 		return shine.Closure.apply(instance, arguments);
@@ -86,32 +84,32 @@ shine.Closure.prototype.execute = function (args) {
 	this._pc = 0;
 
 	//if (this._data && this._data.sourceName) shine.stddebug.write('Executing ' + this._data.sourceName + '...'); //? ' ' + this._data.sourceName : ' function') + '...<br><br>');
-	//shine.stddebug.write ('\n');
+	//shine.stddebug.write('\n');
 
 	// ASSUMPTION: Parameter values are automatically copied to R(0) onwards of the function on initialisation. This is based on observation and is neither confirmed nor denied in any documentation. (Different rules apply to v5.0-style VARARG functions)
 	this._params = shine.gc.createArray().concat(args);
-	this._register.set(args.splice (0, this._data.paramCount));
+	this._register.set(args.splice(0, this._data.paramCount));
 
 	if (this._data.is_vararg == 7) {	// v5.0 compatibility (LUA_COMPAT_VARARG)
-		var arg = [].concat (args),
+		var arg = [].concat(args),
 			length = arg.length;
 					
-		arg = new shine.Table (arg);
-		arg.setMember ('n', length);
+		arg = new shine.Table(arg);
+		arg.setMember('n', length);
 		
-		this._register.push (arg);
+		this._register.push(arg);
 	}
 	
 	try {
-		return this._run ();
+		return this._run();
 
 	} catch (e) {
 		if (!((e || shine.EMPTY_OBJ) instanceof shine.Error)) {
 			var stack = (e.stack || '');
 
-			e = new shine.Error ('Error in host call: ' + e.message);
+			e = new shine.Error('Error in host call: ' + e.message);
 			e.stack = stack;
-			e.luaStack = stack.split ('\n');
+			e.luaStack = stack.split('\n');
 		}
 
 		if (!e.luaStack) e.luaStack = shine.gc.createArray();
@@ -151,7 +149,7 @@ shine.Closure.prototype._run = function () {
 			
 		} else {
 			shine.Coroutine._running.status = 'running';
-			//shine.stddebug.write ('[coroutine resumed]\n');
+			//shine.stddebug.write('[coroutine resumed]\n');
 	
 			yieldVars = shine.Coroutine._running._yieldVars;
 		}
@@ -167,7 +165,7 @@ shine.Closure.prototype._run = function () {
 			c = this._instructions[offset + 3],
 			retvals = shine.gc.createArray();
 
-		for (var i = 0, l = yieldVars.length; i < l; i++) retvals.push (yieldVars[i]);
+		for (var i = 0, l = yieldVars.length; i < l; i++) retvals.push(yieldVars[i]);
 
 		if (c === 0) {
 			l = retvals.length;
@@ -176,7 +174,7 @@ shine.Closure.prototype._run = function () {
 				this._register.setItem(a + i, retvals[i]);
 			}
 
-			this._register.splice (a + l);
+			this._register.splice(a + l);
 		
 		} else {
 			for (i = 0; i < c - 1; i++) {
@@ -190,18 +188,18 @@ shine.Closure.prototype._run = function () {
 
 	while (this._instructions[this._pc * 4] !== undefined) {
 		line = this._data.linePositions && this._data.linePositions[this._pc];
-		retval = this._executeInstruction (this._pc++, line);
+		retval = this._executeInstruction(this._pc++, line);
 
 		if (shine.Coroutine._running && shine.Coroutine._running.status == 'suspending') {
-			shine.Coroutine._running._resumeStack.push (this);
+			shine.Coroutine._running._resumeStack.push(this);
 
 			if (shine.Coroutine._running._func._instance == this) {
 				retval = shine.Coroutine._running._yieldVars;
 
 				shine.Coroutine._running.status = 'suspended';
-				shine.Coroutine._remove ();
+				shine.Coroutine._remove();
 
-				//shine.stddebug.write ('[coroutine suspended]\n');
+				//shine.stddebug.write('[coroutine suspended]\n');
 				
 				return retval;
 			}
@@ -303,7 +301,7 @@ shine.Closure.prototype.hasRetainedScope = function () {
  */
 shine.Closure.prototype.dispose = function (force) {
 
-	if (force || !this.hasRetainedScope ()) {
+	if (force || !this.hasRetainedScope()) {
 		delete this._vm;
 		delete this._globals;
 		delete this._file;
@@ -330,7 +328,6 @@ shine.Closure.prototype.dispose = function (force) {
 		this._localsUsedAsUpvalues.length = 0;
 
 		shine.Closure._graveyard.push(this);
-	//	console.log ('graveyard');
 	}
 	
 };
@@ -414,7 +411,7 @@ shine.Closure.prototype.dispose = function (force) {
 		b = this._register.getItem(b);
 		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
-		if (b === undefined) throw new shine.Error ('Attempt to index a nil value (' + c + ' not present in nil)');
+		if (b === undefined) throw new shine.Error('Attempt to index a nil value (' + c + ' not present in nil)');
 
 		if (b instanceof shine.Table) {
 			result = b.getMember(c);
@@ -513,8 +510,8 @@ shine.Closure.prototype.dispose = function (force) {
 		var coerce = shine.utils.coerce,
 			mt, f, bn, cn;
 
-		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__add')))
-		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__add')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember('__add')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember('__add')))) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
@@ -534,8 +531,8 @@ shine.Closure.prototype.dispose = function (force) {
 		var coerce = shine.utils.coerce,
 			mt, f;
 
-		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__sub')))
-		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__sub')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember('__sub')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember('__sub')))) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
@@ -555,8 +552,8 @@ shine.Closure.prototype.dispose = function (force) {
 		var coerce = shine.utils.coerce,
 			mt, f;
 
-		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__mul')))
-		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__mul')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember('__mul')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember('__mul')))) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
@@ -576,8 +573,8 @@ shine.Closure.prototype.dispose = function (force) {
 		var coerce = shine.utils.coerce,
 			mt, f;
 
-		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__div')))
-		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__div')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember('__div')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember('__div')))) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
@@ -597,8 +594,8 @@ shine.Closure.prototype.dispose = function (force) {
 		var coerce = shine.utils.coerce,
 			mt, f, result, absC;
 
-		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__mod')))
-		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__mod')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember('__mod')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember('__mod')))) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
@@ -628,8 +625,8 @@ shine.Closure.prototype.dispose = function (force) {
 		var coerce = shine.utils.coerce,
 			mt, f;
 
-		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember ('__pow')))
-		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember ('__pow')))) {
+		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember('__pow')))
+		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember('__pow')))) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
@@ -645,7 +642,7 @@ shine.Closure.prototype.dispose = function (force) {
 	function unm (a, b) {
 		var mt, f;
 
-		if ((this._register.getItem(b) || shine.EMPTY_OBJ) instanceof shine.Table && (mt = this._register.getItem(b).__shine.metatable) && (f = mt.getMember ('__unm'))) {
+		if ((this._register.getItem(b) || shine.EMPTY_OBJ) instanceof shine.Table && (mt = this._register.getItem(b).__shine.metatable) && (f = mt.getMember('__unm'))) {
 			this._register.setItem(a, f.apply(null, [this._register.getItem(b)], true)[0]);
 
 		} else {
@@ -671,14 +668,14 @@ shine.Closure.prototype.dispose = function (force) {
 
 			//while (this._register.getItem(b)[length + 1] != undefined) length++;
 			//this._register.setItem(a, length);
-			this._register.setItem(a, shine.lib.table.getn (this._register.getItem(b)));
+			this._register.setItem(a, shine.lib.table.getn(this._register.getItem(b)));
 
 		} else if (typeof this._register.getItem(b) == 'object') {				
-			for (var i in this._register.getItem(b)) if (this._register.getItem(b).hasOwnProperty (i)) length++;
+			for (var i in this._register.getItem(b)) if (this._register.getItem(b).hasOwnProperty(i)) length++;
 			this._register.setItem(a, length);
 
 		} else if (this._register.getItem(b) == undefined) {
-			throw new shine.Error ('attempt to get length of a nil value');
+			throw new shine.Error('attempt to get length of a nil value');
 
 		} else if (this._register.getItem(b).length === undefined) {
 			this._register.setItem(a, undefined);
@@ -697,12 +694,12 @@ shine.Closure.prototype.dispose = function (force) {
 			mt, f;
 
 		for (var i = c - 1; i >= b; i--) {
-			if (((this._register.getItem(i) || shine.EMPTY_OBJ) instanceof shine.Table && (mt = this._register.getItem(i).__shine.metatable) && (f = mt.getMember ('__concat')))
-			|| ((text || shine.EMPTY_OBJ) instanceof shine.Table && (mt = text.__shine.metatable) && (f = mt.getMember ('__concat')))) {
-				text = f.apply (null, [this._register.getItem(i), text], true)[0];
+			if (((this._register.getItem(i) || shine.EMPTY_OBJ) instanceof shine.Table && (mt = this._register.getItem(i).__shine.metatable) && (f = mt.getMember('__concat')))
+			|| ((text || shine.EMPTY_OBJ) instanceof shine.Table && (mt = text.__shine.metatable) && (f = mt.getMember('__concat')))) {
+				text = f.apply(null, [this._register.getItem(i), text], true)[0];
 
 			} else {
-				if (!(typeof this._register.getItem(i) === 'string' || typeof this._register.getItem(i) === 'number') || !(typeof text === 'string' || typeof text === 'number')) throw new shine.Error ('Attempt to concatenate a non-string or non-numeric value');
+				if (!(typeof this._register.getItem(i) === 'string' || typeof this._register.getItem(i) === 'number') || !(typeof text === 'string' || typeof text === 'number')) throw new shine.Error('Attempt to concatenate a non-string or non-numeric value');
 				text = this._register.getItem(i) + text;
 			}
 		}
@@ -721,13 +718,13 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function eq (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
-		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
+		b = (b >= 256)? this._getConstant(b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
 		var mtb, mtc, f, result;
 
-		if (b !== c && (b || shine.EMPTY_OBJ) instanceof shine.Table && (c || shine.EMPTY_OBJ) instanceof shine.Table && (mtb = b.__shine.metatable) && (mtc = c.__shine.metatable) && mtb === mtc && (f = mtb.getMember ('__eq'))) {
-			result = !!f.apply (null, [b, c], true)[0];			
+		if (b !== c && (b || shine.EMPTY_OBJ) instanceof shine.Table && (c || shine.EMPTY_OBJ) instanceof shine.Table && (mtb = b.__shine.metatable) && (mtc = c.__shine.metatable) && mtb === mtc && (f = mtb.getMember('__eq'))) {
+			result = !!f.apply(null, [b, c], true)[0];			
 		} else {
 			result = (b === c);
 		}
@@ -739,8 +736,8 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function lt (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
-		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
+		b = (b >= 256)? this._getConstant(b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
 		var typeB = (typeof b != 'object' && typeof b) || ((b || shine.EMPTY_OBJ) instanceof shine.Table && 'table') || 'userdata',
 			typeC = (typeof c != 'object' && typeof b) || ((c || shine.EMPTY_OBJ) instanceof shine.Table && 'table') || 'userdata',
@@ -750,10 +747,10 @@ shine.Closure.prototype.dispose = function (force) {
 			throw new shine.Error ('attempt to compare ' + typeB + ' with ' + typeC);
 			
 		} else if (typeB == 'table') {
-			if ((mtb = b.__shine.metatable) && (mtc = c.__shine.metatable) && mtb === mtc && (f = mtb.getMember ('__lt'))) {
-				result = f.apply (null, [b, c], true)[0];
+			if ((mtb = b.__shine.metatable) && (mtc = c.__shine.metatable) && mtb === mtc && (f = mtb.getMember('__lt'))) {
+				result = f.apply(null, [b, c], true)[0];
 			} else {
-				throw new shine.Error ('attempt to compare two table values');
+				throw new shine.Error('attempt to compare two table values');
 			}
 
 		} else {
@@ -767,21 +764,21 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function le (a, b, c) {
-		b = (b >= 256)? this._getConstant (b - 256) : this._register.getItem(b);
-		c = (c >= 256)? this._getConstant (c - 256) : this._register.getItem(c);
+		b = (b >= 256)? this._getConstant(b - 256) : this._register.getItem(b);
+		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
 		var typeB = (typeof b != 'object' && typeof b) || ((b || shine.EMPTY_OBJ) instanceof shine.Table && 'table') || 'userdata',
 			typeC = (typeof c != 'object' && typeof b) || ((c || shine.EMPTY_OBJ) instanceof shine.Table && 'table') || 'userdata',
 			f, result, mtb, mtc;
 
 		if (typeB !== typeC) {
-			throw new shine.Error ('attempt to compare ' + typeB + ' with ' + typeC);
+			throw new shine.Error('attempt to compare ' + typeB + ' with ' + typeC);
 			
 		} else if (typeB == 'table') {
-			if ((mtb = b.__shine.metatable) && (mtc = c.__shine.metatable) && mtb === mtc && (f = mtb.getMember ('__le'))) {
-				result = f.apply (null, [b, c], true)[0];
+			if ((mtb = b.__shine.metatable) && (mtc = c.__shine.metatable) && mtb === mtc && (f = mtb.getMember('__le'))) {
+				result = f.apply(null, [b, c], true)[0];
 			} else {
-				throw new shine.Error ('attempt to compare two table values');
+				throw new shine.Error('attempt to compare two table values');
 			}
 
 		} else {
@@ -827,19 +824,19 @@ shine.Closure.prototype.dispose = function (force) {
 		if (shine.debug && shine.debug._status == 'resuming') {
 			// If we're resuming from a breakpoint/stepping, resume call stack first.
 
-			funcToResume = shine.debug._resumeStack.pop ();
+			funcToResume = shine.debug._resumeStack.pop();
 			
 			if ((funcToResume || shine.EMPTY_OBJ) instanceof shine.Coroutine) {
-				retvals = funcToResume.resume ();
+				retvals = funcToResume.resume();
 			} else {
-				retvals = funcToResume._run ();
+				retvals = funcToResume._run();
 			}
 			
 		} else if (shine.Coroutine._running && shine.Coroutine._running.status == 'resuming') {
 			// If we're resuming a coroutine function...
 			
-			funcToResume = shine.Coroutine._running._resumeStack.pop ()
-			retvals = funcToResume._run ();
+			funcToResume = shine.Coroutine._running._resumeStack.pop();
+			retvals = funcToResume._run();
 			
 		} else {
 			// Prepare to run this function as usual
@@ -848,12 +845,12 @@ shine.Closure.prototype.dispose = function (force) {
 				l = this._register.getLength();
 			
 				for (i = a + 1; i < l; i++) {
-					args.push (this._register.getItem(i));
+					args.push(this._register.getItem(i));
 				}
 
 			} else {
 				for (i = 0; i < b - 1; i++) {
-					args.push (this._register.getItem(a + i + 1));
+					args.push(this._register.getItem(a + i + 1));
 				}
 			}
 		}
@@ -863,17 +860,17 @@ shine.Closure.prototype.dispose = function (force) {
 			o = this._register.getItem(a);
 
 			if ((o || shine.EMPTY_OBJ) instanceof shine.Function) {
-				retvals = o.apply (null, args, true);
+				retvals = o.apply(null, args, true);
 
 			} else if (o && o.apply) {
 				retvals = o.apply (null, args);
 
-			} else if (o && (o || shine.EMPTY_OBJ) instanceof shine.Table && (mt = o.__shine.metatable) && (f = mt.getMember ('__call')) && f.apply) {
-				args.unshift (o);
-				retvals = f.apply (null, args, true);
+			} else if (o && (o || shine.EMPTY_OBJ) instanceof shine.Table && (mt = o.__shine.metatable) && (f = mt.getMember('__call')) && f.apply) {
+				args.unshift(o);
+				retvals = f.apply(null, args, true);
 
 			} else {
-	 			throw new shine.Error ('Attempt to call non-function');
+	 			throw new shine.Error('Attempt to call non-function');
 			}
 		}
 		
@@ -890,7 +887,7 @@ shine.Closure.prototype.dispose = function (force) {
 				this._register.setItem(a + i, retvals[i]);
 			}
 
-			this._register.splice (a + l);
+			this._register.splice(a + l);
 			
 		} else {
 			for (i = 0; i < c - 1; i++) {
@@ -904,7 +901,7 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function tailcall (a, b) {	
-		return call.call (this, a, b, 0);
+		return call.call(this, a, b, 0);
 		
 		// NOTE: Currently not replacing stack, so infinately recursive calls WOULD drain memory, unlike how tail calls were intended.
 		// TODO: For non-external function calls, replace this stack with that of the new function. Possibly return the Function and handle the call in the RETURN section (for the calling function).
@@ -922,12 +919,12 @@ shine.Closure.prototype.dispose = function (force) {
 			l = this._register.getLength();
 			
 			for (i = a; i < l; i++) {
-				retvals.push (this._register.getItem(i));
+				retvals.push(this._register.getItem(i));
 			}
 
 		} else {
 			for (i = 0; i < b - 1; i++) {
-				retvals.push (val = this._register.getItem(a + i));
+				retvals.push(val = this._register.getItem(a + i));
 				shine.gc.incrRef(val);
 			}
 		}
@@ -945,7 +942,7 @@ shine.Closure.prototype.dispose = function (force) {
 
 	function forloop (a, sbx) {
 		this._register.setItem(a, this._register.getItem(a) + this._register.getItem(a + 2));
-		var parity = this._register.getItem(a + 2) / Math.abs (this._register.getItem(a + 2));
+		var parity = this._register.getItem(a + 2) / Math.abs(this._register.getItem(a + 2));
 		
 		if ((parity === 1 && this._register.getItem(a) <= this._register.getItem(a + 1)) || (parity !== 1 && this._register.getItem(a) >= this._register.getItem(a + 1))) {	//TODO This could be nicer
 			this._register.setItem(a + 3, this._register.getItem(a));
@@ -966,11 +963,11 @@ shine.Closure.prototype.dispose = function (force) {
 
 	function tforloop (a, b, c) {
 		var args = [this._register.getItem(a + 1), this._register.getItem(a + 2)],
-			retvals = this._register.getItem(a).apply (null, args),
+			retvals = this._register.getItem(a).apply(null, args),
 			index;
 
 		if (!((retvals || shine.EMPTY_OBJ) instanceof Array)) retvals = [retvals];
-		if (retvals[0] && retvals[0] === '' + (index = parseInt (retvals[0], 10))) retvals[0] = index;
+		if (retvals[0] && retvals[0] === '' + (index = parseInt(retvals[0], 10))) retvals[0] = index;
 		
 		for (var i = 0; i < c; i++) this._register.setItem(a + i + 3, retvals[i]);
 
@@ -989,7 +986,7 @@ shine.Closure.prototype.dispose = function (force) {
 		i;
 		
 		for (i = 0; i < length; i++) {
-			this._register.getItem(a).setMember (50 * (c - 1) + i + 1, this._register.getItem(a + i + 1));
+			this._register.getItem(a).setMember(50 * (c - 1) + i + 1, this._register.getItem(a + i + 1));
 		}
 	}
 
@@ -1004,7 +1001,7 @@ shine.Closure.prototype.dispose = function (force) {
 				local.upvalue.value = this._register.getItem(local.registerIndex);
 				local.upvalue.open = false;
 
-				this._localsUsedAsUpvalues.splice (i--, 1);
+				this._localsUsedAsUpvalues.splice(i--, 1);
 				l--;
 				this._register.clearItem(local.registerIndex);
 			}
@@ -1029,7 +1026,7 @@ shine.Closure.prototype.dispose = function (force) {
 					C = me._instructions[offset + 3],
 					upvalue;
 
-				// shine.stddebug.write ('-> ' + me.constructor.OPERATION_NAMES[op] + '\t' + A + '\t' + B + '\t' + C);
+				// shine.stddebug.write('-> ' + me.constructor.OPERATION_NAMES[op] + '\t' + A + '\t' + B + '\t' + C);
 
 				
 				if (op === 0) {	// move
@@ -1059,23 +1056,23 @@ shine.Closure.prototype.dispose = function (force) {
 							name: me._functions[bx].upvalues[upvalues.length]
 						};
 
-						me._localsUsedAsUpvalues.push ({
+						me._localsUsedAsUpvalues.push({
 							registerIndex: B,
 							upvalue: upvalue
 						});
 					}
 
-					upvalues.push (upvalue);
+					upvalues.push(upvalue);
 					
 
 				} else {	//getupval
 					
-					upvalues.push ({
+					upvalues.push({
 						getValue: function () {
-							return me._upvalues[B].getValue ();
+							return me._upvalues[B].getValue();
 						},
 						setValue: function (val) {
-							me._upvalues[B].setValue (val);
+							me._upvalues[B].setValue(val);
 						},
 						name: me._upvalues[B].name
 					});
@@ -1086,8 +1083,8 @@ shine.Closure.prototype.dispose = function (force) {
 			this._pc++;
 		}
 
-		var func = new shine.Function (this._vm, this._file, this._functions[bx], this._globals, upvalues);
-		//this._funcInstances.push (func);
+		var func = new shine.Function(this._vm, this._file, this._functions[bx], this._globals, upvalues);
+		//this._funcInstances.push(func);
 		this._register.setItem(a, func);
 	}
 
