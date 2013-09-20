@@ -42,7 +42,7 @@ section.shine-debug .info {
 }
 
 
-section.shine-debug button {
+section.shine-debug .buttons button {
 	border: 1px solid #aaa;
 	background: rgba(255,255,255,.5) 8px center no-repeat;
 	border-radius: 5px;
@@ -128,7 +128,7 @@ body.remote button.reload {
 }
 
 
-section.shine-debug button:hover {
+section.shine-debug .buttons button:hover {
 	background-color: #e0e0e0;
 }
 
