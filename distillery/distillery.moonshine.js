@@ -37,22 +37,41 @@ var shine = shine || {};
 		this._runConfig = config || {};
 
 		var me = this,
-			fs = require('fs');
+			fs;
 	
+
+		if (filename.substr(0, 5) == String.fromCharCode(27, 76, 117, 97, 81)) {
+			// Lua byte code string
+			this._parseData(filename);
+			if (callback) callback(this._tree);
+
+			return this._tree;
+		}
+
+
+		// Load file
+		fs = require('fs');
+
 		fs.readFile(filename, 'binary', function (err, data) {
 			if (err) throw err;
 		
-			me._data = '' + data;
-			me._pointer = 0;
-	
-			me._readGlobalHeader();	
-			me._tree = me._readChunk();
-			
-			delete me._runConfig;
-
+			me._parseData('' + data);
 			if (callback) callback(me._tree);
 		});
 	}
+
+
+
+
+	Parser.prototype._parseData = function (data) {
+		this._data = data;
+		this._pointer = 0;
+
+		this._readGlobalHeader();	
+		this._tree = this._readChunk();
+
+		delete this._runConfig;
+	};
 
 
 
@@ -92,8 +111,8 @@ var shine = shine || {};
 
 
 	Parser.prototype._readByte = function (length) {
-		if (length === undefined) return this._data.charCodeAt(this._pointer++);
-	
+		if (length === undefined) return this._data.charCodeAt(this._pointer++) & 0xFF;
+
 		length = length || 1;
 		return this._data.substr((this._pointer += length) - length, length);
 	};

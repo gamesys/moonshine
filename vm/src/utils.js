@@ -157,14 +157,28 @@ var shine = shine || {};
 		 * @param {Function} error The callback to be executed upon an unsuccessful outcome.
 		 */
 		get: function (url, success, error) {
-			var xhr = new XMLHttpRequest();
+			var xhr = new XMLHttpRequest(),
+				parse;
 
 			xhr.open('GET', url, true);
-			xhr.responseType = 'text';
+
+
+			if ('ArrayBuffer' in window) {
+				xhr.responseType = 'arraybuffer';
+
+				parse = function (data) {
+					return String.fromCharCode.apply(String, new Uint8Array(data));
+				};
+
+			} else {
+				xhr.responseType = 'text';
+				parse = function (data) { return data; };
+			}
+
 
 			xhr.onload = function (e) {
 				if (this.status == 200) {
-					if (success) success(this.response);
+					if (success) success(parse(this.response));
 				} else {
 					if (error) error(this.status);
 				}
