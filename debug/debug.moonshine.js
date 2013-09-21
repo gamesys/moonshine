@@ -505,25 +505,47 @@ shine.debug.pause = function () {
 
 
 
-	var error = shine.Error;
+	var error = shine.Error,
+		errors = [];
 	 
 	shine.Error = function (message) {
-		error.apply(this, arguments);
-
-// TODO: This is logging errors when error objects are being created, not when they are thrown. This needs to be corected.
-		var err = {
+		this._debugData = {
 			jsonUrl: shine.debug._lastFileUrl,
 			lineNumber: shine.debug._lastLine,
 			message: message
 		};
 
-		shine.debug._errorLog.push(err);
-		shine.debug._trigger('error', [err]);
+		this._debugIndex = errors.length;
+		errors[this._debugIndex] = this;
+
+		error.apply(this, [message + ' [shine.Error:' + this._debugIndex + ']']);
 	};
 	
 	shine.Error.prototype = error.prototype;
 	shine.Error.catchExecutionError = error.catchExecutionError;	
-		
+
+
+
+
+	var onerror = window.onerror;
+
+	window.onerror = function (message) { 		// Note: window.addEventListener does not supply error info in Firefox.
+		var match = message.match(/\[shine.Error:(\d+)\]/),
+			index, data;
+
+		if (match) {
+			index = parseInt(match[1], 10);
+			data = errors[index]._debugData;
+
+			shine.debug._errorLog.push(data);
+			shine.debug._trigger('error', [data]);
+		}
+
+		if (onerror) return onerror.apply(this, arguments);
+		return false;
+	};
+
+
 })();
 
 
