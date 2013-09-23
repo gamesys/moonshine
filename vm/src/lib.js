@@ -38,6 +38,40 @@ var shine = shine || {};
 			'%([^a-zA-Z])': '\\$1'
 		},
 
+		DATE_FORMAT_HANDLERS = {
+			'%a': function (d) { return days[d['get' + utc + 'Day']()].substr(0, 3); },
+			'%A': function (d) { return days[d['get' + utc + 'Day']()]; },
+			'%b': function (d) { return months[d['get' + utc + 'Month']()].substr(0, 3); },
+			'%B': function (d) { return months[d['get' + utc + 'Month']()]; },
+			'%c': function (d) { return d['to' + utc + 'LocaleString'](); },
+			'%d': function (d) { return ('0' + d['get' + utc + 'Date']()).substr(-2); },
+			'%H': function (d) { return ('0' + d['get' + utc + 'Hours']()).substr(-2); },
+			'%I': function (d) { return ('0' + ((d['get' + utc + 'Hours']() + 11) % 12 + 1)).substr(-2); },
+			'%j': function (d) {
+				var result = d['get' + utc + 'Date'](),
+					m = d['get' + utc + 'Month']();
+					
+				for (var i = 0; i < m; i++) result += daysInMonth[i];
+				if (m > 1 && d['get' + utc + 'FullYear']() % 4 === 0) result +=1;
+
+				return ('00' + result).substr(-3);
+			},
+			'%m': function (d) { return ('0' + (d['get' + utc + 'Month']() + 1)).substr(-2); },
+			'%M': function (d) { return ('0' + d['get' + utc + 'Minutes']()).substr(-2); },
+			'%p': function (d) { return (d['get' + utc + 'Hours']() < 12)? 'AM' : 'PM'; },
+			'%S': function (d) { return ('0' + d['get' + utc + 'Seconds']()).substr(-2); },
+			'%U': function (d) { return getWeekOfYear(d, 0); },
+			'%w': function (d) { return '' + (d['get' + utc + 'Day']()); },
+			'%W': function (d) { return getWeekOfYear(d, 1); },
+			'%x': function (d) { return handlers['%m'](d) + '/' + handlers['%d'](d) + '/' + handlers['%y'](d); },
+			'%X': function (d) { return handlers['%H'](d) + ':' + handlers['%M'](d) + ':' + handlers['%S'](d); },
+			'%y': function (d) { return handlers['%Y'](d).substr (-2); },
+			'%Y': function (d) { return '' + d['get' + utc + 'FullYear'](); },
+			'%Z': function (d) { return utc? 'UTC' : d.toString ().substr(-4, 3); },
+			'%%': function () { return '%' }
+		},
+
+
 		randomSeed = 1;
 
 
@@ -1059,44 +1093,11 @@ var shine = shine || {};
 				daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
 				
 				getWeekOfYear = function (d, firstDay) { 
-					var dayOfYear = parseInt(handlers['%j'](d), 10),
+					var dayOfYear = parseInt(DATE_FORMAT_HANDLERS['%j'](d), 10),
 						jan1 = new Date(d.getFullYear (), 0, 1, 12),
 						offset = (8 - jan1['get' + utc + 'Day']() + firstDay) % 7;
 
 					return ('0' + (Math.floor((dayOfYear - offset) / 7) + 1)).substr(-2);
-				},
-	
-				handlers = {
-					'%a': function (d) { return days[d['get' + utc + 'Day']()].substr(0, 3); },
-					'%A': function (d) { return days[d['get' + utc + 'Day']()]; },
-					'%b': function (d) { return months[d['get' + utc + 'Month']()].substr(0, 3); },
-					'%B': function (d) { return months[d['get' + utc + 'Month']()]; },
-					'%c': function (d) { return d['to' + utc + 'LocaleString'](); },
-					'%d': function (d) { return ('0' + d['get' + utc + 'Date']()).substr(-2); },
-					'%H': function (d) { return ('0' + d['get' + utc + 'Hours']()).substr(-2); },
-					'%I': function (d) { return ('0' + ((d['get' + utc + 'Hours']() + 11) % 12 + 1)).substr(-2); },
-					'%j': function (d) {
-						var result = d['get' + utc + 'Date'](),
-							m = d['get' + utc + 'Month']();
-							
-						for (var i = 0; i < m; i++) result += daysInMonth[i];
-						if (m > 1 && d['get' + utc + 'FullYear']() % 4 === 0) result +=1;
-	
-						return ('00' + result).substr(-3);
-					},
-					'%m': function (d) { return ('0' + (d['get' + utc + 'Month']() + 1)).substr(-2); },
-					'%M': function (d) { return ('0' + d['get' + utc + 'Minutes']()).substr(-2); },
-					'%p': function (d) { return (d['get' + utc + 'Hours']() < 12)? 'AM' : 'PM'; },
-					'%S': function (d) { return ('0' + d['get' + utc + 'Seconds']()).substr(-2); },
-					'%U': function (d) { return getWeekOfYear(d, 0); },
-					'%w': function (d) { return '' + (d['get' + utc + 'Day']()); },
-					'%W': function (d) { return getWeekOfYear(d, 1); },
-					'%x': function (d) { return handlers['%m'](d) + '/' + handlers['%d'](d) + '/' + handlers['%y'](d); },
-					'%X': function (d) { return handlers['%H'](d) + ':' + handlers['%M'](d) + ':' + handlers['%S'](d); },
-					'%y': function (d) { return handlers['%Y'](d).substr (-2); },
-					'%Y': function (d) { return '' + d['get' + utc + 'FullYear'](); },
-					'%Z': function (d) { return utc? 'UTC' : d.toString ().substr(-4, 3); },
-					'%%': function () { return '%' }
 				},
 	
 				utc = '',
@@ -1122,21 +1123,21 @@ var shine = shine || {};
 				};
 				
 				return new shine.Table ({
-					year: parseInt(handlers['%Y'](date), 10),
-					month: parseInt(handlers['%m'](date), 10),
-					day: parseInt(handlers['%d'](date), 10),
-					hour: parseInt(handlers['%H'](date), 10),
-					min: parseInt(handlers['%M'](date), 10),
-					sec: parseInt(handlers['%S'](date), 10),
-					wday: parseInt(handlers['%w'](date), 10) + 1,
-					yday: parseInt(handlers['%j'](date), 10),
+					year: parseInt(DATE_FORMAT_HANDLERS['%Y'](date), 10),
+					month: parseInt(DATE_FORMAT_HANDLERS['%m'](date), 10),
+					day: parseInt(DATE_FORMAT_HANDLERS['%d'](date), 10),
+					hour: parseInt(DATE_FORMAT_HANDLERS['%H'](date), 10),
+					min: parseInt(DATE_FORMAT_HANDLERS['%M'](date), 10),
+					sec: parseInt(DATE_FORMAT_HANDLERS['%S'](date), 10),
+					wday: parseInt(DATE_FORMAT_HANDLERS['%w'](date), 10) + 1,
+					yday: parseInt(DATE_FORMAT_HANDLERS['%j'](date), 10),
 					isdst: isDST(date)
 				});	
 			}
 	
 	
-			for (var i in handlers) {
-				if (handlers.hasOwnProperty(i) && format.indexOf(i) >= 0) format = format.replace(i, handlers[i](date));
+			for (var i in DATE_FORMAT_HANDLERS) {
+				if (DATE_FORMAT_HANDLERS.hasOwnProperty(i) && format.indexOf(i) >= 0) format = format.replace(i, DATE_FORMAT_HANDLERS[i](date));
 			}
 			
 			return format;
