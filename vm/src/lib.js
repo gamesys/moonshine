@@ -125,11 +125,11 @@ var shine = shine || {};
 			file,
 			pathData;
 
-		if (filename.substr(0, 1) != '/') {
-			pathData = (this._thread._file.url || '').match(/^(.*\/).*?$/);
-			pathData = (pathData && pathData[1]) || '';
-			filename = pathData + filename;
-		}
+		// if (filename.substr(0, 1) != '/') {
+		// 	pathData = (this._thread._file.url || '').match(/^(.*\/).*?$/);
+		// 	pathData = (pathData && pathData[1]) || '';
+		// 	filename = pathData + filename;
+		// }
 
 		// file = new shine.File(filename);
 
@@ -486,7 +486,7 @@ var shine = shine || {};
 					throw new shine.Error('module \'' + modname + '\' not found:' + '\n	no field package.preload[\'' + modname + '\']\n' + failedPaths.join('\n'));
 			
 				} else {
-					path = path.replace(/\?/g, modname);
+					path = path.replace(/\?/g, modname.replace(/\./g, '/'));
 
 					loadfile.call(vm, path, function (preload) {
 
