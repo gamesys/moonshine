@@ -378,7 +378,7 @@ var shine = shine || {};
 					output.push('table: 0x' + item.__shine.index.toString(16));
 					
 				} else if ((item || shine.EMPTY_OBJ) instanceof Function) {
-					output.push('JavaScript function: ' + item.toString());
+					output.push('function: [host code]');
 									
 				} else if (item === undefined) {
 					output.push('nil');
@@ -422,9 +422,8 @@ var shine = shine || {};
 
 
 		require: function (modname) {
-			var thread,
-				packageLib = this._globals['package'],
-				running = shine.Coroutine._running._func._instance,
+			var packageLib = this._globals['package'],
+				current = shine.Closure._current,
 				vm = this,
 				module,
 				preload,
@@ -433,20 +432,40 @@ var shine = shine || {};
 				failedPaths = [];
 
 
+			function curryLoad (func) {
+				return function () {
+					return load(func);
+				}
+			};
+
+
 			function load (preloadFunc) {
 				var result;
 
-				packageLib.loaded[modname] = true;
-				result = preloadFunc.call(null, modname);
+				if (vm._resumeStack.length) {
+					result = vm._resumeStack.pop()._run();
 
-				if (shine.debug && shine.debug._status == 'suspending' && !result) {
-					// running._pc -= 1;
-					// shine.debug._resumeStack
-					delete packageLib.loaded[modname];
-					shine.debug._resumeStack.push(running);
-					return;
+				} else if (shine.debug && shine.debug._resumeStack.length) {
+					result = shine.debug._resumeStack.pop()._run();
+
+				} else {
+					packageLib.loaded[modname] = true;
+					result = preloadFunc.call(null, modname);
 				}
 
+				if (vm._status == shine.SUSPENDING && !result) {
+					current._pc--;
+					vm._resumeStack.push(curryLoad(preloadFunc));
+					return;
+
+				} else if (shine.debug && shine.debug._status == shine.SUSPENDING && !result) {
+					current._pc--;
+					shine.debug._resumeStack.push(curryLoad(preloadFunc));
+					return;
+				}
+		
+
+				if (!result) return;
 				module = result[0];
 
 				if (module !== undefined) packageLib.loaded[modname] = module;
@@ -457,7 +476,7 @@ var shine = shine || {};
 			if (preload = packageLib.preload[modname]) return load(preload);
 
 			paths = packageLib.path.replace(/;;/g, ';').split(';');
-			thread = shine.lib.coroutine.yield();
+			vm.suspend();
 
 
 			function loadNextPath () {
@@ -465,15 +484,17 @@ var shine = shine || {};
 
 				if (!path) {
 					throw new shine.Error('module \'' + modname + '\' not found:' + '\n	no field package.preload[\'' + modname + '\']\n' + failedPaths.join('\n'));
-					// thread.resume();
 			
 				} else {
 					path = path.replace(/\?/g, modname);
 
 					loadfile.call(vm, path, function (preload) {
+
 						if (preload) {
-							var result = load(preload);
-							if (result) thread.resume(result);
+							packageLib.preload[modname] = preload;
+							shine.Closure._current._pc--;
+							vm.resume();
+
 						} else {
 							failedPaths.push('	no file \'' + path + '\'');
 							loadNextPath();
@@ -666,15 +687,20 @@ var shine = shine || {};
 	
 		
 		
-		status: function (closure) {
-			return closure.status;
+		status: function (co) {
+			switch (co.status) {
+				case shine.RUNNING: return (co === shine.Coroutine._running)? 'running' : 'normal';
+				case shine.SUSPENDED: return 'suspended';
+				case shine.DEAD: return 'dead';
+			}
 		},
 		
 	
 		
 		
 		wrap: function (closure) {
-			var co = shine.lib.coroutine.create(closure);
+			var co = shine.lib.coroutine.create(closure),
+				vm = this;
 			
 			var result = function () {			
 				var args = [co];
@@ -682,9 +708,8 @@ var shine = shine || {};
 	
 				var retvals = shine.lib.coroutine.resume.apply(null, args),
 					success;
-				
-				if (shine.debug && shine.debug._status == 'suspending' && !retvals) return;
 
+				if (!retvals && (vm._status == shine.SUSPENDING || (shine.debug && shine.debug._status == shine.SUSPENDING))) return;
 				success = retvals.shift();
 					
 				if (success) return retvals;
@@ -701,7 +726,7 @@ var shine = shine || {};
 		yield: function () {
 			// If running in main thread, throw error.
 			if (!shine.Coroutine._running) throw new shine.Error('attempt to yield across metamethod/C-call boundary (not in coroutine)');
-			if (shine.Coroutine._running.status != 'running') throw new shine.Error('attempt to yield non-running coroutine in host');
+			if (shine.Coroutine._running.status != shine.RUNNING) throw new shine.Error('attempt to yield non-running coroutine in host');
 
 			var args = shine.gc.createArray(),
 				running = shine.Coroutine._running;
@@ -709,7 +734,7 @@ var shine = shine || {};
 			for (var i = 0, l = arguments.length; i < l; i++) args.push(arguments[i]);	
 	
 			running._yieldVars = args;
-			running.status = 'suspending';
+			running.status = shine.SUSPENDING;
 
 			return {
 				resume: function () {
@@ -723,10 +748,10 @@ var shine = shine || {};
 					if (arguments.length == 1 && arguments[0] === undefined) l = 0;
 					for (i = 0; i < l; i++) args.push(arguments[i]);
 
-					if (running.status == 'suspending') {
+					if (running.status == shine.SUSPENDING) {
 						window.setTimeout(f, 1);
 					} else {
-						f ();
+						f();
 					}
 				}
 			}

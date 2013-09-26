@@ -22,7 +22,7 @@ shine.Coroutine = function (closure) {
 	this._started = false;
 	this._yieldVars = undefined;
 	this._resumeStack = this._resumeStack || shine.gc.createArray();
-	this.status = 'suspended';
+	this.status = shine.SUSPENDED;
 
 	shine.stddebug.write ('[coroutine created]\n');
 };
@@ -81,31 +81,42 @@ shine.Coroutine._remove = function () {
  * @returns {Array} Return values, either after terminating or from a yield.
  */
 shine.Coroutine.prototype.resume = function () {
-	var retval;
+	var retval,
+		funcToResume,
+		vm = this._func._instance._vm;
 
 	try {
-		if (this.status == 'dead') throw new shine.Error ('cannot resume dead coroutine');
+		if (this.status == shine.DEAD) throw new shine.Error ('cannot resume dead coroutine');
 
 		shine.Coroutine._add(this);
 		
-		if (shine.debug && shine.debug._status == 'resuming') {
-			var funcToResume = shine.debug._resumeStack.pop();
-			
-			if ((funcToResume || shine.EMPTY_OBJ) instanceof shine.Coroutine) {
+		if (vm && vm._status == shine.RESUMING) {
+			funcToResume = vm._resumeStack.pop();
+
+		} else if (shine.debug && shine.debug._status == shine.RESUMING) {
+			funcToResume = shine.debug._resumeStack.pop();
+		}
+
+		if (funcToResume) {
+			if (funcToResume instanceof shine.Coroutine) {
 				retval = funcToResume.resume();
+
+			} else if (funcToResume instanceof Function) {
+				retval = funcToResume();
+
 			} else {
 				retval = this._func._instance._run();
 			}
 
 		} else if (!this._started) {
-			this.status = 'running';
+			this.status = shine.RUNNING;
 			shine.stddebug.write('[coroutine started]\n');
 
 			this._started = true;
 			retval = this._func.apply(null, arguments);
 
 		} else {
-			this.status = 'resuming';
+			this.status = shine.RESUMING;
 			shine.stddebug.write('[coroutine resuming]\n');
 
 			if (!arguments.length) {
@@ -121,12 +132,12 @@ shine.Coroutine.prototype.resume = function () {
 			retval = this._resumeStack.pop()._run();
 		}	
 	
-		if (shine.debug && shine.debug._status == 'suspending') {
+		if (shine.debug && shine.debug._status == shine.SUSPENDING) {
 			shine.debug._resumeStack.push(this);
 			return;
 		}
 		
-		this.status = this._func._instance.terminated? 'dead' : 'suspended';
+		this.status = this._func._instance.terminated? shine.DEAD : shine.SUSPENDED;
 
 		if (retval) retval.unshift(true);
 
@@ -135,10 +146,10 @@ shine.Coroutine.prototype.resume = function () {
 		e.luaStack.push([this._func._instance, this._func._instance._pc - 1]);
 
 		retval = [false, e];
-		this.status = 'dead';
+		this.status = shine.DEAD;
 	}
 
-	if (this.status == 'dead') {
+	if (this.status == shine.DEAD) {
 		shine.Coroutine._remove();
 		shine.stddebug.write('[coroutine terminated]\n');
 		this._dispose();

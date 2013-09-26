@@ -12,6 +12,14 @@
 		highlightedLine,
 		errorLog = [],
 
+		status = {
+			RUNNING: 0,
+			SUSPENDING: 1,
+			SUSPENDED: 2,
+			RESUMING: 3,
+			DEAD: 4
+		},
+
 		elements = {
 			debugger: document.querySelector('.shine-debug'),
 			pauseResume: document.querySelector('.pause-resume'),
@@ -140,7 +148,7 @@
 
 	function setupListeners (debug) {
 		elements.pauseResume.addEventListener('click', function () {
-			if (debug._status == 'running') {
+			if (debug._status == status.RUNNING) {
 				debug.pause();
 			} else {
 				debug.resume();
@@ -175,25 +183,25 @@
 
 		debug.on('state-updated', function (state, data) {
 			switch (state) {
-				case 'running':
+				case status.RUNNING:
 					clearHighlight();
 					elements.pauseResume.textContent = 'Pause';
 					elements.pauseResume.className = 'pause-resume';
 					break;
 
-				case 'suspending':
+				case status.SUSPENDING:
 					elements.pauseResume.textContent = 'Resume';
 					elements.pauseResume.className = 'pause-resume suspended';
 					break;
 
-				case 'suspended':
+				case status.SUSPENDED:
 					elements.pauseResume.textContent = 'Resume';
 					elements.pauseResume.className = 'pause-resume suspended';
 					highlightLine(data.url, data.line);
 					showVariables(data);
 					break;
 
-				case 'resuming':
+				case status.RESUMING:
 					elements.pauseResume.textContent = 'Pause';
 					elements.pauseResume.className = 'pause-resume';
 					clearInspectors();

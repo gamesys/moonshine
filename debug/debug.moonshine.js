@@ -33,7 +33,7 @@ shine.debug._init = function () {
 	this._resumeStack = [];
 	this._callbackQueue = [];
 	this._errorLog = [];
-	this._status = 'running';
+	this._status = shine.RUNNING;
 
 
 	if (window.sessionStorage) {
@@ -286,7 +286,7 @@ shine.debug._setStatus = function (status, data) {
 	var me = this;
 
 	switch (status) {
-		case 'suspended':
+		case shine.SUSPENDED:
 			data.globals = this._getSuspendedGlobals();
 			data.locals = this._getSuspendedLocals();
 			data.upvalues = this._getSuspendedUpvalues();
@@ -367,7 +367,7 @@ shine.debug.resume = function () {
 
 
 shine.debug.pause = function () {
-	this._setStatus('suspending');
+	this._setStatus(shine.SUSPENDING);
 	this._stepping = true;
 };
 
@@ -414,28 +414,28 @@ shine.debug.pause = function () {
 		var me = this,
 			args = arguments;
 		
-		if (shine.debug._status != 'running') {
+		if (shine.debug._status != shine.RUNNING) {
+
 			shine.debug._callbackQueue.push(function () {
+				try {
+					me.execute.apply(me, args);
+				
+				} catch (e) {
+					if (!((e || shine.EMPTY_OBJ) instanceof shine.Error)) {
+						var stack = (e.stack || '');
 
-			try {
-				me.execute.apply(me, args);
-			
-			} catch (e) {
-				if (!((e || shine.EMPTY_OBJ) instanceof shine.Error)) {
-					var stack = (e.stack || '');
+						e = new shine.Error ('Error in host call: ' + e.message);
+						e.stack = stack;
+						e.luaStack = stack.split ('\n');
+					}
 
-					e = new shine.Error ('Error in host call: ' + e.message);
-					e.stack = stack;
-					e.luaStack = stack.split ('\n');
+					if (!e.luaStack) e.luaStack = shine.gc.createArray();
+					e.luaStack.push([me, me._pc - 1]);
+
+					shine.Error.catchExecutionError(e);
 				}
-
-				if (!e.luaStack) e.luaStack = shine.gc.createArray();
-				e.luaStack.push([me, me._pc - 1]);
-
-				shine.Error.catchExecutionError(e);
-			}
-
 			});
+
 		} else {
 			return execute.apply(this, arguments);
 		}
@@ -455,22 +455,23 @@ shine.debug.pause = function () {
 				(debug._stepping && (!debug._steppingTo || debug._steppingTo == this)) || 			// Only break if stepping in, out or over  
 				(debug._stopAtBreakpoints && debug._breakpoints[jsonUrl][lineNumber - 1])			// or we've hit a breakpoint.
 			) &&		
+			this._vm._status == shine.RUNNING &&													// Don't break if we're in the middle of resuming or suspending the VM.
 			!debug._resumeStack.length && 															// Don't break if we're in the middle of resuming from the previous debug step.
 			lineNumber != debug._currentLine && 													// Don't step more than once per line.
 			[35, 36].indexOf(opcode) < 0 && 														// Don't break on closure declarations.
-			!(shine.Coroutine._running && shine.Coroutine._running.status == 'resuming')) {			// Don't break while a coroutine is resuming.
+			!(shine.Coroutine._running && shine.Coroutine._running.status == shine.RESUMING)) {		// Don't break while a coroutine is resuming.
 
 				// Break execution
 
-				debug._setStatus('suspending');
+				debug._setStatus(shine.SUSPENDING);
 				debug._currentFileUrl = jsonUrl;
 				debug._currentLine = lineNumber;
 				this._pc--;
 
 
 				window.setTimeout (function () { 
-					debug._setStatus('suspended', { url: jsonUrl, line: lineNumber });
-					// debug._trigger('suspended', );
+					debug._setStatus(shine.SUSPENDED, { url: jsonUrl, line: lineNumber });
+					// debug._trigger(shine.SUSPENDED, );
 				}, 1);
 
 				return;
@@ -553,7 +554,7 @@ shine.debug.pause = function () {
 
 
 shine.debug._resumeThread = function () {
-	this._setStatus('resuming');
+	this._setStatus(shine.RESUMING);
 
 	var f = this._resumeStack.pop();
 
@@ -561,8 +562,10 @@ shine.debug._resumeThread = function () {
 		try {
 			if (f instanceof shine.Coroutine) {
 				f.resume();
-			} else {
+			} else if (f instanceof shine.Closure) {
 				f._run();
+			} else {
+				f();
 			}
 			
 		} catch (e) {
@@ -581,7 +584,7 @@ shine.debug._resumeThread = function () {
 		}
 	}
 	
-	// if (this._status == 'running') this._trigger('running');
+	// if (this._status == shine.RUNNING) this._trigger(shine.RUNNING);
 	while (this._callbackQueue[0]) this._callbackQueue.shift()();
 };
 

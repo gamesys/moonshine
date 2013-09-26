@@ -129,11 +129,8 @@ shine.Function.prototype.apply = function (obj, args, internal) {
 		obj = undefined;
 	}
 
-	var func = internal? this.getInstance() : shine.lib.coroutine.wrap(this);
-	
 	try {
-		return func.apply(obj, args);
-//		return this.getInstance().apply(obj, args);
+		return this.getInstance().apply(obj, args);
 
 	} catch (e) {
 		shine.Error.catchExecutionError(e);

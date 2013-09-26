@@ -59,6 +59,9 @@ shine.Closure.prototype = {};
 shine.Closure.prototype.constructor = shine.Closure;
 
 shine.Closure._graveyard = [];
+shine.Closure._current = undefined;
+
+
 
 
 shine.Closure.create = function (vm, file, data, globals, upvalues) {
@@ -81,6 +84,17 @@ shine.Closure.create = function (vm, file, data, globals, upvalues) {
  * @returns {Array} Array of return values.
  */
 shine.Closure.prototype.execute = function (args) {
+	var me = this;
+
+	if (this._vm._status != shine.RUNNING) {
+		this._vm._callbackQueue.push(function () {
+			me.execute.apply(me, args);
+		});
+
+		return;		
+	}
+
+
 	this._pc = 0;
 
 	//if (this._data && this._data.sourceName) shine.stddebug.write('Executing ' + this._data.sourceName + '...'); //? ' ' + this._data.sourceName : ' function') + '...<br><br>');
@@ -135,20 +149,31 @@ shine.Closure.prototype._run = function () {
 	this.terminated = false;
 	
 	
-	if (shine.debug && shine.debug._status == 'resuming') {
+	if (this._vm._status == shine.RESUMING) {
+	 	if (this._vm._resumeStack.length) {
+			this._pc--;
+			
+		} else {
+			this._vm._status = shine.RUNNING;
+
+			// yieldVars = this._vm._resumeVars;
+			// delete this._vm._resumeVars;
+		}
+
+	} else if (shine.debug && shine.debug._status == shine.RESUMING) {
 	 	if (shine.debug._resumeStack.length) {
 			this._pc--;
 			
 		} else {
-			shine.debug._setStatus('running');
+			shine.debug._setStatus(shine.RUNNING);
 		}
 
-	} else if (shine.Coroutine._running && shine.Coroutine._running.status == 'resuming') {
+	} else if (shine.Coroutine._running && shine.Coroutine._running.status == shine.RESUMING) {
 	 	if (shine.Coroutine._running._resumeStack.length) {
 			this._pc--;
 			
 		} else {
-			shine.Coroutine._running.status = 'running';
+			shine.Coroutine._running.status = shine.RUNNING;
 			//shine.stddebug.write('[coroutine resumed]\n');
 	
 			yieldVars = shine.Coroutine._running._yieldVars;
@@ -190,13 +215,13 @@ shine.Closure.prototype._run = function () {
 		line = this._data.linePositions && this._data.linePositions[this._pc];
 		retval = this._executeInstruction(this._pc++, line);
 
-		if (shine.Coroutine._running && shine.Coroutine._running.status == 'suspending') {
+		if (shine.Coroutine._running && shine.Coroutine._running.status == shine.SUSPENDING) {
 			shine.Coroutine._running._resumeStack.push(this);
 
 			if (shine.Coroutine._running._func._instance == this) {
 				retval = shine.Coroutine._running._yieldVars;
 
-				shine.Coroutine._running.status = 'suspended';
+				shine.Coroutine._running.status = shine.SUSPENDED;
 				shine.Coroutine._remove();
 
 				//shine.stddebug.write('[coroutine suspended]\n');
@@ -207,7 +232,12 @@ shine.Closure.prototype._run = function () {
 			return;
 		}
 
-		if (shine.debug && shine.debug._status == 'suspending' && !retval) {
+		if (this._vm._status == shine.SUSPENDING && !retval) {
+			this._vm._resumeStack.push(this);
+			return;
+		}
+		
+		if (shine.debug && shine.debug._status == shine.SUSPENDING && !retval) {
 			shine.debug._resumeStack.push(this);
 			return;
 		}
@@ -235,6 +265,8 @@ shine.Closure.prototype._run = function () {
  * @returns {Array} Array of the values that make be returned from executing the instruction.
  */
 shine.Closure.prototype._executeInstruction = function (pc, line) {
+	this.constructor._current = this;
+
 	var offset = pc * 4,
 		opcode = this._instructions[offset],
 		op = this.constructor.OPERATIONS[opcode],
@@ -821,18 +853,28 @@ shine.Closure.prototype.dispose = function (force) {
 			f, o, mt;
 
 
-		if (shine.debug && shine.debug._status == 'resuming') {
+		if (this._vm._status == shine.RESUMING) {
+			// If we're resuming from the VM being suspended.
+			funcToResume = this._vm._resumeStack.pop();
+		
+		} else if (shine.debug && shine.debug._status == shine.RESUMING) {
 			// If we're resuming from a breakpoint/stepping, resume call stack first.
-
 			funcToResume = shine.debug._resumeStack.pop();
-			
-			if ((funcToResume || shine.EMPTY_OBJ) instanceof shine.Coroutine) {
+		}	
+
+		if (funcToResume) {		
+			if (funcToResume instanceof shine.Coroutine) {
 				retvals = funcToResume.resume();
-			} else {
+				if (retvals) retvals.shift();
+
+			} else if (funcToResume instanceof shine.Closure) {
 				retvals = funcToResume._run();
+
+			} else {
+				retvals = funcToResume();
 			}
 			
-		} else if (shine.Coroutine._running && shine.Coroutine._running.status == 'resuming') {
+		} else if (shine.Coroutine._running && shine.Coroutine._running.status == shine.RESUMING) {
 			// If we're resuming a coroutine function...
 			
 			funcToResume = shine.Coroutine._running._resumeStack.pop();
@@ -863,7 +905,7 @@ shine.Closure.prototype.dispose = function (force) {
 				retvals = o.apply(null, args, true);
 
 			} else if (o && o.apply) {
-				retvals = o.apply (null, args);
+				retvals = o.apply(null, args);
 
 			} else if (o && (o || shine.EMPTY_OBJ) instanceof shine.Table && (mt = o.__shine.metatable) && (f = mt.getMember('__call')) && f.apply) {
 				args.unshift(o);
@@ -876,8 +918,9 @@ shine.Closure.prototype.dispose = function (force) {
 		
 		shine.gc.collect(args);
 
-		if (!((retvals || shine.EMPTY_OBJ) instanceof Array)) retvals = [retvals];
-		if (shine.Coroutine._running && shine.Coroutine._running.status == 'suspending') return;
+		if (!(retvals && retvals instanceof Array)) retvals = [retvals];
+		if (this._vm._status == shine.SUSPENDING) return;
+		if (shine.Coroutine._running && shine.Coroutine._running.status == shine.SUSPENDING) return;
 
 
 		if (c === 0) {

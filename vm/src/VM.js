@@ -22,12 +22,23 @@ shine.VM = function (env) {
 	this.fileManager = new shine.FileManager();
 	this._env = env || {};
 	this._coroutineStack = [];
-	
+
+	this._status = shine.RUNNING;
+	this._resumeStack = [];
+	this._callbackQueue = [];
+
 	this._resetGlobals();
 };
 
 shine.VM.prototype = new shine.EventEmitter();
 shine.VM.prototype.constructor = shine.VM;
+
+
+shine.RUNNING = 0;
+shine.SUSPENDING = 1;
+shine.SUSPENDED = 2;
+shine.RESUMING = 3;
+shine.DEAD = 4;
 
 
 
@@ -131,10 +142,10 @@ shine.VM.prototype.execute = function (coConfig, file) {
 					thread.call ();
 					
 				} else {
-					var co = shine.lib.coroutine.wrap(thread),
+					var co = shine.lib.coroutine.wrap.call(this, thread),
 						resume = function () {
 							co();
-							if (coConfig.uiOnly && co._coroutine.status != 'dead') window.setTimeout(resume, 1);
+							if (coConfig.uiOnly && co._coroutine.status != shine.DEAD) window.setTimeout(resume, 1);
 						};
 		
 					resume();
@@ -175,6 +186,64 @@ shine.VM.prototype.getGlobal = function (name) {
 
 
 /**
+ * Suspends any execution in the VM.
+ */
+shine.VM.prototype.suspend = function () {
+	var vm = this;
+
+	this._status = shine.SUSPENDING;
+
+	window.setTimeout(function () {
+		if (vm._status == shine.SUSPENDING) vm._status = shine.SUSPENDED;
+	}, 1);
+};
+
+
+
+
+/**
+ * Resumes execution in the VM from the point at which it was suspended.
+ */
+shine.VM.prototype.resume = function () {
+	this._status = shine.RESUMING;
+	// this._resumeVars = Array.splice.call(arguments, 0);
+
+	var f = this._resumeStack.pop();
+
+	if (f) {
+		try {
+			if (f instanceof shine.Coroutine) {
+				f.resume();
+			} else if (f instanceof shine.Closure) {
+				f._run();
+			} else {
+				f();
+			}
+			
+		} catch (e) {
+			if (!((e || shine.EMPTY_OBJ) instanceof shine.Error)) {
+				var stack = (e.stack || '');
+
+				e = new shine.Error ('Error in host call: ' + e.message);
+				e.stack = stack;
+				e.luaStack = stack.split ('\n');
+			}
+
+			if (!e.luaStack) e.luaStack = shine.gc.createArray();
+			e.luaStack.push([f, f._pc - 1]);
+
+			shine.Error.catchExecutionError(e);
+		}
+	}
+	
+	// if (this._status == shine.RUNNING) this._trigger(shine.RUNNING);
+	while (this._callbackQueue[0]) this._callbackQueue.shift()();
+};
+
+
+
+
+/**
  * Dumps memory associated with the VM.
  */
 shine.VM.prototype.dispose = function () {
@@ -195,6 +264,7 @@ shine.VM.prototype.dispose = function () {
 
 
 	// Clear static stacks -- Very dangerous for environments that contain multiple VMs!
-	shine.Closure._graveyard.splice(0, shine.Closure._graveyard.length);
-	shine.Coroutine._graveyard.splice(0, shine.Coroutine._graveyard.length);
+	shine.Closure._graveyard.length = 0;
+	shine.Closure._current = undefined;
+	shine.Coroutine._graveyard.length = 0;
 };
