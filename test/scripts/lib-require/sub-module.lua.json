@@ -1,0 +1,1 @@
+{"sourceName":"@scripts/lib-require/sub-module.lua","lineDefined":0,"lastLineDefined":0,"upvalueCount":0,"paramCount":0,"is_vararg":2,"maxStackSize":2,"instructions":[10,0,0,1,9,0,256,257,30,0,2,0,30,0,1,0],"constants":["moo",1],"functions":[],"linePositions":[3,4,5,5],"locals":[],"upvalues":[],"sourcePath":"./sub-module.lua"}
