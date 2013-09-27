@@ -4,7 +4,12 @@
  * @copyright Gamesys Limited 2013
  */
 
+
+'use strict';
+
+
 var shine = shine || {};
+
 
 /**
  * Represents a function definition.

@@ -5,6 +5,11 @@
  */
 
 
+'use strict';
+
+
+var shine = shine || {};
+
 
 /**
  * Represents a register.

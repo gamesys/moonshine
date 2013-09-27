@@ -4,8 +4,11 @@
  * @copyright Gamesys Limited 2013
  */
 
-var shine = shine || {};
 
+'use strict';
+
+
+var shine = shine || {};
 
 
 /**

@@ -6,6 +6,9 @@
  */
 
 
+'use strict';
+
+
 var shine = shine || {};
 
 
