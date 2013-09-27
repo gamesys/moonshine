@@ -42,36 +42,42 @@ var shine = shine || {};
 			'%([^a-zA-Z])': '\\$1'
 		},
 
+		DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+		
+		MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+		
+		DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
+				
 		DATE_FORMAT_HANDLERS = {
-			'%a': function (d) { return days[d['get' + utc + 'Day']()].substr(0, 3); },
-			'%A': function (d) { return days[d['get' + utc + 'Day']()]; },
-			'%b': function (d) { return months[d['get' + utc + 'Month']()].substr(0, 3); },
-			'%B': function (d) { return months[d['get' + utc + 'Month']()]; },
-			'%c': function (d) { return d['to' + utc + 'LocaleString'](); },
-			'%d': function (d) { return ('0' + d['get' + utc + 'Date']()).substr(-2); },
-			'%H': function (d) { return ('0' + d['get' + utc + 'Hours']()).substr(-2); },
-			'%I': function (d) { return ('0' + ((d['get' + utc + 'Hours']() + 11) % 12 + 1)).substr(-2); },
-			'%j': function (d) {
-				var result = d['get' + utc + 'Date'](),
-					m = d['get' + utc + 'Month']();
+			'%a': function (d, utc) { return DAYS[d['get' + (utc? 'UTC' : '') + 'Day']()].substr(0, 3); },
+			'%A': function (d, utc) { return DAYS[d['get' + (utc? 'UTC' : '') + 'Day']()]; },
+			'%b': function (d, utc) { return MONTHS[d['get' + (utc? 'UTC' : '') + 'Month']()].substr(0, 3); },
+			'%B': function (d, utc) { return MONTHS[d['get' + (utc? 'UTC' : '') + 'Month']()]; },
+			'%c': function (d, utc) { return d['to' + (utc? 'UTC' : '') + 'LocaleString'](); },
+			'%d': function (d, utc) { return ('0' + d['get' + (utc? 'UTC' : '') + 'Date']()).substr(-2); },
+			'%H': function (d, utc) { return ('0' + d['get' + (utc? 'UTC' : '') + 'Hours']()).substr(-2); },
+			'%I': function (d, utc) { return ('0' + ((d['get' + (utc? 'UTC' : '') + 'Hours']() + 11) % 12 + 1)).substr(-2); },
+			'%j': function (d, utc) {
+				var result = d['get' + (utc? 'UTC' : '') + 'Date'](),
+					m = d['get' + (utc? 'UTC' : '') + 'Month']();
 					
-				for (var i = 0; i < m; i++) result += daysInMonth[i];
-				if (m > 1 && d['get' + utc + 'FullYear']() % 4 === 0) result +=1;
+				for (var i = 0; i < m; i++) result += DAYS_IN_MONTH[i];
+				if (m > 1 && d['get' + (utc? 'UTC' : '') + 'FullYear']() % 4 === 0) result +=1;
 
 				return ('00' + result).substr(-3);
 			},
-			'%m': function (d) { return ('0' + (d['get' + utc + 'Month']() + 1)).substr(-2); },
-			'%M': function (d) { return ('0' + d['get' + utc + 'Minutes']()).substr(-2); },
-			'%p': function (d) { return (d['get' + utc + 'Hours']() < 12)? 'AM' : 'PM'; },
-			'%S': function (d) { return ('0' + d['get' + utc + 'Seconds']()).substr(-2); },
-			'%U': function (d) { return getWeekOfYear(d, 0); },
-			'%w': function (d) { return '' + (d['get' + utc + 'Day']()); },
-			'%W': function (d) { return getWeekOfYear(d, 1); },
-			'%x': function (d) { return handlers['%m'](d) + '/' + handlers['%d'](d) + '/' + handlers['%y'](d); },
-			'%X': function (d) { return handlers['%H'](d) + ':' + handlers['%M'](d) + ':' + handlers['%S'](d); },
-			'%y': function (d) { return handlers['%Y'](d).substr (-2); },
-			'%Y': function (d) { return '' + d['get' + utc + 'FullYear'](); },
-			'%Z': function (d) { return utc? 'UTC' : d.toString ().substr(-4, 3); },
+			'%m': function (d, utc) { return ('0' + (d['get' + (utc? 'UTC' : '') + 'Month']() + 1)).substr(-2); },
+			'%M': function (d, utc) { return ('0' + d['get' + (utc? 'UTC' : '') + 'Minutes']()).substr(-2); },
+			'%p': function (d, utc) { return (d['get' + (utc? 'UTC' : '') + 'Hours']() < 12)? 'AM' : 'PM'; },
+			'%S': function (d, utc) { return ('0' + d['get' + (utc? 'UTC' : '') + 'Seconds']()).substr(-2); },
+			'%U': function (d, utc) { return getWeekOfYear(d, 0, utc); },
+			'%w': function (d, utc) { return '' + (d['get' + (utc? 'UTC' : '') + 'Day']()); },
+			'%W': function (d, utc) { return getWeekOfYear(d, 1, utc); },
+			'%x': function (d, utc) { return DATE_FORMAT_HANDLERS['%m'](d, utc) + '/' + DATE_FORMAT_HANDLERS['%d'](d, utc) + '/' + DATE_FORMAT_HANDLERS['%y'](d, utc); },
+			'%X': function (d, utc) { return DATE_FORMAT_HANDLERS['%H'](d, utc) + ':' + DATE_FORMAT_HANDLERS['%M'](d, utc) + ':' + DATE_FORMAT_HANDLERS['%S'](d, utc); },
+			'%y': function (d, utc) { return DATE_FORMAT_HANDLERS['%Y'](d, utc).substr (-2); },
+			'%Y': function (d, utc) { return '' + d['get' + (utc? 'UTC' : '') + 'FullYear'](); },
+			'%Z': function (d, utc) { return utc? 'UTC' : d.toString ().substr(-4, 3); },
 			'%%': function () { return '%' }
 		},
 
@@ -84,6 +90,17 @@ var shine = shine || {};
 	function getRandom () {
 		randomSeed = (RANDOM_MULTIPLIER * randomSeed) % RANDOM_MODULUS;
 		return randomSeed / RANDOM_MODULUS;
+	}
+
+
+
+
+	function getWeekOfYear (d, firstDay, utc) { 
+		var dayOfYear = parseInt(DATE_FORMAT_HANDLERS['%j'](d), 10),
+			jan1 = new Date(d.getFullYear (), 0, 1, 12),
+			offset = (8 - jan1['get' + (utc? 'UTC' : '') + 'Day']() + firstDay) % 7;
+
+		return ('0' + (Math.floor((dayOfYear - offset) / 7) + 1)).substr(-2);
 	}
 
 
@@ -1116,31 +1133,15 @@ var shine = shine || {};
 		date: function (format, time) {
 			if (format === undefined) format = '%c';
 			
-	
-			var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-				months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-				daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
-				
-				getWeekOfYear = function (d, firstDay) { 
-					var dayOfYear = parseInt(DATE_FORMAT_HANDLERS['%j'](d), 10),
-						jan1 = new Date(d.getFullYear (), 0, 1, 12),
-						offset = (8 - jan1['get' + utc + 'Day']() + firstDay) % 7;
-
-					return ('0' + (Math.floor((dayOfYear - offset) / 7) + 1)).substr(-2);
-				},
-	
-				utc = '',
+			var utc,
 				date = new Date();
 	
-			
 			if (time) date.setTime(time * 1000);
-			
-	
+
 			if (format.substr(0, 1) === '!') {
 				format = format.substr(1);
-				utc = 'UTC';
+				utc = true;
 			}
-	
 	
 			if (format === '*t') {
 				var isDST = function (d) {
@@ -1152,21 +1153,21 @@ var shine = shine || {};
 				};
 				
 				return new shine.Table ({
-					year: parseInt(DATE_FORMAT_HANDLERS['%Y'](date), 10),
-					month: parseInt(DATE_FORMAT_HANDLERS['%m'](date), 10),
-					day: parseInt(DATE_FORMAT_HANDLERS['%d'](date), 10),
-					hour: parseInt(DATE_FORMAT_HANDLERS['%H'](date), 10),
-					min: parseInt(DATE_FORMAT_HANDLERS['%M'](date), 10),
-					sec: parseInt(DATE_FORMAT_HANDLERS['%S'](date), 10),
-					wday: parseInt(DATE_FORMAT_HANDLERS['%w'](date), 10) + 1,
-					yday: parseInt(DATE_FORMAT_HANDLERS['%j'](date), 10),
-					isdst: isDST(date)
+					year: parseInt(DATE_FORMAT_HANDLERS['%Y'](date, utc), 10),
+					month: parseInt(DATE_FORMAT_HANDLERS['%m'](date, utc), 10),
+					day: parseInt(DATE_FORMAT_HANDLERS['%d'](date, utc), 10),
+					hour: parseInt(DATE_FORMAT_HANDLERS['%H'](date, utc), 10),
+					min: parseInt(DATE_FORMAT_HANDLERS['%M'](date, utc), 10),
+					sec: parseInt(DATE_FORMAT_HANDLERS['%S'](date, utc), 10),
+					wday: parseInt(DATE_FORMAT_HANDLERS['%w'](date, utc), 10) + 1,
+					yday: parseInt(DATE_FORMAT_HANDLERS['%j'](date, utc), 10),
+					isdst: isDST(date, utc)
 				});	
 			}
 	
 	
 			for (var i in DATE_FORMAT_HANDLERS) {
-				if (DATE_FORMAT_HANDLERS.hasOwnProperty(i) && format.indexOf(i) >= 0) format = format.replace(i, DATE_FORMAT_HANDLERS[i](date));
+				if (DATE_FORMAT_HANDLERS.hasOwnProperty(i) && format.indexOf(i) >= 0) format = format.replace(i, DATE_FORMAT_HANDLERS[i](date, utc));
 			}
 			
 			return format;
