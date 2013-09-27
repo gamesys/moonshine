@@ -1,5 +1,6 @@
 
-var express = require('express'),
+var fs = require('fs'),
+	express = require('express'),
 	AbstractConnection = require('./AbstractConnection'),
 	MESSAGE_TYPES = require('./constants').MESSAGE_TYPES,
 	COLORS = require('./constants').COLORS;
@@ -22,7 +23,26 @@ ConsoleConnection.prototype.constructor = ConsoleConnection;
 
 
 ConsoleConnection.prototype._onReady = function () {
+
+
+	this._app.get('/', function (req, res) {
+		console.log ('app get')
+		fs.readFile(__dirname + '/../ui/index.html', function (err, data) {
+			if (err) throw err;
+
+			var placeholder = '<!-- [remote-placeholder] -->',
+				scriptTag = '<script src="./js/remote-debugger.js"></script>';
+
+			data = data.toString().replace(placeholder, scriptTag);
+
+			res.set('Content-Type', 'text/html');
+			res.send(data);
+		})
+		''
+	});
+
 	this._app.use(express.static(__dirname + '/../ui'));
+
 	console.log('To view the console, go to: ' + COLORS.CYAN + 'http://127.0.0.1:' + this._port + COLORS.RESET);
 };
 

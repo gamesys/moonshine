@@ -119,13 +119,23 @@ body.remote button.reload {
 
 
 
-@media screen and (max-width: 535px) {
-	section.shine-debug button {
+@media screen and (max-width: 660px) {
+	section.shine-debug .buttons button {
 		text-indent: -9999px;
 		padding-right: 0;
 		width: 34px;
 	}
 }
+
+@media screen and (max-width: 720px) {
+	body.remote section.shine-debug .buttons button {
+		text-indent: -9999px;
+		padding-right: 0;
+		width: 34px;
+	}
+}
+
+
 
 
 section.shine-debug .buttons button:hover {

@@ -615,7 +615,7 @@ shine.debug.ui = {
 		iframe.style.position = 'fixed';
 		iframe.style.top = '0';
 		iframe.style.right = '20px';
-		iframe.style.width = '232px';
+		iframe.style.width = '270px';
 		iframe.style.height = '30px';
 		iframe.style.overflow = 'hidden';
 		iframe.style.border = 'none';
@@ -654,7 +654,7 @@ shine.debug.ui = {
 
 			} else {
 				iframe.style.right = '20px';
-				iframe.style.width = '232px';
+				iframe.style.width = '270px';
 				iframe.style.height = '30px';
 				toggle.className = 'toggle';
 			}
