@@ -67,6 +67,68 @@ assertTrue (b == '[1=2][2=4][3=8]', 'ipairs() should iterate over table items [1
 
 
 
+-- load
+
+if (getTimestamp) then	-- if we're running in Moonshine test env
+	src = '{"sourceName":"@test.lua","lineDefined":0,"lastLineDefined":0,"upvalueCount":0,"paramCount":0,"is_vararg":2,"maxStackSize":2,"instructions":[1,0,0,0,30,0,2,0,30,0,1,0],"constants":["hello"],"functions":[],"linePositions":[82,82,82],"locals":[],"upvalues":[],"sourcePath":"./test.lua"}'
+else
+	src = 'return "hello"'
+end
+
+local index = 0
+local function getChar ()
+	index = index + 1
+	return string.sub(src, index, index)
+end
+
+local f = load(getChar)
+assertTrue (type(f) == 'function', 'load() should return a function when passed a valid source string')
+
+local result = f();
+assertTrue (result == 'hello', 'The function returned from load() should return the value from the script')
+
+
+
+
+-- loadfile
+
+local f = loadfile('scripts/not-a-file.luac')
+assertTrue (f == nil, 'loadfile() should return nil when passed an invalid filename')
+
+
+mainGlobal1 = 'mainGlbl'
+mainGlobal2 = 'mainGlbl'
+
+local mainLocal = 'mainLoc'
+
+f = loadfile('scripts/lib-loadfile.luac')
+assertTrue (type(f) == 'function', 'loadfile() should return a function when passed a valid filename')
+
+local result = f();
+
+assertTrue (type(result) == 'table', 'The function returned from loadfile() should return the value from the script')
+assertTrue (type(result.getValue) == 'function', 'The function returned from loadfile() should return the value that is returned from the script[1]')
+assertTrue (result.getValue() == 'moo', 'The function returned from loadfile() should return the value that is returned from the script[2]')
+
+assertTrue (mainGlobal1 == 'innerGlbl', 'The function returned from loadfile() should share the same global namespace as the outer script[1]')
+assertTrue (mainGlobal2 == 'mainGlbl', 'The function returned from loadfile() should share the same global namespace as the outer script[2]')
+assertTrue (innerLocal == nil, 'Function locals should not leak into outer environment in a loadfile() function call')
+
+
+
+
+-- loadstring
+
+local f = loadstring(src)
+assertTrue (type(f) == 'function', 'loadstring() should return a function when passed a valid source string')
+
+local result = f();
+assertTrue (result == 'hello', 'The function returned from loadstring() should return the value from the script')
+
+
+
+
+
 -- pairs
 
 local a, b = "", {foo=1}

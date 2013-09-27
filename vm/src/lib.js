@@ -235,26 +235,26 @@ var shine = shine || {};
 	
 		
 		load: function (func, chunkname) {
-			var file = new shine.File(),
+			var vm = this,
 				chunk = '', piece, lastPiece;
 
-			while ((piece = func()) && piece != lastPiece) {
+			while ((piece = func.apply(func)) && (piece = piece[0])) {
 				chunk += (lastPiece = piece);
 			}
 
-			file.data = JSON.parse(chunk);
-			return new shine.Function(this, file, file.data, this._globals, shine.gc.createArray());
+			return shine.lib.loadstring.call(this, chunk);
 		},
 	
 	
 	
 		
 		loadfile: function (filename) {
-			var thread = shine.lib.coroutine.yield(),
+			var vm = this,
 				callback = function (result) {
-					thread.resume(result);
+					vm.resume(result || []);
 				};
 
+			vm.suspend();
 			loadfile.call(this, filename, callback);
 		},
 	
@@ -262,8 +262,21 @@ var shine = shine || {};
 	
 		
 		loadstring: function (string, chunkname) {
-			var f = function () { return string; };
-			return shine.lib.load.call(this, f, chunkname);
+			if (typeof string != 'string') throw new shine.Error('bad argument #1 to \'loadstring\' (string expected, got ' + shine.utils.coerce(string, 'string') + ')');
+			if (!string) return new shine.Function(vm);
+
+			vm.suspend();
+
+			this.fileManager.load(string, function (err, file) {
+				if (err) {
+					vm.resume([]);
+					return;
+				}
+
+				var func = new shine.Function(vm, file, file.data, vm._globals, shine.gc.createArray());
+				vm.resume([func]);
+			});
+
 		},
 	
 	
