@@ -207,9 +207,15 @@ shine.VM.prototype.suspend = function () {
 /**
  * Resumes execution in the VM from the point at which it was suspended.
  */
-shine.VM.prototype.resume = function () {
+shine.VM.prototype.resume = function (retvals) {
+	if (retvals && !(retvals instanceof Array)) {
+		var arr = shine.gc.createArray();
+		arr.push(retvals);
+		retvals = arr;
+	}
+
 	this._status = shine.RESUMING;
-	// this._resumeVars = Array.splice.call(arguments, 0);
+	this._resumeVars = retvals;
 
 	var f = this._resumeStack.pop();
 

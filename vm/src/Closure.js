@@ -159,8 +159,8 @@ shine.Closure.prototype._run = function () {
 		} else {
 			this._vm._status = shine.RUNNING;
 
-			// yieldVars = this._vm._resumeVars;
-			// delete this._vm._resumeVars;
+			yieldVars = this._vm._resumeVars;
+			delete this._vm._resumeVars;
 		}
 
 	} else if (shine.debug && shine.debug._status == shine.RESUMING) {
