@@ -86,6 +86,7 @@ shine.FileManager.prototype.load = function (url, callback) {
 	
 		case 'object':
 			this._onSuccess('', url, callback);
+			break;
 
 
 		default: 

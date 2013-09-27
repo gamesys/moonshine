@@ -23,7 +23,7 @@ var shine = shine || {};
 shine.Function = function (vm, file, data, globals, upvalues) {
 	this._vm = vm;
 	this._file = file;
-	this._data = data;
+	this._data = data || shine.gc.createObject();
 	this._globals = globals;
 	this._upvalues = upvalues || shine.gc.createObject();
 	this._index = shine.Function._index++;
@@ -63,7 +63,7 @@ shine.Function.prototype.getInstance = function () {
  * Converts the function's instructions from the format in file into ArrayBuffer or Array in place.
  */
 shine.Function.prototype._convertInstructions = function () {
-	var instructions = this._data.instructions,
+	var instructions = this._data.instructions || shine.gc.createArray(),
 		buffer,
 		result,
 		i, l,

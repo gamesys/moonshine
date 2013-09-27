@@ -277,17 +277,8 @@ shine.Closure.prototype._executeInstruction = function (pc, line) {
 		B = this._instructions[offset + 2],
 		C = this._instructions[offset + 3];
 
-	if (!op) throw new Error ('Operation not implemented! (' + opcode + ')');
-
-	// if (shine.debug.status != 'resuming') {
-	// 	var tab = '',
-	// 		opName = this.constructor.OPERATION_NAMES[opcode];
-			
-	// 	for (var i = 0; i < this._index; i++) tab += '\t';
-	// 	shine.stddebug.write (tab + '[' + this._pc + ']\t' + line + '\t' + opName + '\t' + A + '\t' + B + (C !== undefined? '\t' + C : ''));
-	// }
-
-	return op.call (this, A, B, C);
+	// if (!op) throw new Error('Operation not implemented! (' + opcode + ')');
+	return op.call(this, A, B, C);
 };
 	
 

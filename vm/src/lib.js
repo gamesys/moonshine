@@ -146,29 +146,6 @@ var shine = shine || {};
 			file,
 			pathData;
 
-		// if (filename.substr(0, 1) != '/') {
-		// 	pathData = (this._thread._file.url || '').match(/^(.*\/).*?$/);
-		// 	pathData = (pathData && pathData[1]) || '';
-		// 	filename = pathData + filename;
-		// }
-
-		// file = new shine.File(filename);
-
-		// file.on('loaded', function (data) {
-		// 	var func = new shine.Function(vm, file, file.data, vm._globals);
-		// 	vm._trigger('module-loaded', file, func);
-			
-		// 	callback(func);
-		// });
-
-		// file.on('error', function (code) {
-		// 	vm._trigger('module-load-error', file, code);
-		// 	callback();
-		// });
-
-		// this._trigger('loading-module', file);
-		// file.load ();
-
 		this.fileManager.load(filename, function (err, file) {
 			if (err) {
 				vm._trigger('module-load-error', file, err);
@@ -450,7 +427,7 @@ var shine = shine || {};
 				preload,
 				paths,
 				path,
-				failedPaths = [];
+				failedPaths = shine.gc.createArray();
 
 
 			function curryLoad (func) {
