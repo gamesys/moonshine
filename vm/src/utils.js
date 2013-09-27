@@ -164,11 +164,25 @@ var shine = shine || {};
 			xhr.open('GET', url, true);
 
 
+			// Use ArrayBuffer where possible. Luac files do not load properly with 'text'.
 			if ('ArrayBuffer' in window) {
 				xhr.responseType = 'arraybuffer';
 
 				parse = function (data) {
-					return String.fromCharCode.apply(String, new Uint8Array(data));
+					// If the file is longer than 121956 characters, the following statement fails (at least in Chrome) due to
+					// limits on the number of arguments you can pass to a function ...
+					if (data.byteLength <= 100000) return String.fromCharCode.apply(String, new Uint8Array(data));
+
+					// ... therefore parse in chunks, if longer:
+					var i, l,
+						arr = new Uint8Array(data),
+						result = '';
+
+					for (i = 0, l = data.byteLength; i < l; i += 100000) {
+						result += String.fromCharCode.apply(String, arr.subarray(i, Math.min(i + 100000, l)));
+					}
+
+					return result;
 				};
 
 			} else {
