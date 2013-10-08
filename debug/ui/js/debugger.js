@@ -304,7 +304,7 @@
 		showVars(data.locals, elements.locals);
 
 		for (i = 0, l = data.callStack.length; i < l; i++) {
-			match = data.callStack[i].match(/^(.*)\[((.*?):(\d+))\]$/);
+			match = data.callStack[i].match(/^(.*)\[((.*?):([\d\?]+))\]$/);
 
 			li = document.createElement('li');
 			li.textContent = match[1];

@@ -1,5 +1,11 @@
 
 
+'use strict';
+
+
+var ESC = String.fromCharCode(27);
+
+
 module.exports = {
 
 	MESSAGE_TYPES: {
@@ -25,8 +31,11 @@ module.exports = {
 
 
 	COLORS: {
-		CYAN: '\033[36m',
-		RESET: '\033[0m'
+		RED: ESC + '[31m',
+		GREEN: ESC + '[32m',
+		CYAN: ESC + '[36m',
+		WHITE: ESC + '[37m',
+		RESET: ESC + '[0m'
 	}
 
 };

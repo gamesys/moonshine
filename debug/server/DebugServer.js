@@ -53,6 +53,7 @@ DebugServer.prototype._initAppConnection = function (config) {
 
 
 	conn.on('lua-load-failed', function (jsonUrl, url) {
+		var code;
 		if (me._sourcePaths) code = me.getLocalSourceCode(url);
 
 		if (me._consoleConnection) {
