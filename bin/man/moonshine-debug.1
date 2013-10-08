@@ -1,0 +1,58 @@
+.\" Manpage for moonshine-debug.
+.TH "MOONSHINE\-DEBUG" 1 "2013-10-01"
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.SH NAME
+moonshine-debug \- Moonshine remote debug server.
+.SH SYNOPSIS
+moonshine debug [options]
+.SH DESCRIPTION
+Use this command to start a debug server on the local machine. This will enable a Moonshine VM instance anywhere on the network to connect to the local machine. It will also serve a debug console web page from which a user can place breakpoints in the source code, step through the code and inspect the values of variables.
+.PP
+In order for a remote Moonshine VM instance to connect to the debug server, it must be running two extra JavaScript files in the page, in addition to the VM: debug.moonshine.js and remote-debug.moonshine.js. This will display a dialog in the top-right of the page, in which to type the IP address of the local machine and the chosen app port (default: 1959).
+.PP
+If the source code has been deployed on the application server alongside the distilled files (as you might on a development environment), these files are picked up automatically. If those files are not present the debugger will be empty unless those files can be inserted by the debug server. Use the --source-path option to specify the directories in which the source files may be found.
+.SH OPTIONS
+.sp
+Options can be any of the following:
+.PP
+\-ap port, \-\-app-port port
+.RS 4
+The port on which to listen for connection from a Moonshine VM instance. Default is 1959.
+.RE
+.PP
+\-cp port, \-\-console-port port
+.RS 4
+The port the localhost from which to serve the debug console. Default is 1969.
+.RE
+.PP
+\-src path-list, \-\-source-path path-list
+.RS 4
+Semicolon-delimited list of source paths in which to search for Lua source scripts.
+.RE
+.SH EXAMPLES
+.PP
+moonshine debug
+.RS 4
+Starts up a debug server that listens for an app on port 1959 and serves a console on http://localhost:1969/.
+.RE
+.PP
+moonshine debug -ap 2000 -cp 3000
+.RS 4
+Starts up a debug server that listens for an app on port 2000 and serves a console on http://localhost:3000/.
+.RE
+.PP
+moonshine debug -src lib;src
+.RS 4
+Starts up a server on default ports and serves source code from lib/ and src/.
+.RE
+.SH SEE ALSO
+moonshine-distil(1)
+.SH BUGS
+http://github.com/gamesys/moonshine/issues
+.SH AUTHOR
+Paul Cuthbertson (paul.cuthbertson@gamesys.co.uk)

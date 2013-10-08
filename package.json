@@ -25,6 +25,11 @@
 	"bin": {
 		"moonshine": "./bin/moonshine"
 	},
+	"man": [
+		"./bin/man/moonshine.1",
+		"./bin/man/moonshine-debug.1",
+		"./bin/man/moonshine-distil.1"
+	],
 	"homepage": "http://moonshinejs.org",
 	"repository": {
 		"type": "git",

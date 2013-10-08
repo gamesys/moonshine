@@ -1,0 +1,82 @@
+.\" Manpage for moonshine-distil.
+.TH "MOONSHINE\-DISTIL" 1 "2013-10-01"
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.SH NAME
+moonshine-distil \- Preprocess Lua bytecode into Moonshine's JSON format.
+.SH SYNOPSIS
+moonshine distil [options] filenames
+.SH DESCRIPTION
+To "distil" a Lua script is to compile the script and then prepare the resulting bytecode to be read by the Moonshine VM. The preparation essentially translates the bytecode to JSON.
+.PP
+It is also possible to compile a Lua script and load the bytecode directly into the Moonshine VM. However, this forces every client to run the preprocessor every time they load a script, rather than running it just once here.
+.PP
+You may also use the distil command with the --output-filename option to package many Lua scripts into one file. This enables it to be shipped easier and has less overhead than many requests.
+.SH OPTIONS
+.sp
+Options can be any of the following:
+.PP
+\-d path, \-\-output-path path
+.RS 4
+The path into which the distilled files are placed, in the same directory structure as the source files.
+.RE
+.PP
+\-j, \-\-json-format
+.RS 4
+Use the older, more verbose file format. Only present for compatibility.
+.RE
+.PP
+\-o filename, \-\-output-filename filename
+.RS 4
+The filename of the distilled JSON file. If many input files are passed with this option, the source files are packaged into a single JSON file.
+.RE
+.PP
+\-pm source-file, \-\-package-main source-file
+.RS 4
+When packaging many scripts into a single file using --outputFilename, this option determines which of the contained files is executed when the file is loaded. All other scripts can be accessed using require() from that script.
+.RE
+.PP
+\-R, \-\-no-recursion
+.RS 4
+Do not recurse into subfolders.
+.RE
+.PP
+\-s, \-\-strip-debugging
+.RS 4
+Removes the debugging information from the output file(s).
+.RE
+.PP
+\-w, \-\-watch
+.RS 4
+Watches the filepaths given for changes and runs the distilation process again.
+.SH EXAMPLES
+.PP
+moonshine distil -s -o myoutput.json myinput.lua
+.RS 4
+Distils myinput.lua, removes debugging information and writes the output to myoutput.json
+.RE
+.PP
+moonshine distil -o package.json -pm src/main.lua src
+.RS 4
+Packages all the scripts in src/ into package.json. When this file is loaded into the VM, src/main.lua is the file that is executed.
+.RE
+.PP
+moonshine distil -d target lib src 
+.RS 4
+Packages all the scripts in lib/ and src/ into the root of target/.
+.RE
+.PP
+moonshine distil -w -d target src/*.v2.lua 
+.RS 4
+Watches all files matching the file mask and distils them automatically when they change.
+.RE
+.SH SEE ALSO
+moonshine-debug(1)
+.SH BUGS
+http://github.com/gamesys/moonshine/issues
+.SH AUTHOR
+Paul Cuthbertson (paul.cuthbertson@gamesys.co.uk)

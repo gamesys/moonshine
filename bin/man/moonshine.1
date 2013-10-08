@@ -1,0 +1,35 @@
+.\" Manpage for moonshine.
+.TH "MOONSHINE" 1 "2013-10-01"
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.SH NAME
+moonshine \- CLI for Moonshine VM.
+.SH SYNOPSIS
+moonshine command [options]
+.SH DESCRIPTION
+Moonshine is a JavaScript library that enables execution of Lua within a JavaScript environment. This command line interface offers utility functions to help develop and deploy Lua scripts for use in a Moonshine VM.
+.SH COMMANDS
+.sp
+Options can be any of the following:
+.PP
+distil
+.RS 4
+Preprocess one or more Lua scripts in preparation to be loaded into a Moonshine VM. See moonshine-distil(1) for more information.
+.RE
+.PP
+debug
+.RS 4
+Start a remote debug server that allows debugging of code running on a Moonshine VM on any device on the network. See moonshine-debug(1) for more information.
+.RE
+.SH OPTIONS
+Options are command-specific. See man page for each command to find the options available.
+.SH SEE ALSO
+moonshine-debug(1), moonshine-distil(1)
+.SH BUGS
+http://github.com/gamesys/moonshine/issues
+.SH AUTHOR
+Paul Cuthbertson (paul.cuthbertson@gamesys.co.uk)
