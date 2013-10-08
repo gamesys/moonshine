@@ -1095,7 +1095,7 @@ shine.Closure.prototype.dispose = function (force) {
 									shine.gc.incrRef(val);
 								}
 							},
-							name: me._functions[bx].upvalues[upvalues.length]
+							name: me._functions[bx].upvalues? me._functions[bx].upvalues[upvalues.length] : '(upvalue)'
 						};
 
 						me._localsUsedAsUpvalues.push({

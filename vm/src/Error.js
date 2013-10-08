@@ -119,7 +119,7 @@ shine.Error.prototype._stackToString = function () {
 				filename = closure._file.url;
 			}
 
-			result.push ((funcName || 'function') + ' [' + (filename || 'file') + ':' + closure._data.linePositions[pc] + ']')
+			result.push ((funcName || 'function') + ' [' + (filename || 'file') + ':' + (closure._data.linePositions? closure._data.linePositions[pc] : '?') + ']')
 		}
 	}
 	
