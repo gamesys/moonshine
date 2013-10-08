@@ -169,17 +169,17 @@ var shine = shine || {};
 				xhr.responseType = 'arraybuffer';
 
 				parse = function (data) {
-					// If the file is longer than 121956 characters, the following statement fails (at least in Chrome) due to
-					// limits on the number of arguments you can pass to a function ...
-					if (data.byteLength <= 100000) return String.fromCharCode.apply(String, new Uint8Array(data));
+					// There is a limit on the number of arguments one can pass to a function. So far iPad is the lowest, and 10000 is safe.
+					// If safe number of arguments to pass to fromCharCode:
+					if (data.byteLength <= 10000) return String.fromCharCode.apply(String, new Uint8Array(data));
 
-					// ... therefore parse in chunks, if longer:
+					// otherwise break up bytearray:
 					var i, l,
 						arr = new Uint8Array(data),
 						result = '';
 
-					for (i = 0, l = data.byteLength; i < l; i += 100000) {
-						result += String.fromCharCode.apply(String, arr.subarray(i, Math.min(i + 100000, l)));
+					for (i = 0, l = data.byteLength; i < l; i += 10000) {
+						result += String.fromCharCode.apply(String, arr.subarray(i, Math.min(i + 10000, l)));
 					}
 
 					return result;
