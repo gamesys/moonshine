@@ -717,16 +717,21 @@ shine.Closure.prototype.dispose = function (force) {
 	function concat (a, b, c) {
 
 		var text = this._register.getItem(c),
-			mt, f;
+			i, item, mt, f, args;
 
-		for (var i = c - 1; i >= b; i--) {
-			if (((this._register.getItem(i) || shine.EMPTY_OBJ) instanceof shine.Table && (mt = this._register.getItem(i).__shine.metatable) && (f = mt.getMember('__concat')))
-			|| ((text || shine.EMPTY_OBJ) instanceof shine.Table && (mt = text.__shine.metatable) && (f = mt.getMember('__concat')))) {
-				text = f.apply(null, [this._register.getItem(i), text], true)[0];
+		for (i = c - 1; i >= b; i--) {
+			item = this._register.getItem(i);
+
+			if ((item !== undefined && item instanceof shine.Table && (mt = item.__shine.metatable) && (f = mt.getMember('__concat')))
+			|| (text !== undefined && text instanceof shine.Table && (mt = text.__shine.metatable) && (f = mt.getMember('__concat')))) {
+				args = shine.gc.createArray();
+				args.push(item, text);
+
+				text = f.apply(null, args, true)[0];
 
 			} else {
-				if (!(typeof this._register.getItem(i) === 'string' || typeof this._register.getItem(i) === 'number') || !(typeof text === 'string' || typeof text === 'number')) throw new shine.Error('Attempt to concatenate a non-string or non-numeric value');
-				text = this._register.getItem(i) + text;
+				if (!(typeof item === 'string' || typeof item === 'number') || !(typeof text === 'string' || typeof text === 'number')) throw new shine.Error('Attempt to concatenate a non-string or non-numeric value');
+				text = item + text;
 			}
 		}
 
