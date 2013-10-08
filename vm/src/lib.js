@@ -383,21 +383,7 @@ var shine = shine || {};
 				item;
 			
 			for (var i = 0, l = arguments.length; i< l; i++) {
-				item = arguments[i];
-				
-				if ((item || shine.EMPTY_OBJ) instanceof shine.Table) {
-					output.push('table: 0x' + item.__shine.index.toString(16));
-					
-				} else if ((item || shine.EMPTY_OBJ) instanceof Function) {
-					output.push('function: [host code]');
-									
-				} else if (item === undefined) {
-					output.push('nil');
-					
-				} else {
-					output.push(shine.lib.tostring(item));
-				}
-//	console.log ('print>>', item);
+				output.push(shine.lib.tostring(arguments[i]));
 			}
 	
 			return shine.stdout.write(output.join('\t'));
@@ -589,6 +575,9 @@ var shine = shine || {};
 		
 		
 		tostring: function (e) {
+			var mt, mm;
+
+			if (e !== undefined && e instanceof shine.Table && (mt = e.__shine.metatable) && (mm = mt.getMember('__tostring'))) return mm.call(mm, e);
 			return shine.utils.coerce(e, 'string');
 		},
 		
