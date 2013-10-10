@@ -71,8 +71,7 @@ shine.Table.count = 0;
  * @returns {Object} The value of the member sought.
  */
 shine.Table.prototype.getMember = function (key) {
-	var index,
-		value;
+	var index, value, mt;
 
 	switch (typeof key) {
 		case 'string':
@@ -88,9 +87,7 @@ shine.Table.prototype.getMember = function (key) {
 			if (index >= 0) return this.__shine.values[index];
 	}
 	
-	var mt = this.__shine.metatable;
-
-	if (mt && mt.__index) {
+	if ((mt = this.__shine.metatable) && mt.__index) {
 		switch (mt.__index.constructor) {
 			case shine.Table: return mt.__index.getMember(key);
 			case Function: return mt.__index(this, key);
@@ -113,7 +110,24 @@ shine.Table.prototype.setMember = function (key, value) {
 		keys,
 		index;
 
-	if (this[key] === undefined && mt && mt.__newindex) {
+
+	switch (typeof key) {
+		case 'string':
+			oldValue = this[key];
+			break;
+
+		case 'number':
+			oldValue = this.__shine.numValues[key];
+			break;
+
+		default:
+			keys = this.__shine.keys;
+			index = keys.indexOf(key);
+
+			oldValue = index == -1? undefined : this.__shine.values[index];
+	}
+
+	if (oldValue === undefined && mt && mt.__newindex) {
 		switch (mt.__newindex.constructor) {
 			case shine.Table: return mt.__newindex.setMember(key, value);
 			case Function: return mt.__newindex(this, key, value);
@@ -123,27 +137,19 @@ shine.Table.prototype.setMember = function (key, value) {
 
 	switch (typeof key) {
 		case 'string':
-			oldValue = this[key];
 			this[key] = value;
 			break;
 
-
 		case 'number':
-			oldValue = this.__shine.numValues[key];
 			this.__shine.numValues[key] = value;
 			break;
 
-
 		default:
-			keys = this.__shine.keys;
-			index = keys.indexOf(key);
-			
 			if (index < 0) {
 				index = keys.length;
 				keys[index] = key;
 			}
 			
-			oldValue = this.__shine.values[index];
 			this.__shine.values[index] = value;
 	}
 

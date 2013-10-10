@@ -209,7 +209,10 @@ var shine = shine || {};
 		 * @param {object} table The table from which to obtain the metatable.
 		 */
 		getmetatable: function (table) {
+			var mt;
+
 			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in getmetatable(). Table expected');
+			if ((mt = table.__shine.metatable) && (mt = mt.__metatable)) return mt;
 			return table.__shine.metatable;
 		},
 		
@@ -530,8 +533,11 @@ var shine = shine || {};
 		 * @param {object} metatable The metatable to attach.
 		 */
 		setmetatable: function (table, metatable) {
+			var mt;
+
 			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in setmetatable(). Table expected');	
 			if (!(metatable === undefined || (metatable || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #2 in setmetatable(). Nil or table expected');	
+			if ((mt = table.__shine.metatable) && (mt = mt.__metatable)) throw new shine.Error('cannot change a protected metatable');
 
 			shine.gc.decrRef(table.__shine.metatable);
 			table.__shine.metatable = metatable;
