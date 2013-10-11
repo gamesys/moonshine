@@ -101,7 +101,7 @@ mainGlobal2 = 'mainGlbl'
 
 local mainLocal = 'mainLoc'
 
-f = loadfile('scripts/lib-loadfile.luac')
+f = loadfile('lib-loadfile.lua')
 assertTrue (type(f) == 'function', 'loadfile() should return a function when passed a valid filename')
 
 local result = f();
@@ -122,9 +122,8 @@ assertTrue (innerLocal == nil, 'Function locals should not leak into outer envir
 local f = loadstring(src)
 assertTrue (type(f) == 'function', 'loadstring() should return a function when passed a valid source string')
 
-local result = f();
+local result = f()
 assertTrue (result == 'hello', 'The function returned from loadstring() should return the value from the script')
-
 
 
 
@@ -169,6 +168,8 @@ assertTrue (c == nil, 'pcall() should only return 2 items when the function erro
 
 
 
+
+
 -- rawequal
 -- rawget
 -- rawset
@@ -185,13 +186,13 @@ mainGlobal2 = 'mainGlbl'
 
 local mainLocal = 'mainLoc'
 
-local result = require 'scripts.lib-require'
+local result = require 'lib-require'
 
 assertTrue (type(result) == 'table', 'require() should return a table')
 assertTrue (type(result.getValue) == 'function', 'require() should return the value that is returned from the module[1]')
 assertTrue (result.getValue() == 'modVal', 'require() should return the value that is returned from the module[2]')
 
-assertTrue (package.loaded['scripts.lib-require'] == result, 'Module loaded by require() should also be available in package.loaded[modname]')
+assertTrue (package.loaded['lib-require'] == result, 'Module loaded by require() should also be available in package.loaded[modname]')
 
 assertTrue (mainGlobal1 == 'innerGlbl', 'require() should pass the same global namespace into the module[1]')
 assertTrue (mainGlobal2 == 'mainGlbl', 'require() should pass the same global namespace into the module[2]')
@@ -394,6 +395,11 @@ assertTrue (e == 'inf', 'tostring() should convert infinity to "inf"')
 assertTrue (f == '-inf', 'tostring() should convert negative infinity to "-inf"')
 assertTrue (g == 'nan', 'tostring() should convert not-a-number to "nan"')
 
+a = {}
+setmetatable(a, { __tostring = function () return 'Les Revenants' end })
+b = tostring (a)
+
+assertTrue (b == 'Les Revenants', 'tostring() should use __tostring function, if available on metatable')
 
 
 

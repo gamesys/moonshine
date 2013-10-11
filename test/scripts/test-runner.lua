@@ -77,18 +77,18 @@ end
 
 
 
-run 'scripts.operators'
-run 'scripts.functions'
-run 'scripts.tables'
-run 'scripts.control-structures'
-run 'scripts.coercion'
-run 'scripts.metamethods'
-run 'scripts.lib'
-run 'scripts.lib-string'
-run 'scripts.lib-table'
-run 'scripts.lib-math'
-run 'scripts.lib-coroutine'
-run 'scripts.lib-date'
+run 'operators'
+run 'functions'
+run 'tables'
+run 'control-structures'
+run 'coercion'
+run 'metamethods'
+run 'lib'
+run 'lib-string'
+run 'lib-table'
+run 'lib-math'
+run 'lib-coroutine'
+run 'lib-date'
 
 
 

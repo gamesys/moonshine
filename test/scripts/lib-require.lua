@@ -5,10 +5,10 @@ assertTrue (mainGlobal2 == 'mainGlbl', 'Modules should have access to the same g
 assertTrue (mainLocal == nil, 'Modules should not have access to the local scope of the caller')
 
 local testModName = ...
-assertTrue (testModName == 'scripts.lib-require', 'A module\'s name should be passed into the module using varargs.')
+assertTrue (testModName == 'lib-require', 'A module\'s name should be passed into the module using varargs.')
 
 
-local sub = require 'scripts.lib-require.sub-module'	-- test dot syntax
+local sub = require 'lib-require.sub-module'	-- test dot syntax
 assertTrue(type(sub) == 'table', 'Module should be able to load more modules.')
 
 mainGlobal1 = 'innerGlbl'
