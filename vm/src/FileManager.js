@@ -51,8 +51,10 @@ shine.FileManager.prototype.load = function (url, callback) {
 		}
 
 		if (tree) {
-			if (url) me._cache[url] = tree;
-			me._onSuccess(url || '', tree, callback);
+			window.setTimeout(function () {		// Make sure all calls are async.
+				if (url) me._cache[url] = tree;
+				me._onSuccess(url || '', tree, callback);
+			}, 1);
 		}
 
 		return !!tree;

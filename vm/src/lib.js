@@ -149,7 +149,13 @@ var shine = shine || {};
 		this.fileManager.load(filename, function (err, file) {
 			if (err) {
 				vm._trigger('module-load-error', file, err);
-				callback();
+
+				if (err == 404 && /\.lua$/.test(filename)) {
+					loadfile.call(vm, filename + '.json', callback);
+				} else {
+					callback();
+				}
+
 				return;
 			}
 
@@ -279,7 +285,6 @@ var shine = shine || {};
 				var func = new shine.Function(vm, file, file.data, vm._globals, shine.gc.createArray());
 				vm.resume([func]);
 			});
-
 		},
 	
 	
