@@ -271,10 +271,12 @@ var shine = shine || {};
 	
 		
 		loadstring: function (string, chunkname) {
+			var vm = this;
+			
 			if (typeof string != 'string') throw new shine.Error('bad argument #1 to \'loadstring\' (string expected, got ' + shine.utils.coerce(string, 'string') + ')');
-			if (!string) return new shine.Function(vm);
+			if (!string) return new shine.Function(this);
 
-			vm.suspend();
+			this.suspend();
 
 			this.fileManager.load(string, function (err, file) {
 				if (err) {
