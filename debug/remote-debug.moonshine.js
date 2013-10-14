@@ -228,6 +228,7 @@ shine.debug.ui = {
 		};
 		
 		var style = this.elements.main.style;
+		style.zIndex = '999';
 		style.position = 'fixed';
 		style.top = style.right = '0';
 		style.backgroundColor = '#ddd';
