@@ -1,3 +1,12 @@
+/**
+ * @fileOverview Remote UI and server connections for debug engine.
+ * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
+ * @copyright Gamesys Limited 2013
+ */
+
+
+var shine = shine || {};
+shine.debug = shine.debug || {};
 
 
 
@@ -347,4 +356,7 @@ shine.debug.ui = {
 };
 
 
+
+
+shine.debug.ui.init();
 
