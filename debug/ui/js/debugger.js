@@ -281,7 +281,7 @@
 					if (def.fields.hasOwnProperty(i)) title.push(i + ': ' + def.fields[i]);
 				}
 
-				el.title = title.join('\n');
+				el.title = title.join('\n') || '{ }';
 			}
 		}
 
@@ -313,7 +313,7 @@
 			anchor.textContent = match[2];
 			anchor.href = '#'; // yuck
 
-			anchor.dataset.jsonUrl = getJsonUrl(match[3]);
+			anchor.dataset.jsonUrl = match[3];
 			anchor.dataset.lineNumber = match[4];
 
 			anchor.addEventListener('click', function (e) {
@@ -551,6 +551,8 @@
 
 		var session = ide.getSession(),
 			marker = session.addMarker(new ide.Range(lineNumber - 1, 0, lineNumber - 1, Infinity), 'goto');
+
+		ide.scrollToLine(lineNumber - 1, true);
 
 		window.setTimeout(function () {
 			session.removeMarker(marker);

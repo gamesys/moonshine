@@ -259,12 +259,16 @@ shine.debug.ui = {
 		this.elements.port.style.width = '40px';
 
 		this.elements.connect.textContent = 'Connect';
+		this.elements.connect.style.border = '1px solid #aaa';
+		this.elements.connect.style.marginLeft = '2px';
 		this.elements.connect.addEventListener('click', function () { me._handleConnectClick(); });
 
 		this.elements.status.style.lineHeight = '24px';
-		this.elements.status.style.marginRight = '4px';
+		this.elements.status.style.margin = '0 4px 0 0';
 
 		this.elements.stop.textContent = 'Stop';
+		this.elements.stop.style.border = '1px solid #aaa';
+		this.elements.stop.style.marginLeft = '2px';
 		this.elements.stop.addEventListener('click', function () { me._handleStopClick(); });
 
 		this.clear();
