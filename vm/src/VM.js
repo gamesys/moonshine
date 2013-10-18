@@ -277,3 +277,15 @@ shine.VM.prototype.dispose = function () {
 	shine.Closure._current = undefined;
 	shine.Coroutine._graveyard.length = 0;
 };
+
+
+
+
+/**
+ * Returns a reference to the VM that is currently executing.
+ * @returns {shine.VM} Current VM
+ */
+shine.getCurrentVM = function () {
+	var closure;
+	return (closure = this.Closure._current) && closure._vm;
+};
