@@ -1,5 +1,4 @@
 
-
 'use strict';
 
 
@@ -167,7 +166,7 @@ function createPath (path) {
 
 	while ((pos = path.indexOf('/', pos + 1)) >= 0) {
 		name = path.substr(0, pos);
-		if (!fs.existsSync(name)) fs.mkdirSync(name);
+		if (name && !fs.existsSync(name)) fs.mkdirSync(name);
 	}
 }
 
