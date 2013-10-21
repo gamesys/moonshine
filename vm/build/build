@@ -39,6 +39,7 @@ var switches = getSwitches(process.argv),
 	OUTPUT_FILENAME = '../moonshine.js',
 	HEADER_FILENAME = './header.js',
 	FOOTER_FILENAME = './footer.js',
+	MODULE_FILENAME = '../moonshine-module.js',
 	MINIFIED_OUTPUT_FILENAME = '../moonshine.min.js',
 	AS_HEADER_FILENAME = '../src/as/header.as',
 	AS_FOOTER_FILENAME = '../src/as/footer.as',
@@ -129,6 +130,7 @@ function minifyLibrary () {
 		fs.unlink(filename);
 
 		console.log('File written: ' + MINIFIED_OUTPUT_FILENAME);
+		if (switches['-module']) buildModule();
 	});
 }
 
@@ -136,7 +138,7 @@ function minifyLibrary () {
 
 
 /**
- * Concatenates source files.
+ * Build a Flash SWC.
  */
 function buildSWC () {
 	var filename = './' + AS_CLASS_NAME + '.as',
@@ -154,5 +156,23 @@ function buildSWC () {
 
 		console.log('File written: ' + SWC_OUTPUT_FILENAME);
 	});
+}
+
+
+
+
+/**
+ * Builds a RequireJS module.
+ * Note: This in no way condones the use of RequireJS.
+ */
+function buildModule () {
+	var output = fs.openSync(MODULE_FILENAME, 'w');
+
+	fs.writeSync(output, 'define(function(require,exports,module){\n');
+	appendFile(output, MINIFIED_OUTPUT_FILENAME);
+	fs.writeSync(output, '\n});');
+	
+	fs.closeSync(output);
+	console.log('File written: ' + MODULE_FILENAME);
 }
 
