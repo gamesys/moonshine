@@ -22,6 +22,7 @@ package {
 
 			var JSON : Object;
 			var ArrayBuffer : Object;
+			var Uint8Array : Object;
 			var Int32Array : Object;
 			var XMLHttpRequest : Function = function () {};
 
