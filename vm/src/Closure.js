@@ -918,6 +918,7 @@ shine.Closure.prototype.dispose = function (force) {
 		shine.gc.collect(args);
 
 		if (!(retvals && retvals instanceof Array)) retvals = [retvals];
+
 		if (this._vm._status == shine.SUSPENDING) return;
 		if (shine.Coroutine._running && shine.Coroutine._running.status == shine.SUSPENDING) return;
 
@@ -926,14 +927,14 @@ shine.Closure.prototype.dispose = function (force) {
 			l = retvals.length;
 			
 			for (i = 0; i < l; i++) {
-				this._register.setItem(a + i, retvals[i]);
+				this._register.setItem(a + i, (o = retvals[i]) == null? undefined : o);		// null comparison for Flash API calls
 			}
 
 			this._register.splice(a + l);
 			
 		} else {
 			for (i = 0; i < c - 1; i++) {
-				this._register.setItem(a + i, retvals[i]);
+				this._register.setItem(a + i, (o = retvals[i]) == null? undefined : o);		// null comparison for Flash API calls
 			}
 		}
 		
