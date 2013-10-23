@@ -72,10 +72,11 @@ shine.Register.prototype.getItem = function (index) {
  */
 shine.Register.prototype.setItem = function (index, value) {
 	var item = this._items[index];
+
+	shine.gc.incrRef(value);
 	shine.gc.decrRef(item);
 
-	item = this._items[index] = value;
-	shine.gc.incrRef(item);
+	this._items[index] = value;
 };
 
 

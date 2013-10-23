@@ -475,10 +475,11 @@ var shine = shine || {};
 				if (!result) return;
 				module = result[0];
 
-				if (module !== undefined) packageLib.loaded[modname] = module;
+				if (module !== undefined) packageLib.loaded.setMember(modname, module);
 				return packageLib.loaded[modname];
 			}
 
+			modname = shine.utils.coerce(modname, 'string');
 			if (module = packageLib.loaded[modname]) return module;
 			if (preload = packageLib.preload[modname]) return load(preload);
 
@@ -546,9 +547,10 @@ var shine = shine || {};
 			if (!(metatable === undefined || (metatable || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #2 in setmetatable(). Nil or table expected');	
 			if ((mt = table.__shine.metatable) && (mt = mt.__metatable)) throw new shine.Error('cannot change a protected metatable');
 
-			shine.gc.decrRef(table.__shine.metatable);
-			table.__shine.metatable = metatable;
 			shine.gc.incrRef(metatable);
+			shine.gc.decrRef(table.__shine.metatable);
+
+			table.__shine.metatable = metatable;
 
 			return table;
 		},

@@ -460,10 +460,10 @@ shine.Closure.prototype.dispose = function (force) {
 			oldValue = this._globals[varName],
 			newValue = this._register.getItem(a);
 
-		this._globals[varName] = newValue;
-
-		shine.gc.decrRef(oldValue);
 		shine.gc.incrRef(newValue);
+		shine.gc.decrRef(oldValue);
+
+		this._globals[varName] = newValue;
 	}
 
 
@@ -1090,9 +1090,9 @@ shine.Closure.prototype.dispose = function (force) {
 								if (this.open) {
 									me._register.setItem(B, val);
 								} else {
+									shine.gc.incrRef(val);
 									shine.gc.decrRef(this.value);
 									this.value = val;
-									shine.gc.incrRef(val);
 								}
 							},
 							name: me._functions[bx].upvalues? me._functions[bx].upvalues[upvalues.length] : '(upvalue)'

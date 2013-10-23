@@ -93,7 +93,7 @@ shine.Table.prototype.getMember = function (key) {
 			case Function: return mt.__index(this, key);
 			case shine.Function: return mt.__index.apply(this, [this, key])[0];
 		}
-	}		
+	}
 };
 
 
@@ -153,8 +153,8 @@ shine.Table.prototype.setMember = function (key, value) {
 			this.__shine.values[index] = value;
 	}
 
-	shine.gc.decrRef(oldValue);
 	shine.gc.incrRef(value);
+	shine.gc.decrRef(oldValue);
 };
 
 
