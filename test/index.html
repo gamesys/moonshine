@@ -17,8 +17,8 @@
 		<script src="../vm/src/utils.js"></script>
 		<script src="../vm/src/output.js"></script>
 		
-		<script src="../debug/debug.moonshine.js"></script>		
-		<script src="http://paulcuth.me.uk/lichen/lichen.js.php?accept=shine,io&amp;position=top-left"></script>
+		<!--script src="../debug/debug.moonshine.js"></script>		
+		<script src="http://paulcuth.me.uk/lichen/lichen.js.php?accept=shine,io&amp;position=top-left"></script-->
 
 		<style>
 			#debug,
@@ -82,7 +82,7 @@
 
 	
 				var vm = new shine.VM ({ getTimestamp: getTimestamp });
-				vm.load ('./scripts/json/test-runner.lua.json', true);
+				vm.load ('./test-package.json', true);
 
 			})();
 		</script>
