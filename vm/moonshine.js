@@ -733,6 +733,17 @@ shine.VM.prototype.dispose = function () {
 };
 
 
+
+
+/**
+ * Returns a reference to the VM that is currently executing.
+ * @returns {shine.VM} Current VM
+ */
+shine.getCurrentVM = function () {
+	var closure;
+	return (closure = this.Closure._current) && closure._vm;
+};
+
 // vm/src/Register.js:
 
 
@@ -804,10 +815,11 @@ shine.Register.prototype.getItem = function (index) {
  */
 shine.Register.prototype.setItem = function (index, value) {
 	var item = this._items[index];
+
+	shine.gc.incrRef(value);
 	shine.gc.decrRef(item);
 
-	item = this._items[index] = value;
-	shine.gc.incrRef(item);
+	this._items[index] = value;
 };
 
 
@@ -1341,10 +1353,10 @@ shine.Closure.prototype.dispose = function (force) {
 			oldValue = this._globals[varName],
 			newValue = this._register.getItem(a);
 
-		this._globals[varName] = newValue;
-
-		shine.gc.decrRef(oldValue);
 		shine.gc.incrRef(newValue);
+		shine.gc.decrRef(oldValue);
+
+		this._globals[varName] = newValue;
 	}
 
 
@@ -1799,6 +1811,7 @@ shine.Closure.prototype.dispose = function (force) {
 		shine.gc.collect(args);
 
 		if (!(retvals && retvals instanceof Array)) retvals = [retvals];
+
 		if (this._vm._status == shine.SUSPENDING) return;
 		if (shine.Coroutine._running && shine.Coroutine._running.status == shine.SUSPENDING) return;
 
@@ -1807,14 +1820,14 @@ shine.Closure.prototype.dispose = function (force) {
 			l = retvals.length;
 			
 			for (i = 0; i < l; i++) {
-				this._register.setItem(a + i, retvals[i]);
+				this._register.setItem(a + i, (o = retvals[i]) == null? undefined : o);		// null comparison for Flash API calls
 			}
 
 			this._register.splice(a + l);
 			
 		} else {
 			for (i = 0; i < c - 1; i++) {
-				this._register.setItem(a + i, retvals[i]);
+				this._register.setItem(a + i, (o = retvals[i]) == null? undefined : o);		// null comparison for Flash API calls
 			}
 		}
 		
@@ -1971,9 +1984,9 @@ shine.Closure.prototype.dispose = function (force) {
 								if (this.open) {
 									me._register.setItem(B, val);
 								} else {
+									shine.gc.incrRef(val);
 									shine.gc.decrRef(this.value);
 									this.value = val;
-									shine.gc.incrRef(val);
 								}
 							},
 							name: me._functions[bx].upvalues? me._functions[bx].upvalues[upvalues.length] : '(upvalue)'
@@ -2552,7 +2565,7 @@ shine.Table.prototype.getMember = function (key) {
 			case Function: return mt.__index(this, key);
 			case shine.Function: return mt.__index.apply(this, [this, key])[0];
 		}
-	}		
+	}
 };
 
 
@@ -2612,8 +2625,8 @@ shine.Table.prototype.setMember = function (key, value) {
 			this.__shine.values[index] = value;
 	}
 
-	shine.gc.decrRef(oldValue);
 	shine.gc.incrRef(value);
+	shine.gc.decrRef(oldValue);
 };
 
 
@@ -3277,10 +3290,11 @@ var shine = shine || {};
 				if (!result) return;
 				module = result[0];
 
-				if (module !== undefined) packageLib.loaded[modname] = module;
+				if (module !== undefined) packageLib.loaded.setMember(modname, module);
 				return packageLib.loaded[modname];
 			}
 
+			modname = shine.utils.coerce(modname, 'string');
 			if (module = packageLib.loaded[modname]) return module;
 			if (preload = packageLib.preload[modname]) return load(preload);
 
@@ -3348,9 +3362,10 @@ var shine = shine || {};
 			if (!(metatable === undefined || (metatable || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #2 in setmetatable(). Nil or table expected');	
 			if ((mt = table.__shine.metatable) && (mt = mt.__metatable)) throw new shine.Error('cannot change a protected metatable');
 
-			shine.gc.decrRef(table.__shine.metatable);
-			table.__shine.metatable = metatable;
 			shine.gc.incrRef(metatable);
+			shine.gc.decrRef(table.__shine.metatable);
+
+			table.__shine.metatable = metatable;
 
 			return table;
 		},
