@@ -339,15 +339,15 @@ var shine = shine || {};
 
 
 	Parser.prototype._parseInstruction = function (instruction) {
-		var data = '',
+		var data = 0,
 			result = [0, 0, 0, 0];
 	
-		for (var i = 0, l = instruction.length; i < l; i++) {
-			data = ('0000000' + instruction.charCodeAt(i).toString(2)).substr(-8) + data;	// Beware: may need to be different for other endianess
+		for (var i = instruction.length; i >= 0; i--) {
+			data =  (data << 8) + instruction.charCodeAt(i);	// Beware: may need to be different for other endianess
 		}
 
-		result[0] = parseInt(data.substr(-6), 2);
-		result[1] = parseInt(data.substr(-14, 8), 2);
+		result[0] = data & 0x3f;
+		result[1] = data >> 6 & 0xff;
 
 		switch (result[0]) {
 		
@@ -356,20 +356,20 @@ var shine = shine || {};
 			case 5: //getglobal
 			case 7: //setglobal
 			case 36: //closure
-				result[2] = parseInt(data.substr(-32, 18), 2);
+				result[2] = data >> 14 & 0x3fff;
 				break;
 
 			// iAsBx
 			case 22: //jmp
 			case 31: //forloop
 			case 32: //forprep
-				result[2] = parseInt(data.substr(-32, 18), 2) - 131071;
+				result[2] = (data >>> 14) - 0x1ffff;
 				break;
 					
 			// iABC
 			default:
-				result[2] = parseInt(data.substr(-32, 9), 2);
-				result[3] = parseInt(data.substr(-23, 9), 2);
+				result[2] = data >> 23 & 0x1ff;
+				result[3] = data >> 14 & 0x1ff;
 		}
 	
 		if (!this._runConfig.useInstructionObjects) return result;
