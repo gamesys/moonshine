@@ -375,7 +375,7 @@ shine.Closure.prototype.dispose = function (force) {
 
 		this._register.setItem(a, val);
 
-		if (val && val instanceof shine.Function && this._data.locals) {
+		if (this._data.locals && val && val instanceof shine.Function) {
 			for (i = this._data.locals.length - 1; i >= 0; i--) {
 				local = this._data.locals[i];
 				if (local.startpc == this._pc - 1) this._localFunctions[local.varname] = val;
@@ -433,7 +433,10 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function gettable (a, b, c) {
-		var result;
+		var result,
+			local,
+			i;
+
 		b = this._register.getItem(b);
 		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
@@ -450,6 +453,8 @@ shine.Closure.prototype.dispose = function (force) {
 		}
 
 		this._register.setItem(a, result);
+
+		if (result && result instanceof shine.Function) this._localFunctions[c] = result;
 	}
 
 
