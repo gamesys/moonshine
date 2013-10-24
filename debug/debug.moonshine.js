@@ -173,8 +173,8 @@ shine.debug._getSuspendedCallStack = function () {
 
 
 
-shine.debug.getCurrentState = function () {
-	return {
+shine.debug.getCurrentState = function (callback) {
+	callback({
 		loaded: this._loaded,
 		breakpoints: this._breakpoints,
 		stopAtBreakpoints: this._stopAtBreakpoints,
@@ -183,7 +183,7 @@ shine.debug.getCurrentState = function () {
 			state: this._status,
 			data: this._statusData
 		}
-	}
+	});
 };
 
 
