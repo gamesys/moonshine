@@ -281,7 +281,14 @@ shine.debug.ui = {
 		this.elements.stop.addEventListener('click', function () { me._handleStopClick(); });
 
 		this.clear();
-		document.body.appendChild(main);
+
+		if (document.body) {
+			document.body.appendChild(main);
+		} else {
+			window.addEventListener('load', function () {
+				document.body.appendChild(main);
+			});
+		}
 	},
 
 
