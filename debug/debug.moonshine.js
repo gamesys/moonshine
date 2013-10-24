@@ -258,12 +258,52 @@ shine.debug.toggleBreakpoint = function (jsonUrl, lineNumber) {
 	if (this._breakpoints[jsonUrl] === undefined) this._breakpoints[jsonUrl] = [];
 
 	var fileBreakpoints = this._breakpoints[jsonUrl],
-		breakOn = fileBreakpoints[lineNumber] = !fileBreakpoints[lineNumber];
+		breakOn = !fileBreakpoints[lineNumber],
+		vm, file;
+
+	if (breakOn && (vm = shine.debug._vm) && (file = vm.fileManager._cache[jsonUrl])) {
+		lineNumber = shine.debug._getClosestLine(lineNumber + 1, file) - 1;
+		if (fileBreakpoints[lineNumber]) return;
+	}
+
+	fileBreakpoints[lineNumber] = breakOn;
 
 	if (window.sessionStorage) window.sessionStorage.setItem('breakpoints', JSON.stringify(this._breakpoints));
 	this._trigger('breakpoint-updated', [jsonUrl, lineNumber, breakOn]);
 
 	if (breakOn && !this._stopAtBreakpoints) this.toggleStopAtBreakpoints();
+};
+
+
+
+
+shine.debug._getClosestLine = function (lineNumber, functionDef) {
+	var best = -1,
+		i, l, op, lastop,
+		instructions = functionDef.instructions,
+		positions = functionDef.linePositions,
+		functions, functionBest;
+
+	if (!positions) return -1;
+
+	for (i = 0, l = positions.length; i < l; i++) {
+		(op = instructions[i].op) !== undefined || (op = instructions[i * 4]);
+		if (op == 0 || op == 35 || op == 36 || (op == 30 && lastop == 30)) continue;
+		lastop = op
+
+		if (positions[i] == lineNumber) return lineNumber;
+		if (positions[i] > best && positions[i] < lineNumber) best = positions[i];
+	}
+
+	functions = functionDef.functions;
+
+	for (i = 0, l = functions.length; i < l; i++) {
+		functionBest = this._getClosestLine(lineNumber, functions[i]);
+		if (functionBest == lineNumber) return lineNumber;
+		if (functionBest > best && positions[i] < lineNumber) best = functionBest;
+	}
+
+	return best;
 };
 
 
@@ -421,6 +461,8 @@ shine.debug.pause = function () {
 		var me = this,
 			args = arguments;
 		
+		shine.debug._vm = this._vm;
+
 		if (shine.debug._status != shine.RUNNING) {
 
 			shine.debug._callbackQueue.push(function () {
