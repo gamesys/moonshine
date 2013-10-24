@@ -128,11 +128,7 @@
 		clearInspectors();
 		loadScript();
 
-		if (state) {
-			updateState(state);
-		} else {
-			debug.getCurrentState(updateState);
-		}
+		updateState(state? state : debug.getCurrentState());
 	}
 
 
