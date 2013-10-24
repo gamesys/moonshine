@@ -138,7 +138,7 @@ AppConnection.prototype._processMessage = function (type, data, callback) {
  			var breakpoints = this.state.breakpoints;
  			if (breakpoints[data[0]] === undefined) breakpoints[data[0]] = [];
  			
- 			breakpoints[data[1]] = data[2];
+ 			breakpoints[data[0]][data[1]] = data[2];
  			this._trigger('breakpoint-updated', data);
 
  			break;
