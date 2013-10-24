@@ -38,7 +38,6 @@ var shine = shine || {};
 
 		var me = this,
 			fs;
-	
 
 		if (filename.substr(0, 5) == String.fromCharCode(27, 76, 117, 97, 81)) {
 			// Lua byte code string
@@ -54,7 +53,7 @@ var shine = shine || {};
 
 		fs.readFile(filename, 'binary', function (err, data) {
 			if (err) throw err;
-		
+
 			me._parseData('' + data);
 			if (callback) callback(me._tree);
 		});
@@ -152,39 +151,8 @@ var shine = shine || {};
 
 
 	Parser.prototype._readNumber = function () {
-
-		// Double precision floating-point format
-		//	http://en.wikipedia.org/wiki/Double_precision_floating-point_format
-		//	http://babbage.cs.qc.edu/IEEE-754/Decimal.html
-
-		var number = this._readByte(this._config.sizes.number),
-			data = '';
-	
-		for (var i = 0, l = number.length; i < l; i++) {
-			data = ('0000000' + number.charCodeAt(i).toString(2)).substr(-8) + data;	// Beware: may need to be different for other endianess
-		}
-
-		var sign = parseInt(data.substr(-64, 1), 2),
-			exponent = parseInt(data.substr(-63, 11), 2),
-			mantissa = Parser.binFractionToDec(data.substr(-52, 52), 2);
-
-		if (exponent === 0) return 0;
-		if (exponent === 2047) return Infinity;
-
-		return Math.pow(-1, sign) * (1 + mantissa) * Math.pow(2, exponent - 1023);
-	};
-
-
-
-
-	Parser.binFractionToDec = function (mantissa) {
-		var result = 0;
-	
-		for (var i = 0, l = mantissa.length; i < l; i++) {
-			if (mantissa.substr(i, 1) === '1') result += 1 / Math.pow(2, i + 1);
-		}
-
-		return result;
+		var number = this._readByte(this._config.sizes.number);
+		return new Buffer(number, 'binary').readDoubleLE(0);
 	};
 
 
