@@ -1268,7 +1268,7 @@ shine.Closure.prototype.dispose = function (force) {
 
 		this._register.setItem(a, val);
 
-		if (val && val instanceof shine.Function) {
+		if (val && val instanceof shine.Function && this._data.locals) {
 			for (i = this._data.locals.length - 1; i >= 0; i--) {
 				local = this._data.locals[i];
 				if (local.startpc == this._pc - 1) this._localFunctions[local.varname] = val;
