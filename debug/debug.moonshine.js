@@ -50,6 +50,7 @@ shine.debug._init = function () {
 	
 shine.debug._clearLoadQueue = function () {
 	this._ready = true;
+	window.clearTimeout(this._readyInfoTimeout);
 
 	while (this._loadQueue.length) {
 		var data = this._loadQueue.pop();
@@ -386,6 +387,13 @@ shine.debug.pause = function () {
 
 		if (!shine.debug._ready) {
 			shine.debug._loadQueue.push([this, arguments]);
+
+			if (!shine.debug._readyInfoTimeout) {
+				shine.debug._readyInfoTimeout = window.setTimeout(function () {
+					console && console.info && console.info('The Moonshine debugger has suspended execution until a debug UI is found. Have you forgotten to include either local.debug.moonshine.js or remote.debug.moonshine.js in the page?');
+				}, 3000);
+			}
+
 		} else {
 			// shine.debug.handleFileLoaded(url, function () {
 				load.apply(this, args);
