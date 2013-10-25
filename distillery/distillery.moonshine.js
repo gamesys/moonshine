@@ -5,6 +5,9 @@
  */
 
 
+'use strict';
+
+
 var shine = shine || {};
 
 
@@ -93,7 +96,7 @@ var shine = shine || {};
 			signature: this._readByte(4),
 			version: this._readByte().toString(16).split('', 2).join('.'),
 			formatVersion: this._readByte(),
-			endianess: this._readByte(),
+			endianness: this._readByte(),
 
 			sizes: {
 				int: this._readByte(),
@@ -125,11 +128,17 @@ var shine = shine || {};
 			length = 0,
 			result,
 			pos,
-			i;
+			i, l;
 
-		for (i = this._config.sizes.size_t - 1; i >= 0; i--) length = length * 256 + byte.charCodeAt(i);
+		if (this._config.endianness) {
+			for (i = this._config.sizes.size_t - 1; i >= 0; i--) length = length * 256 + byte.charCodeAt(i);
+		} else {
+			for (i = 0, l = this._config.sizes.size_t; i < l; i++) length = length * 256 + byte.charCodeAt(i);
+		}
 
-		result = length? this._readByte(length) : '',
+		if (!length) return '';
+
+		result = this._readByte(length);
 		pos = result.indexOf(String.fromCharCode(0));
 
 		if (pos >= 0) result = result.substr(0, pos);
@@ -344,10 +353,13 @@ var shine = shine || {};
 
 	Parser.prototype._parseInstruction = function (instruction) {
 		var data = 0,
-			result = [0, 0, 0, 0];
+			result = [0, 0, 0, 0],
+			i, l;
 	
-		for (var i = instruction.length; i >= 0; i--) {
-			data =  (data << 8) + instruction.charCodeAt(i);	// Beware: may need to be different for other endianess
+		if (this._config.endianness) {
+			for (i = instruction.length; i >= 0; i--) data =  (data << 8) + instruction.charCodeAt(i);
+		} else {
+			for (i = 0, l = instruction.length; i < l; i++) data = (data << 8) + instruction.charCodeAt(i);
 		}
 
 		result[0] = data & 0x3f;
