@@ -7,7 +7,10 @@
 
 var shine = shine || {};
 shine.debug = shine.debug || {};
-shine.debug.DEBUG_PAGE_PATH = '../debug/ui/index.html';
+
+
+shine.debug.LOCAL_UI_URL = '../debug/ui/index.html';
+
 
 
 
@@ -18,7 +21,7 @@ shine.debug.ui = {
 		var me = this,
 			iframe = this.iframe = document.createElement('iframe');
 
-		iframe.src = shine.debug.DEBUG_PAGE_PATH;
+		iframe.src = shine.debug.LOCAL_UI_URL;
 		iframe.style.position = 'fixed';
 		iframe.style.top = '0';
 		iframe.style.right = '20px';
