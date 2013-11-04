@@ -77,7 +77,7 @@ var shine = shine || {};
 			'%X': function (d, utc) { return DATE_FORMAT_HANDLERS['%H'](d, utc) + ':' + DATE_FORMAT_HANDLERS['%M'](d, utc) + ':' + DATE_FORMAT_HANDLERS['%S'](d, utc); },
 			'%y': function (d, utc) { return DATE_FORMAT_HANDLERS['%Y'](d, utc).substr (-2); },
 			'%Y': function (d, utc) { return '' + d['get' + (utc? 'UTC' : '') + 'FullYear'](); },
-			'%Z': function (d, utc) { return utc? 'UTC' : d.toString ().substr(-4, 3); },
+			'%Z': function (d, utc) { var m; return (utc && 'UTC') || ((m = d.toString().match(/[A-Z][A-Z][A-Z]/)) && m[0]); },
 			'%%': function () { return '%' }
 		},
 
