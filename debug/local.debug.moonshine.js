@@ -30,14 +30,20 @@ shine.debug.ui = {
 		iframe.style.overflow = 'hidden';
 		iframe.style.border = 'none';
 
-		// window.addEventListener('load', function () {
+
+		function append () {
 			document.body.appendChild(iframe);
 
 			iframe.contentWindow.addEventListener('load', function () {
 				me._initIFrame(iframe);
 			});			
-		// });
+		}
 
+		if (document.body) {
+			append();
+		} else {
+			window.addEventListener('load', append, false);
+		}
 	},
 
 
@@ -79,13 +85,12 @@ shine.debug.ui = {
 		iframe.contentDocument.querySelector('.buttons').appendChild(toggle);
 		iframe.contentWindow.registerDebugEngine(shine.debug);
 		shine.debug._clearLoadQueue();
-	},
+	}
 
 };
 
 
-// Give time for the ui to be overridden
-window.addEventListener('load', function () { shine.debug.ui.init(); });
 
 
+shine.debug.ui.init();
 
