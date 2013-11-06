@@ -646,9 +646,12 @@ shine.VM.prototype.getGlobal = function (name) {
  * Suspends any execution in the VM.
  */
 shine.VM.prototype.suspend = function () {
+	if (this._status !== shine.RUNNING) throw new Error('attempt to suspend a non-running VM');
+
 	var vm = this;
 
 	this._status = shine.SUSPENDING;
+	this._resumeVars = undefined;
 
 	window.setTimeout(function () {
 		if (vm._status == shine.SUSPENDING) vm._status = shine.SUSPENDED;
@@ -662,6 +665,11 @@ shine.VM.prototype.suspend = function () {
  * Resumes execution in the VM from the point at which it was suspended.
  */
 shine.VM.prototype.resume = function (retvals) {
+	console.log (this._status)
+	if (this._status !== shine.SUSPENDED && this._status !== shine.SUSPENDING) throw new Error('attempt to resume a non-suspended VM');
+
+	if (!arguments.length || retvals !== undefined) retvals = retvals || this._resumeVars;
+
 	if (retvals && !(retvals instanceof Array)) {
 		var arr = shine.gc.createArray();
 		arr.push(retvals);
@@ -1268,7 +1276,7 @@ shine.Closure.prototype.dispose = function (force) {
 
 		this._register.setItem(a, val);
 
-		if (val && val instanceof shine.Function && this._data.locals) {
+		if (this._data.locals && val && val instanceof shine.Function) {
 			for (i = this._data.locals.length - 1; i >= 0; i--) {
 				local = this._data.locals[i];
 				if (local.startpc == this._pc - 1) this._localFunctions[local.varname] = val;
@@ -1326,7 +1334,10 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function gettable (a, b, c) {
-		var result;
+		var result,
+			local,
+			i;
+
 		b = this._register.getItem(b);
 		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 
@@ -1343,6 +1354,8 @@ shine.Closure.prototype.dispose = function (force) {
 		}
 
 		this._register.setItem(a, result);
+
+		if (result && result instanceof shine.Function) this._localFunctions[c] = result;
 	}
 
 
@@ -1810,9 +1823,17 @@ shine.Closure.prototype.dispose = function (force) {
 		
 		shine.gc.collect(args);
 
+
+		if (this._vm._status == shine.SUSPENDING) {
+			if (retvals !== undefined && this._vm._resumeVars === undefined) {
+				this._vm._resumeVars = (retvals instanceof Array)? retvals : [retvals];
+			}
+
+			return;
+		}
+
 		if (!(retvals && retvals instanceof Array)) retvals = [retvals];
 
-		if (this._vm._status == shine.SUSPENDING) return;
 		if (shine.Coroutine._running && shine.Coroutine._running.status == shine.SUSPENDING) return;
 
 
@@ -2892,7 +2913,7 @@ var shine = shine || {};
 			'%X': function (d, utc) { return DATE_FORMAT_HANDLERS['%H'](d, utc) + ':' + DATE_FORMAT_HANDLERS['%M'](d, utc) + ':' + DATE_FORMAT_HANDLERS['%S'](d, utc); },
 			'%y': function (d, utc) { return DATE_FORMAT_HANDLERS['%Y'](d, utc).substr (-2); },
 			'%Y': function (d, utc) { return '' + d['get' + (utc? 'UTC' : '') + 'FullYear'](); },
-			'%Z': function (d, utc) { return utc? 'UTC' : d.toString ().substr(-4, 3); },
+			'%Z': function (d, utc) { var m; return (utc && 'UTC') || ((m = d.toString().match(/[A-Z][A-Z][A-Z]/)) && m[0]); },
 			'%%': function () { return '%' }
 		},
 
