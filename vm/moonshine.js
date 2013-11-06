@@ -665,7 +665,6 @@ shine.VM.prototype.suspend = function () {
  * Resumes execution in the VM from the point at which it was suspended.
  */
 shine.VM.prototype.resume = function (retvals) {
-	console.log (this._status)
 	if (this._status !== shine.SUSPENDED && this._status !== shine.SUSPENDING) throw new Error('attempt to resume a non-suspended VM');
 
 	if (!arguments.length || retvals !== undefined) retvals = retvals || this._resumeVars;
