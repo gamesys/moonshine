@@ -922,9 +922,17 @@ shine.Closure.prototype.dispose = function (force) {
 		
 		shine.gc.collect(args);
 
+
+		if (this._vm._status == shine.SUSPENDING) {
+			if (retvals !== undefined && this._vm._resumeVars === undefined) {
+				this._vm._resumeVars = (retvals instanceof Array)? retvals : [retvals];
+			}
+
+			return;
+		}
+
 		if (!(retvals && retvals instanceof Array)) retvals = [retvals];
 
-		if (this._vm._status == shine.SUSPENDING) return;
 		if (shine.Coroutine._running && shine.Coroutine._running.status == shine.SUSPENDING) return;
 
 

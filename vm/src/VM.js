@@ -192,9 +192,12 @@ shine.VM.prototype.getGlobal = function (name) {
  * Suspends any execution in the VM.
  */
 shine.VM.prototype.suspend = function () {
+	if (this._status !== shine.RUNNING) throw new Error('attempt to suspend a non-running VM');
+
 	var vm = this;
 
 	this._status = shine.SUSPENDING;
+	this._resumeVars = undefined;
 
 	window.setTimeout(function () {
 		if (vm._status == shine.SUSPENDING) vm._status = shine.SUSPENDED;
@@ -208,6 +211,11 @@ shine.VM.prototype.suspend = function () {
  * Resumes execution in the VM from the point at which it was suspended.
  */
 shine.VM.prototype.resume = function (retvals) {
+	console.log (this._status)
+	if (this._status !== shine.SUSPENDED && this._status !== shine.SUSPENDING) throw new Error('attempt to resume a non-suspended VM');
+
+	if (!arguments.length || retvals !== undefined) retvals = retvals || this._resumeVars;
+
 	if (retvals && !(retvals instanceof Array)) {
 		var arr = shine.gc.createArray();
 		arr.push(retvals);
