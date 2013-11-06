@@ -71,27 +71,31 @@ shine.Table.count = 0;
  * @returns {Object} The value of the member sought.
  */
 shine.Table.prototype.getMember = function (key) {
-	var index, value, mt;
+	var typ = typeof key,
+		index, value, mt, mm;
 
-	switch (typeof key) {
+	if (typ == 'string' && (key == 'getMember' || key == 'setMember')) typ = 'object';
+
+	switch (typ) {
 		case 'string':
-			if (this[key] !== undefined) return this[key];
+			if (this.hasOwnProperty(key) && this[key] !== undefined) return this[key];
 			break;
 
 		case 'number':
 			value = this.__shine.numValues[key];
 			if (value !== undefined) return value;
+			break
 
 		default:
 			index = this.__shine.keys.indexOf(key);
 			if (index >= 0) return this.__shine.values[index];
 	}
 	
-	if ((mt = this.__shine.metatable) && mt.__index) {
-		switch (mt.__index.constructor) {
-			case shine.Table: return mt.__index.getMember(key);
-			case Function: return mt.__index(this, key);
-			case shine.Function: return mt.__index.apply(this, [this, key])[0];
+	if ((mt = this.__shine.metatable) && (mm = mt.__index)) {
+		switch (mm.constructor) {
+			case shine.Table: return mm.getMember(key);
+			case Function: return mm(this, key);
+			case shine.Function: return mm.apply(this, [this, key])[0];
 		}
 	}
 };
@@ -100,18 +104,20 @@ shine.Table.prototype.getMember = function (key) {
 
 
 /**
- * Sets a member of this table. If member previously didn't exist, .
+ * Sets a member of this table.
  * @param {Object} key The member's key.
- * @returns {Object} The value of the member sought.
+ * @param {Object} value The new value of the member.
  */
 shine.Table.prototype.setMember = function (key, value) {
 	var mt = this.__shine.metatable,
+		typ = typeof key,
 		oldValue,
 		keys,
 		index;
 
+	if (typ == 'string' && (key == 'getMember' || key == 'setMember')) typ = 'object';
 
-	switch (typeof key) {
+	switch (typ) {
 		case 'string':
 			oldValue = this[key];
 			break;
@@ -135,7 +141,7 @@ shine.Table.prototype.setMember = function (key, value) {
 		}
 	}
 
-	switch (typeof key) {
+	switch (typ) {
 		case 'string':
 			this[key] = value;
 			break;
