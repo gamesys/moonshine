@@ -69,6 +69,287 @@ assertEqual (d, 'u', 'string.find() should return the groups that are specified 
 assertEqual (e, 'i', 'string.find() should return the groups that are specified in the regex. [2]')
 
 
+
+
+-- format
+
+do
+	local a = string.format("%s %q", "Hello", "Lua user!")
+	local b = string.format("%c%c%c", 76,117,97)            -- char
+	local c = string.format("%e, %E", math.pi,math.pi)      -- exponent
+	local d1 = string.format("%f", math.pi)					-- float 
+	local d2 = string.format("%g", math.pi)					-- compact float
+
+-- issues:
+	local e = string.format("%d, %i, %u", -100,-100,-100)    -- signed, signed, unsigned integer	
+	local f = string.format("%o, %x, %X", -100,-100,-100)    -- octal, hex, hex
+
+	local g = string.format("%%s", 100)
+
+	assertTrue (a == 'Hello "Lua user!"', 'string.format() should format %s and %q correctly')
+	assertTrue (b == 'Lua', 'string.format() should format %c correctly')
+	assertTrue (c == '3.141593e+00, 3.141593E+00', 'string.format() should format %e and %E correctly')
+	assertTrue (d1 == '3.141593', 'string.format() should format %f correctly')
+	assertTrue (d2 == '3.14159', 'string.format() should format %g correctly')
+	-- assertTrue (e == '-100, -100, 4294967196', 'string.format() should format %d, %i and %u correctly')
+	-- assertTrue (f == '37777777634, ffffff9c, FFFFFF9C', 'string.format() should format %o, %x and %X correctly')
+	-- assertTrue (e == '-100, -100, 18446744073709551516', 'string.format() should format %d, %i and %u correctly')
+	-- assertTrue (f == '1777777777777777777634, ffffffffffffff9c, FFFFFFFFFFFFFF9C', 'string.format() should format %o, %x and %X correctly')
+	assertTrue (g == '%s', 'string.format() should format %% correctly')
+
+
+	a = function () string.format("%*", 100) end
+	b = function () string.format("%l", 100) end
+	c = function () string.format("%L", 100) end
+	d = function () string.format("%n", 100) end
+	e = function () string.format("%p", 100) end
+	f = function () string.format("%h", 100) end
+
+	assertTrue (not pcall(a), 'string.format() should error when passed %*')
+	assertTrue (not pcall(b), 'string.format() should error when passed %l')
+	assertTrue (not pcall(c), 'string.format() should error when passed %L')
+	assertTrue (not pcall(d), 'string.format() should error when passed %n')
+	assertTrue (not pcall(e), 'string.format() should error when passed %p')
+	assertTrue (not pcall(f), 'string.format() should error when passed %h')
+
+
+	a = string.format("%.3f", 5.1)
+	b = "Lua version " .. string.format("%.1f", 5.1)
+	c = string.format("pi = %.4f", math.pi)
+
+    local d, m, y = 5, 11, 1990
+    e = string.format("%02d/%02d/%04d", d, m, y)
+
+
+	assertTrue (a == '5.100', 'string.format() should format floating point numbers correctly[1]')
+	assertTrue (b == 'Lua version 5.1', 'string.format() should format floating point numbers correctly[2]')
+	assertTrue (c == 'pi = 3.1416', 'string.format() should format floating point numbers correctly[3]')
+	assertTrue (e == '05/11/1990', 'string.format() should format decimals correctly [0]')
+
+
+	a = function () string.format('%#####s', 'x') end
+	b = function () string.format('%######s', 'x') end
+
+	assertTrue (pcall(a), 'string.format() should handle five flags')
+	assertTrue (not pcall(b), 'string.format() should not handle six flags')
+
+
+    local tag, title = "h1", "a title"
+    a = string.format("<%s>%s</%s>", tag, title, tag)
+    b = string.format("%8s", "Lua")
+    c = string.format("%.8s", "Lua")
+    d = string.format("%.2s", "Lua")
+    e = string.format("%8.2s", "Lua")
+    f = string.format("%+8.2s", "Lua")
+    g = string.format("%-8.2s", "Lua")
+    local h = string.format("%08.2s", "Lua")
+    local i = string.format("%#8.2s", "Lua")
+    local j = string.format("% 8.2s", "Lua")
+    local k = string.format("%+-0# 8.2s", "Lua")
+    local l = string.format("%0.2s", "Lua")
+
+	assertTrue (a == '<h1>a title</h1>', 'string.format() should format strings correctly[1]')
+	assertTrue (b == '     Lua', 'string.format() should format strings correctly[2]')
+	assertTrue (c == 'Lua', 'string.format() should format strings correctly[3]')
+	assertTrue (d == 'Lu', 'string.format() should format strings correctly[4]')
+	assertTrue (e == '      Lu', 'string.format() should format strings correctly[5]')
+	assertTrue (f == '      Lu', 'string.format() should format strings correctly[6]')
+	assertTrue (g == 'Lu      ', 'string.format() should format strings correctly[7]')
+	assertTrue (h == '000000Lu', 'string.format() should format strings correctly[8]')
+	assertTrue (i == '      Lu', 'string.format() should format strings correctly[9]')
+	assertTrue (j == '      Lu', 'string.format() should format strings correctly[10]')
+	assertTrue (k == 'Lu      ', 'string.format() should format strings correctly[11]')
+	assertTrue (l == 'Lu', 'string.format() should format strings correctly[12]')
+
+
+    a = string.format("%8d", 123.45)
+    b = string.format("%.8d", 123.45)
+    c = string.format("%.2d", 123.45)
+    d = string.format("%8.2d", 123.45)
+    e = string.format("%+8.2d", 123.45)
+    f = string.format("%-8.2d", 123.45)
+    g = string.format("%08.2d", 123.45)
+    h = string.format("%#8.2d", 123.45)
+    i = string.format("% 8.2d", 123.45)
+    j = string.format("%+-0# 8.2d", 123.45)
+    k = string.format("%0.2d", 123.45)
+    l = string.format("%+.8d", 123.45)
+    local m = string.format("%-.8d", 123.45)
+    local n = string.format("%#.8d", 123.45)
+    local o = string.format("%0.8d", 123.45)
+    local p = string.format("% .8d", 123.45)
+    local q = string.format("%+-#0 .8d", 123.45)
+    local r = string.format("%8.5d", 123.45)
+    local s = string.format("%+8.5d", 123.45)
+    local t = string.format("%-8.5d", 123.45)
+	local u = string.format("%-+8.5d", 123.45)
+	local v = string.format("%5d", 12.3e10)
+	local w = string.format("%.d", 123.45)
+
+	assertTrue (a == '     123', 'string.format() should format decimals correctly[1]')
+	assertTrue (b == '00000123', 'string.format() should format decimals correctly[2]')
+	assertTrue (c == '123', 'string.format() should format decimals correctly[3]')
+	assertTrue (d == '     123', 'string.format() should format decimals correctly[4]')
+	assertTrue (e == '    +123', 'string.format() should format decimals correctly[5]')
+	assertTrue (f == '123     ', 'string.format() should format decimals correctly[6]')
+	assertTrue (g == '     123', 'string.format() should format decimals correctly[7]')
+	assertTrue (h == '     123', 'string.format() should format decimals correctly[8]')
+	assertTrue (i == '     123', 'string.format() should format decimals correctly[9]')
+	assertTrue (j == '+123    ', 'string.format() should format decimals correctly[10]')
+	assertTrue (k == '123', 'string.format() should format decimals correctly[11]')
+	assertTrue (l == '+00000123', 'string.format() should format decimals correctly[12]')
+	assertTrue (m == '00000123', 'string.format() should format decimals correctly[13]')
+	assertTrue (n == '00000123', 'string.format() should format decimals correctly[14]')
+	assertTrue (o == '00000123', 'string.format() should format decimals correctly[15]')
+	assertTrue (p == ' 00000123', 'string.format() should format decimals correctly[16]')
+	assertTrue (q == '+00000123', 'string.format() should format decimals correctly[17]')
+	assertTrue (r == '   00123', 'string.format() should format decimals correctly[18]')
+	assertTrue (s == '  +00123', 'string.format() should format decimals correctly[19]')
+	assertTrue (t == '00123   ', 'string.format() should format decimals correctly[20]')
+	assertTrue (u == '+00123  ', 'string.format() should format decimals correctly[21]')
+	assertTrue (v == '123000000000', 'string.format() should format decimals correctly[22]')
+	assertTrue (w == '123', 'string.format() should format decimals correctly[23]')
+	
+    a = string.format("%8d", -123.45)
+    b = string.format("%.8d", -123.45)
+    c = string.format("%.2d", -123.45)
+    d = string.format("%8.2d", -123.45)
+    e = string.format("%+8.2d", -123.45)
+    f = string.format("%-8.2d", -123.45)
+    g = string.format("%08.2d", -123.45)
+    h = string.format("%#8.2d", -123.45)
+    i = string.format("% 8.2d", -123.45)
+    j = string.format("%+-0# 8.2d", -123.45)
+    k = string.format("%0.2d", -123.45)
+    l = string.format("%+.8d", -123.45)
+    m = string.format("%-.8d", -123.45)
+    n = string.format("%#.8d", -123.45)
+    o = string.format("%0.8d", -123.45)
+    p = string.format("% .8d", -123.45)
+    q = string.format("%+-#0 .8d", -123.45)
+    r = string.format("%8.5d", -123.45)
+    s = string.format("%+8.5d", -123.45)
+    t = string.format("%-8.5d", -123.45)
+	u = string.format("%-+8.5d", -123.45)
+	v = string.format("%5d", -12.3e10)
+	w = string.format("%.d", -123.45)
+
+
+	assertTrue (a == '    -123', 'string.format() should format decimals correctly[31]')
+	assertTrue (b == '-00000123', 'string.format() should format decimals correctly[32]')
+	assertTrue (c == '-123', 'string.format() should format decimals correctly[33]')
+	assertTrue (d == '    -123', 'string.format() should format decimals correctly[34]')
+	assertTrue (e == '    -123', 'string.format() should format decimals correctly[35]')
+	assertTrue (f == '-123    ', 'string.format() should format decimals correctly[36]')
+	assertTrue (g == '    -123', 'string.format() should format decimals correctly[37]')
+	assertTrue (h == '    -123', 'string.format() should format decimals correctly[38]')
+	assertTrue (i == '    -123', 'string.format() should format decimals correctly[39]')
+	assertTrue (j == '-123    ', 'string.format() should format decimals correctly[40]')
+	assertTrue (k == '-123', 'string.format() should format decimals correctly[41]')
+	assertTrue (l == '-00000123', 'string.format() should format decimals correctly[42]')
+	assertTrue (m == '-00000123', 'string.format() should format decimals correctly[43]')
+	assertTrue (n == '-00000123', 'string.format() should format decimals correctly[44]')
+	assertTrue (o == '-00000123', 'string.format() should format decimals correctly[45]')
+	assertTrue (p == '-00000123', 'string.format() should format decimals correctly[46]')
+	assertTrue (q == '-00000123', 'string.format() should format decimals correctly[47]')
+	assertTrue (r == '  -00123', 'string.format() should format decimals correctly[48]')
+	assertTrue (s == '  -00123', 'string.format() should format decimals correctly[49]')
+	assertTrue (t == '-00123  ', 'string.format() should format decimals correctly[50]')
+	assertTrue (u == '-00123  ', 'string.format() should format decimals correctly[51]')
+	assertTrue (v == '-123000000000', 'string.format() should format decimals correctly[52]')
+	assertTrue (w == '-123', 'string.format() should format decimals correctly[53]')
+
+
+	a = string.format("%+05.d", 123.45)
+	b = string.format("%05d", 123.45)
+	c = string.format("%05d", -123.45)
+	d = string.format("%+05d", 123.45)
+
+	assertTrue (a == ' +123', 'string.format() should format decimals correctly[60]')
+	assertTrue (b == '00123', 'string.format() should format decimals correctly[61]')
+	assertTrue (c == '-0123', 'string.format() should format decimals correctly[62]')
+	assertTrue (d == '+0123', 'string.format() should format decimals correctly[63]')
+
+
+
+    a = string.format("%8f", 123.45)
+    b = string.format("%.8f", 123.45)
+    c = string.format("%.1f", 123.45)
+    d = string.format("%8.2f", 123.45)
+    e = string.format("%+8.2f", 123.45)
+    f = string.format("%-8.3f", 123.45)
+    g = string.format("%08.3f", 123.45)
+    h = string.format("%#8.3f", 123.45)
+    i = string.format("% 8.3f", 123.45)
+    j = string.format("%+-0# 8.2f", 123.45)
+    k = string.format("%0.2f", 123.45)
+    l = string.format("%+.8f", 123.45)
+    m = string.format("%-.8f", 123.45)
+    n = string.format("%#.8f", 123.45)
+    o = string.format("%9.3f", 123.45)
+    p = string.format("%+9.3f", 123.45)
+    q = string.format("%-9.3f", 123.45)
+	r = string.format("%-+9.3f", 123.45)
+	s = string.format("%.0f", 123.45)
+
+	assertTrue (a == '123.450000', 'string.format() should format floats correctly[1]')
+	assertTrue (b == '123.45000000', 'string.format() should format floats correctly[2]')
+	assertTrue (c == '123.5', 'string.format() should format floats correctly[3]')
+	assertTrue (d == '  123.45', 'string.format() should format floats correctly[4]')
+	assertTrue (e == ' +123.45', 'string.format() should format floats correctly[5]')
+	assertTrue (f == '123.450 ', 'string.format() should format floats correctly[6]')
+	assertTrue (g == '0123.450', 'string.format() should format floats correctly[7]')
+	assertTrue (h == ' 123.450', 'string.format() should format floats correctly[8]')
+	assertTrue (i == ' 123.450', 'string.format() should format floats correctly[9]')
+	assertTrue (j == '+123.45 ', 'string.format() should format floats correctly[10]')
+	assertTrue (k == '123.45', 'string.format() should format floats correctly[11]')
+	assertTrue (l == '+123.45000000', 'string.format() should format floats correctly[12]')
+	assertTrue (m == '123.45000000', 'string.format() should format floats correctly[13]')
+	assertTrue (n == '123.45000000', 'string.format() should format floats correctly[14]')
+	assertTrue (o == '  123.450', 'string.format() should format floats correctly[15]')
+	assertTrue (p == ' +123.450', 'string.format() should format floats correctly[16]')
+	assertTrue (q == '123.450  ', 'string.format() should format floats correctly[17]')
+	assertTrue (r == '+123.450 ', 'string.format() should format floats correctly[18]')
+	assertTrue (s == '123', 'string.format() should format floats correctly[19]')
+
+
+	a = string.format("%x", 123)
+	b = string.format("%x", 123.45)
+	c = string.format("%x", -123)
+	d = string.format("%4x", 123)
+	e = string.format("%.4x", 123)
+	f = string.format("%8.4x", 123)
+	g = string.format("%+8.4x", 123)
+	h = string.format("%-8.4x", 123)
+	i = string.format("%#8.4x", 123)
+	j = string.format("%08.4x", 123)
+	k = string.format("% 8.4x", 123)
+	l = string.format("%+-#0 8.4x", 123)
+	m = string.format("%08x", 123)
+	n = string.format("% x", 123)
+	
+	assertTrue (a == '7b', 'string.format() should format hex correctly[1]')
+	assertTrue (b == '7b', 'string.format() should format hex correctly[2]')
+	assertTrue (c == 'ffffffffffffff85', 'string.format() should format hex correctly[3]')
+	assertTrue (d == '  7b', 'string.format() should format hex correctly[4]')
+	assertTrue (e == '007b', 'string.format() should format hex correctly[5]')
+	assertTrue (f == '    007b', 'string.format() should format hex correctly[6]')
+	assertTrue (g == '    007b', 'string.format() should format hex correctly[7]')
+	assertTrue (h == '007b    ', 'string.format() should format hex correctly[8]')
+	assertTrue (i == '  0x007b', 'string.format() should format hex correctly[9]')
+	assertTrue (j == '    007b', 'string.format() should format hex correctly[10]')
+	assertTrue (k == '    007b', 'string.format() should format hex correctly[11]')
+	assertTrue (l == '0x007b  ', 'string.format() should format hex correctly[12]')
+	assertTrue (m == '0000007b', 'string.format() should format hex correctly[13]')
+	assertTrue (n == '7b', 'string.format() should format hex correctly[14]')
+
+-- print (c)
+
+end
+
+
+
+
 -- gmatch
 
 local s = "from=world, to=Lua"

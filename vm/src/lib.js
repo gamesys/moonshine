@@ -1356,145 +1356,243 @@ var shine = shine || {};
 		
 		
 		format: function (formatstring) {
-			// Temp fix
-			
-			/**
-			*
-			*  Javascript sprintf
-			*  http://www.webtoolkit.info/
-			*
-			*
-			**/
-			 
-			var sprintfWrapper = {
-			 
-				init : function () {
-			 
-					if (typeof arguments == "undefined") { return null; }
-					if (arguments.length < 1) { return null; }
-					if (typeof arguments[0] != "string") { return null; }
-					if (typeof RegExp == "undefined") { return null; }
+			var FIND_PATTERN = /^(.*?)%(.*)$/,
+				PARSE_PATTERN = /^(%?)([+\-#\ 0]*)(\d*)(\.(\d*))?([cdeEfgGiouqsxX])(.*)$/,
+				findData,
+				result = '',
+				parseData,
+				args = [].splice.call(arguments, 0),
+				argIndex = 2;
 
-					var string = arguments[0];
-					var exp = new RegExp(/(%([%]|(\-)?(\+|\x20)?(0)?(\d+)?(\.(\d)?)?([bcdfosxX])))/g);
-					var matches = new Array();
-					var strings = new Array();
-					var convCount = 0;
-					var stringPosStart = 0;
-					var stringPosEnd = 0;
-					var matchPosEnd = 0;
-					var newString = '';
-					var match = null;
-			 
-					while (match = exp.exec(string)) {
-						if (match[9]) { convCount += 1; }
-			 
-						stringPosStart = matchPosEnd;
-						stringPosEnd = exp.lastIndex - match[0].length;
-						strings[strings.length] = string.substring(stringPosStart, stringPosEnd);
-			 
-						matchPosEnd = exp.lastIndex;
-						matches[matches.length] = {
-							match: match[0],
-							left: match[3] ? true : false,
-							sign: match[4] || '',
-							pad: match[5] || ' ',
-							min: match[6] || 0,
-							precision: match[8],
-							code: match[9] || '%',
-							negative: parseInt(arguments[convCount]) < 0 ? true : false,
-							argument: String(arguments[convCount])
-						};
-					}
-					strings[strings.length] = string.substring(matchPosEnd);
-			 
-					if (matches.length == 0) { return string; }
-					if ((arguments.length - 1) < convCount) { return null; }
-			 
-					var code = null,
-						match = null,
-						i = null,
-						substitution;
-					
-			 
-					for (i=0; i<matches.length; i++) {
-			 
-						if (matches[i].code == '%') { substitution = '%' }
-						else if (matches[i].code == 'b') {
-							matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(2));
-							substitution = sprintfWrapper.convert(matches[i], true);
-						}
-						else if (matches[i].code == 'c') {
-							matches[i].argument = String(String.fromCharCode(Math.abs(parseInt(matches[i].argument))));
-							substitution = sprintfWrapper.convert(matches[i], true);
-						}
-						else if (matches[i].code == 'd') {
-							matches[i].argument = String(Math.abs(parseInt(matches[i].argument)));
-							substitution = sprintfWrapper.convert(matches[i]);
-						}
-						else if (matches[i].code == 'f') {
-							matches[i].argument = String(Math.abs(parseFloat(matches[i].argument)).toFixed(matches[i].precision ? matches[i].precision : 6));
-							substitution = sprintfWrapper.convert(matches[i]);
-						}
-						else if (matches[i].code == 'o') {
-							matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(8));
-							substitution = sprintfWrapper.convert(matches[i]);
-						}
-						else if (matches[i].code == 's') {
-							matches[i].argument = matches[i].argument.substring(0, matches[i].precision ? matches[i].precision : matches[i].argument.length)
-							substitution = sprintfWrapper.convert(matches[i], true);
-						}
-						else if (matches[i].code == 'x') {
-							matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(16));
-							substitution = sprintfWrapper.convert(matches[i]);
-						}
-						else if (matches[i].code == 'X') {
-							matches[i].argument = String(Math.abs(parseInt(matches[i].argument)).toString(16));
-							substitution = sprintfWrapper.convert(matches[i]).toUpperCase();
-						}
-						else {
-							substitution = matches[i].match;
-						}
-			 
-						newString += strings[i];
-						newString += substitution;
-			 
-					}
-					newString += strings[i];
-			 
-					return newString;
-			 
-				},
-			 
-				convert : function(match, nosign){
-					if (nosign) {
-						match.sign = '';
+			args.shift();
+
+
+			function parseMeta(parseData) {
+				var flags = parseData[2],
+					precision = parseInt(parseData[5]);
+
+				if (('' + flags).length > 5) throw new shine.Error('invalid format (repeated flags)');
+				if (!precision && precision !== 0) precision = Infinity;
+
+				return {
+					showSign: flags.indexOf('+') >= 0,
+					prefix: flags.indexOf(' ') >= 0,
+					leftAlign: flags.indexOf('-') >= 0,
+					alternateForm: flags.indexOf('#') >= 0,
+					zeroPad: flags.indexOf('0') >= 0,
+					minWidth: parseInt(parseData[3]) || 0,
+					hasPrecision: !!parseData[4],
+					precision: precision
+				};
+			}
+
+
+			function pad (character, len) {
+				return Array(len + 1).join(character);
+			}
+
+
+			function padNumber (arg, neg, meta) {
+				var l;
+
+				if (meta.zeroPad && !meta.leftAlign && (l = meta.minWidth - arg.length) > 0) {
+					if (neg || meta.showSign || meta.prefix) l--;
+					arg = pad('0', l) + arg;
+				}
+
+				if (neg) {
+					arg = '-' + arg;
+
+				} else if (meta.showSign) {
+					arg = '+' + arg;
+				
+				} else if (meta.prefix) {
+					arg = ' ' + arg;
+				}
+
+				if ((l = meta.minWidth - arg.length) > 0) {
+					if (meta.leftAlign) return arg + pad(' ', l);
+					return pad(' ', l) + arg;
+				}
+
+				return arg;
+			}
+
+
+			function c (arg) {
+				arg = shine.utils.coerce(arg, 'number', 'bad argument #' + argIndex + ' to \'format\' (number expected)');
+				return String.fromCharCode(arg);
+			}
+
+
+			function d (arg) {
+				arg = shine.utils.coerce(arg, 'number', 'bad argument #' + argIndex + ' to \'format\' (number expected)');
+
+				var meta = parseMeta(parseData),
+					neg = arg < 0,
+					l;
+
+				arg = '' + Math.floor(Math.abs(arg));
+
+				if (meta.hasPrecision) {
+					if (meta.precision !== Infinity && (l = meta.precision - arg.length) > 0) arg = pad('0', l) + arg;
+					meta.zeroPad = false;
+				} 
+
+				return padNumber(arg, neg, meta);
+			}
+
+
+			function f (arg) {
+				arg = shine.utils.coerce(arg, 'number', 'bad argument #' + argIndex + ' to \'format\' (number expected)');
+
+				var meta = parseMeta(parseData),
+					neg = arg < 0,
+					mantissa = arg - Math.floor(arg),
+					precision = meta.precision === Infinity? 6 : meta.precision;
+
+				arg = '' + Math.floor(Math.abs(arg));
+				if (precision > 0) arg += '.' + Math.round(mantissa * Math.pow(10, precision));
+
+				return padNumber(arg, neg, meta);
+			}
+
+
+			function o (arg, limit) {
+				arg = shine.utils.coerce(arg, 'number', 'bad argument #' + argIndex + ' to \'format\' (number expected)');
+
+				var neg = arg < 0,
+					limit = Math.pow(2, 32),
+					meta = parseMeta(parseData),
+					l;
+
+				arg = Math.floor(arg);
+				if (neg) arg = limit + arg;
+
+				arg = arg.toString(16);
+				//if (neg && intSize > 2) arg = ;
+				if (meta.hasPrecision && meta.precision !== Infinity && (l = meta.precision - arg.length) > 0) arg = pad('0', l) + arg; 
+
+				if ((l = meta.minWidth - arg.length) > 0) {
+					if (meta.leftAlign) return arg + pad(' ', l);
+					return pad(' ', l) + arg;
+				}
+
+				return arg;
+			}
+
+
+			function q (arg) {
+				arg = shine.utils.coerce(arg, 'string');
+				return '"' + arg.replace(/([\n"])/g, '\\$1') + '"';
+			}
+
+
+			function s (arg) {
+				var meta = parseMeta(parseData),
+					l;
+
+				arg = shine.utils.coerce(arg, 'string');
+				arg = arg.substr(0, meta.precision);
+
+				if ((l = meta.minWidth - arg.length) > 0) {
+					if (meta.leftAlign) {
+						return arg + pad(' ', l);
 					} else {
-						match.sign = match.negative ? '-' : match.sign;
-					}
-					var l = match.min - match.argument.length + 1 - match.sign.length;
-					var pad = new Array(l < 0 ? 0 : l).join(match.pad);
-					if (!match.left) {
-						if (match.pad == "0" || nosign) {
-							return match.sign + pad + match.argument;
-						} else {
-							return pad + match.sign + match.argument;
-						}
-					} else {
-						if (match.pad == "0" || nosign) {
-							return match.sign + match.argument + pad.replace(/0/g, ' ');
-						} else {
-							return match.sign + match.argument + pad;
-						}
+						return pad(meta.zeroPad? '0' : ' ', l) + arg;
 					}
 				}
+
+				return arg;
 			}
-			 
-			return sprintfWrapper.init.apply (null, arguments);
-			
+
+
+			function x (arg) {
+				arg = shine.utils.coerce(arg, 'number', 'bad argument #' + argIndex + ' to \'format\' (number expected)');
+
+				var neg = arg < 0,
+					intSize = 4, //vm && vm._thread && vm._thread._file.data.meta && vm._thread._file.data.meta.sizes.int || 4,
+					limit = Math.pow(2, 32),
+					meta = parseMeta(parseData),
+					l;
+
+				arg = Math.floor(arg);
+				if (neg) arg = limit + arg;
+
+				arg = arg.toString(16);
+				if (neg && intSize > 2) arg = pad('f', (intSize - 2) * 4) + arg;
+				if (meta.hasPrecision && meta.precision !== Infinity && (l = meta.precision - arg.length) > 0) arg = pad('0', l) + arg; 
+
+				if (meta.alternateForm) arg = '0x' + arg;
+
+				// if ((l = meta.minWidth - arg.length) > 0) {
+				// 	if (meta.leftAlign) return arg + pad(' ', l);
+				// 	return pad(' ', l) + arg;
+				// }
+
+				meta.showSign = meta.prefix = false;
+				meta.zeroPad = meta.zeroPad && meta.hasPrecision;
+				arg = padNumber(arg, false, meta);
+
+				return arg;
+			}
+
+
+
+			while (findData = ('' + formatstring).match(FIND_PATTERN)) {
+				result += findData[1];
+				parseData = ('' + findData[2]).match(PARSE_PATTERN);
+
+				if (parseData[1]) {
+					// %%
+					result += '%' + parseData[2] + parseData[3] + (parseData[4] || '') + parseData[6];
+
+				} else {
+					switch(parseData[6]) {
+
+						case 'c':
+							result += c(args.shift());
+							break;
+
+						case 'd':
+							result += d(args.shift());
+							break;
+
+						case 'f':
+							result += f(args.shift());
+							break;
+
+						case 'q':
+							result += q(args.shift());
+							break;
+
+						case 'o':
+							result += o(args.shift());
+							break;
+
+						case 's':
+							result += s(args.shift());
+							break;
+
+						case 'x':
+							result += x(args.shift());
+							break;
+
+						case 'X':
+							result += x(args.shift()).toUpperCase();
+							break;
+
+					}
+				}
+
+				formatstring = parseData[7];
+				argIndex++;
+			}
+
+			return result + formatstring;
 		},
 		
-		
+
 		
 		
 		gmatch: function (s, pattern) {
