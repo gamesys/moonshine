@@ -623,7 +623,7 @@ shine.Closure.prototype.dispose = function (force) {
 		c = (c >= 256)? this._getConstant(c - 256) : this._register.getItem(c);
 		
 		var coerce = shine.utils.coerce,
-			mt, f, result, absC;
+			mt, f, result;
 
 		if (((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember('__mod')))
 		|| ((c || shine.EMPTY_OBJ) instanceof shine.Table && (mt = c.__shine.metatable) && (f = mt.getMember('__mod')))) {
@@ -637,9 +637,7 @@ shine.Closure.prototype.dispose = function (force) {
 				result = NaN;
 
 			} else {
-				result = Math.abs(b) % (absC = Math.abs(c));
-				if (b * c < 0) result = absC - result;
-				if (c < 0) result *= -1;
+				result = b - Math.floor(b / c) * c;
 			}
 
 			this._register.setItem(a, result);
