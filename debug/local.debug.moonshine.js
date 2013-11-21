@@ -30,7 +30,7 @@ var shine = shine || {};
 shine.debug = shine.debug || {};
 
 
-shine.debug.LOCAL_UI_URL = '../debug/ui/index.html';
+shine.debug.LOCAL_UI_URL = shine.debug.LOCAL_UI_URL || '../debug/ui/index.html';
 
 
 

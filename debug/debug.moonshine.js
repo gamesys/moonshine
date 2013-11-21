@@ -485,27 +485,27 @@ shine.debug.pause = function () {
 		shine.debug._vm = this._vm;
 
 		if (shine.debug._status != shine.RUNNING) {
+			if (shine.debug._callbackQueue.length < 100) {
+				shine.debug._callbackQueue.push(function () {
+					try {
+						me.execute.apply(me, args);
+					
+					} catch (e) {
+						if (!((e || shine.EMPTY_OBJ) instanceof shine.Error)) {
+							var stack = (e.stack || '');
 
-			shine.debug._callbackQueue.push(function () {
-				try {
-					me.execute.apply(me, args);
-				
-				} catch (e) {
-					if (!((e || shine.EMPTY_OBJ) instanceof shine.Error)) {
-						var stack = (e.stack || '');
+							e = new shine.Error ('Error in host call: ' + e.message);
+							e.stack = stack;
+							e.luaStack = stack.split ('\n');
+						}
 
-						e = new shine.Error ('Error in host call: ' + e.message);
-						e.stack = stack;
-						e.luaStack = stack.split ('\n');
+						if (!e.luaStack) e.luaStack = shine.gc.createArray();
+						e.luaStack.push([me, me._pc - 1]);
+
+						shine.Error.catchExecutionError(e);
 					}
-
-					if (!e.luaStack) e.luaStack = shine.gc.createArray();
-					e.luaStack.push([me, me._pc - 1]);
-
-					shine.Error.catchExecutionError(e);
-				}
-			});
-
+				});
+			}
 		} else {
 			return execute.apply(this, arguments);
 		}
@@ -653,9 +653,11 @@ shine.debug._resumeThread = function () {
 			shine.Error.catchExecutionError(e);
 		}
 	}
-	
-	// if (this._status == shine.RUNNING) this._trigger(shine.RUNNING);
-	while (this._callbackQueue[0]) this._callbackQueue.shift()();
+
+	while (this._status != shine.SUSPENDING && this._callbackQueue[0]) {
+		this._callbackQueue.shift()()
+	}
+
 };
 
 

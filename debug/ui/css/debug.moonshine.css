@@ -225,7 +225,7 @@ section.shine-debug.showing-code {
 
 section.shine-debug #code {
 	display: inline-block;
-	position: relative;
+	position: fixed;
 	width: 70%;
 	height: 100%;
 	overflow: auto;
@@ -428,7 +428,9 @@ section.shine-debug p.error:after {
 */
 
 section.shine-debug #inspectors {
-	float: right;
+	display: inline-block;
+	position: fixed;
+	right: 0;
 	font-family: monospace; 
 	width: 29%;
 	height: 100%;
@@ -436,8 +438,8 @@ section.shine-debug #inspectors {
 	overflow-y: auto;
 	background-color: #fff;
 	vertical-align: top;
-	margin-left: 4px;
-	box-shadow: -1px 0 0 #bbb;
+/*	margin-left: 4px;
+*/	box-shadow: -1px 0 0 #bbb;
 	font-size: 11px;
 }
 

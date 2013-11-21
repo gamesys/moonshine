@@ -147,7 +147,8 @@ shine.debug.ui = {
 		// Events
 
 		socket.on(me.messageTypes.GET_STATE, function (data, callback) {
-			callback(shine.debug.getCurrentState());
+			// callback(shine.debug.getCurrentState());
+			shine.debug.getCurrentState(callback);
 		});
 
 		socket.on(me.messageTypes.TOGGLE_BREAKPOINT, function (data) {
