@@ -25,6 +25,9 @@
  * @fileOverview Moonshine build script.
  * Concatenates source files into a single JS library file and produces a minimised version.
  * Use -swc switch to produce a Flash libaray file too.
+ *
+ * Note: Requires Google Closure Compiler to be installed in /usr/local/bin
+ *       https://developers.google.com/closure/compiler/
  * 
  * Examples:
  * 	./build				Builds JavaScript lib files.
@@ -142,7 +145,8 @@ function buildLibrary () {
  */
 function minifyLibrary () {
 	var filename = './minified.js',
-		cmd = 'java -jar /usr/local/bin/yuicompressor-2.4.7.jar ' + OUTPUT_FILENAME + ' -o ' + filename;
+		// cmd = 'java -jar /usr/local/bin/yuicompressor-2.4.7.jar ' + OUTPUT_FILENAME + ' -o ' + filename;
+		cmd = 'java -jar /usr/local/bin/compiler.jar --js ' + OUTPUT_FILENAME + ' --js_output_file ' + filename;
 
 	exec(cmd, function (err) {
 		if (err) throw err;
