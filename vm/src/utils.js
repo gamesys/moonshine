@@ -200,7 +200,7 @@ var shine = shine || {};
 						result = '';
 
 					for (i = 0, l = data.byteLength; i < l; i += 10000) {
-						result += String.fromCharCode.apply(String, arr.subarray(i, Math.min(i + 10000, l)));
+						result += String.fromCharCode.apply(String, Array.prototype.slice.call(arr.subarray(i, Math.min(i + 10000, l))));
 					}
 
 					return result;
