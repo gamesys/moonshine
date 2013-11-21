@@ -21,6 +21,8 @@
  */
 
 
+
+
 // vm/src/gc.js:
 
 
@@ -198,6 +200,8 @@ shine.gc = {
 
 
 
+
+
 // vm/src/EventEmitter.js:
 
 
@@ -271,6 +275,8 @@ shine.EventEmitter.prototype.unbind = function (name, callback) {
 
 
 if (typeof module == 'object' && module.exports) module.exports.EventEmitter = shine.EventEmitter;
+
+
 
 
 
@@ -465,6 +471,8 @@ shine.FileManager._parseLuac = function (data) {
 shine.FileManager.prototype.dispose = function () {
 	delete this._cache;
 };
+
+
 
 
 
@@ -764,6 +772,8 @@ shine.getCurrentVM = function () {
 	return (closure = this.Closure._current) && closure._vm;
 };
 
+
+
 // vm/src/Register.js:
 
 
@@ -912,6 +922,8 @@ shine.Register.prototype.dispose = function () {
 	this._items.reset();
 	this.constructor._graveyard.push(this);
 };
+
+
 
 
 
@@ -1550,9 +1562,11 @@ shine.Closure.prototype.dispose = function (force) {
 				result = NaN;
 
 			} else {
+				// result = b - Math.floor(b / c) * c; // Working, but slower on some devices.
+
 				result = Math.abs(b) % (absC = Math.abs(c));
-				if (b * c < 0) result = absC - result;
-				if (c < 0) result *= -1;
+                if (b * c < 0) result = absC - result;
+                if (c < 0) result *= -1;
 			}
 
 			this._register.setItem(a, result);
@@ -2085,6 +2099,8 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 
+
+
 // vm/src/Function.js:
 
 
@@ -2310,6 +2326,8 @@ shine.Function.prototype.dispose = function (force) {
 
 
 
+
+
 // vm/src/Coroutine.js:
 
 
@@ -2506,6 +2524,8 @@ shine.Coroutine.prototype._dispose = function () {
 
 
 
+
+
 // vm/src/Table.js:
 
 
@@ -2685,6 +2705,8 @@ shine.Table.prototype.toString = function () {
 };
 
 
+
+
 // vm/src/Error.js:
 
 
@@ -2821,6 +2843,8 @@ shine.Error.prototype.toString = function () {
 	return 'Moonshine Error: ' + this.message;
 };
 
+
+
 // vm/src/File.js:
 
 
@@ -2852,6 +2876,8 @@ shine.File.prototype.dispose = function () {
 	delete this.url;
 	delete this.data;
 };
+
+
 
 
 
@@ -3342,7 +3368,7 @@ var shine = shine || {};
 
 
 			function loadNextPath () {
-				path = paths.shift()
+				path = paths.shift();
 
 				if (!path) {
 					throw new shine.Error('module \'' + modname + '\' not found:' + '\n	no field package.preload[\'' + modname + '\']\n' + failedPaths.join('\n'));
@@ -4781,6 +4807,8 @@ var shine = shine || {};
 	
 })();
 
+
+
 // vm/src/utils.js:
 
 
@@ -4959,7 +4987,7 @@ var shine = shine || {};
 						result = '';
 
 					for (i = 0, l = data.byteLength; i < l; i += 10000) {
-						result += String.fromCharCode.apply(String, arr.subarray(i, Math.min(i + 10000, l)));
+						result += String.fromCharCode.apply(String, Array.prototype.slice.call(arr.subarray(i, Math.min(i + 10000, l))));
 					}
 
 					return result;
@@ -4987,6 +5015,8 @@ var shine = shine || {};
 
 
 })();
+
+
 
 
 // vm/src/output.js:

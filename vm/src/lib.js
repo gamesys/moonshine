@@ -509,7 +509,7 @@ var shine = shine || {};
 
 
 			function loadNextPath () {
-				path = paths.shift()
+				path = paths.shift();
 
 				if (!path) {
 					throw new shine.Error('module \'' + modname + '\' not found:' + '\n	no field package.preload[\'' + modname + '\']\n' + failedPaths.join('\n'));
