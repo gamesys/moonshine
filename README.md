@@ -1,5 +1,5 @@
 # Moonshine
-The lightweight Lua virtual machine.  
+A lightweight Lua virtual machine.  
 [http://moonshinejs.org](http://moonshinejs.org)
 
 ---

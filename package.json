@@ -1,14 +1,15 @@
 {
-	"name": "moonshine",
-	"description": "Moonshine Lua VM",
+	"name": "Moonshine",
+	"description": "A lightweight Lua virtual machine.",
 	"keywords": [
 		"Moonshine",
 		"Lua",
 		"JavaScript",
-		"virtual machine"
+		"virtual machine",
+		"luac"
 	],
 	"author": {
-		"name": "Gamesys Ltd.",
+		"name": "Gamesys Limited.",
 		"url": "http://gamesyscorporate.com"
 	},
 	"contributors": [
@@ -36,6 +37,7 @@
 		"url": "https://github.com/gamesys/moonshine"
 	},
 	"license": {
+		"type": "GPL-3.0",
 		"url": "http://moonshinejs.org/license"
 	},
 	"bugs": {
