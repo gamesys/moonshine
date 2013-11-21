@@ -23,12 +23,11 @@ If you wish to contribute to the Moonshine project, please make every effort to 
 
 Moonshine is released under GNU GPL-3.0 license:
 
+Moonshine - a Lua virtual machine.
 
-Moonshine Lua VM
-
-Copyright (C) 2013 Gamesys Limited,
-10 Piccadilly, London W1J 0DD
-Email: moonshine@gamesys.co.uk
+Copyright (C) 2013 Gamesys Limited,  
+10 Piccadilly, London W1J 0DD  
+Email: moonshine@gamesys.co.uk  
 http://moonshinejs.org
 
 This program is free software: you can redistribute it and/or modify
