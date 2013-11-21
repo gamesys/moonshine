@@ -19,8 +19,6 @@
 		<script src="../vm/src/utils.js"></script>
 		<script src="../vm/src/output.js"></script>
 		
-		<script src="../debug/debug.moonshine.js"></script>		
-		<script src="../debug/local.debug.moonshine.js"></script>
 		<script src="http://paulcuth.me.uk/lichen/lichen.js.php?accept=shine,io&amp;position=top-left"></script>
 
 		<style>
@@ -46,46 +44,34 @@
 			p.error {
 				color: red;
 			}
-			
 		</style>
 	</head>
 	
 	<body>
 		<pre id="output"></pre>
-		<!-- pre id="debug"></pre -->
-
 		<script>
 			(function () {
 				
-				var debugText = '',
-					elOutput = document.getElementById ('output');
-					// elDebug = document.getElementById ('debug');
+				var elOutput = document.getElementById('output'),
+					api;
 				
 				function escapeHTML(text) {
 				    return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 				}	
 
 				shine.stdout.write = function (message) {
-					elOutput.innerHTML += escapeHTML (message) + '\n';
+					elOutput.innerHTML += escapeHTML(message) + '\n';
 				};
 
 
-				function getTimestamp () {
-					return Date.now();
-				}
-					
-				// shine.stddebug.write = function (message) {
-				// 	debugText += escapeHTML (message) + '\n';
-				// };
-				
-
-				// window.setInterval (function () { 
-				// 	elDebug.innerHTML = debugText;
-				// }, 500);
-
+				api = {
+					getTimestamp: function () {
+						return Date.now();
+					}
+				};
 	
-				var vm = new shine.VM ({ getTimestamp: getTimestamp });
-				vm.load ('./test-package.json', true);
+				var vm = new shine.VM(api);
+				vm.load('./test-package.json');
 
 			})();
 		</script>
