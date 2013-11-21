@@ -42,3 +42,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see [http://www.gnu.org/licenses/](http://www.gnu.org/licenses/).
+
+
+<img src="http://moonshinejs.org/img/moonshine-logo-small.png" align="right" style="margin-right: 40px"/>
