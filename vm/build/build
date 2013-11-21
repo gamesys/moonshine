@@ -104,8 +104,13 @@ function appendFile (fd, filename, intact) {
 	var input = fs.readFileSync(filename).toString(),
 		desc = filename.replace('..', 'vm');
 
-	// Remove @fileOverviews that don't apply in concatenated file.
-	if (!intact) input = input.replace(/\/\*\*[\s\*]+\@fileOverview(.*\n)*?\s*\*\//g, '\n\n// ' + desc + ':\n');
+	if (!intact) {
+		// Remove license text as we don't need them repeated in concatenated file.
+		input = input.replace(/\/\*[\s\*]+Moonshine - a Lua virtual machine(.*\n)*?\s*\*\//g, '');
+
+		// Remove @fileOverviews that don't apply in concatenated file.
+		input = input.replace(/\/\*\*[\s\*]+\@fileOverview(.*\n)*?\s*\*\//g, '\n\n// ' + desc + ':\n');
+	}
 
 	fs.writeSync(fd, input);
 }
