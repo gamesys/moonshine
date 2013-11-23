@@ -192,7 +192,7 @@ var shine = shine || {};
 				parse = function (data) {
 					// There is a limit on the number of arguments one can pass to a function. So far iPad is the lowest, and 10000 is safe.
 					// If safe number of arguments to pass to fromCharCode:
-					if (data.byteLength <= 10000) return String.fromCharCode.apply(String, new Uint8Array(data));
+					if (data.byteLength <= 10000) return String.fromCharCode.apply(String, Array.prototype.slice.call(new Uint8Array(data)));
 
 					// otherwise break up bytearray:
 					var i, l,
