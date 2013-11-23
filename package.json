@@ -1,5 +1,5 @@
 {
-	"name": "Moonshine",
+	"name": "moonshine",
 	"description": "A lightweight Lua virtual machine.",
 	"keywords": [
 		"Moonshine",
@@ -18,7 +18,7 @@
 			"email": "paul.cuthbertson@gamesys.co.uk"
 		}
 	],
-	"version": "0.1.0",
+	"version": "0.0.8",
 	"engines": {
 		"node": ">=0.8.x"
 	},
