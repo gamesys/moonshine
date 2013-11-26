@@ -949,7 +949,8 @@ var shine = shine || {};
 		
 		
 		cosh: function (x) {
-			// Not implemented
+			var e = lib.math.exp;
+			return (e(x) + e(-x)) / 2;
 		},
 		
 		
@@ -1105,7 +1106,8 @@ var shine = shine || {};
 	
 		
 		sinh: function (x) {
-			// Not implemented
+			var e = lib.math.exp;
+			return (e(x) - e(-x)) / 2;
 		},
 	
 	
@@ -1126,7 +1128,8 @@ var shine = shine || {};
 	
 		
 		tanh: function (x) {
-			// Not implemented
+			var e = lib.math.exp;
+			return (e(x) - e(-x))/(e(x) + e(-x));
 		}
 	
 		
