@@ -24,7 +24,7 @@
 'use strict';
 
 
-var DebugServer = require('../../debug/server/DebugServer'),
+var DebugServer = require('../../extensions/debug/server/DebugServer'),
 	parseArgs = require('./common').parseArgs,
 	defaultSwitches = {
 		sourcePaths: ['-src', ''],
