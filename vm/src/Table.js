@@ -60,6 +60,7 @@ shine.Table = function (obj) {
 
 			key = isArr? parseInt(i, 10) + 1: i;
 			value = obj[i];
+			if (value === null) value = undefined;
 
 			if (typeof getQualifiedClassName !== 'undefined') {
 				// ActionScript

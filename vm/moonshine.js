@@ -2564,6 +2564,7 @@ shine.Table = function (obj) {
 
 			key = isArr? parseInt(i, 10) + 1: i;
 			value = obj[i];
+			if (value === null) value = undefined;
 
 			if (typeof getQualifiedClassName !== 'undefined') {
 				// ActionScript
@@ -3808,7 +3809,8 @@ var shine = shine || {};
 		
 		
 		cosh: function (x) {
-			// Not implemented
+			var e = lib.math.exp;
+			return (e(x) + e(-x)) / 2;
 		},
 		
 		
@@ -3964,7 +3966,8 @@ var shine = shine || {};
 	
 		
 		sinh: function (x) {
-			// Not implemented
+			var e = lib.math.exp;
+			return (e(x) - e(-x)) / 2;
 		},
 	
 	
@@ -3985,7 +3988,8 @@ var shine = shine || {};
 	
 		
 		tanh: function (x) {
-			// Not implemented
+			var e = lib.math.exp;
+			return (e(x) - e(-x))/(e(x) + e(-x));
 		}
 	
 		
