@@ -19,11 +19,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 (function () {
 
 
 	function jsToLua (obj) {
-		var mt = new shine.Table({
+		var t, mt;
+
+		mt = new shine.Table({
 
 			__index: function (t, key) {
 				var property = obj[key];
@@ -69,8 +72,12 @@
 
 		mt.source = obj;
 
+
+		t = new shine.Table();
+		shine.gc.incrRef(t);
+
 		// Return proxy table
-		return shine.lib.setmetatable(new shine.Table(), mt);
+		return shine.lib.setmetatable(t, mt);
 	}
 
 
@@ -121,7 +128,7 @@
 	// Add expand method
 	shine.DOMAPI.window.expand = function () {
 		for (var i in window) {
-			if (i !== 'print' && i !== 'window' && window.hasOwnProperty(i) && window[i] !== null) {
+			if (i !== 'print' && i !== 'window' && window[i] !== null) {
 				vm.setGlobal(i, jsToLua(window[i]));
 			}
 		}
