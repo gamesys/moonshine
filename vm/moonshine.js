@@ -2990,7 +2990,7 @@ var shine = shine || {};
 	function translatePattern (pattern) {
 		// TODO Add support for balanced character matching (not sure this is easily achieveable).
 		pattern = '' + pattern;
-		
+
 		var n = 0,
 			i, l, character, addSlash;
 					
@@ -3011,7 +3011,8 @@ var shine = shine || {};
 			}
 
 			if (addSlash) {
-				pattern = pattern.substr(0, i) + '\\' + pattern.substr(i++);
+				// pattern = pattern.substr(0, i) + '\\' + pattern.substr(i++);
+				pattern = pattern.substr(0, i) + pattern.substr(i++ + 1);
 				l++;
 			}
 		}			
@@ -3029,7 +3030,7 @@ var shine = shine || {};
 
 		this.fileManager.load(filename, function (err, file) {
 			if (err) {
-				vm._trigger('module-load-error', file, err);
+				vm._trigger('module-load-error', [file, err]);
 
 				if (err == 404 && /\.lua$/.test(filename)) {
 					loadfile.call(vm, filename + '.json', callback);
@@ -3041,9 +3042,9 @@ var shine = shine || {};
 			}
 
 			var func = new shine.Function(vm, file, file.data, vm._globals);
-			vm._trigger('module-loaded', file, func);
+			vm._trigger('module-loaded', [file, func]);
 			
-			callback(func);			
+			callback(func);
 		});
 
 		this._trigger('loading-module', filename);
@@ -3844,8 +3845,17 @@ var shine = shine || {};
 		
 		
 		
-		frexp: function (x, y) {
-			// TODO
+		frexp: function (x) {
+			var delta, exponent, mantissa;
+			if (x == 0) return [0, 0];
+
+			delta = x > 0? 1 : -1;
+			x = x * delta;
+			
+			exponent = Math.floor(Math.log(x) / Math.log(2)) + 1;
+			mantissa = x / Math.pow(2, exponent);
+
+			return [mantissa * delta, exponent];
 		},
 		
 		
@@ -4486,7 +4496,7 @@ var shine = shine || {};
 
 			return function () {
 				var match = matches.shift(),
-					groups = new RegExp(reg).exec(match);
+					groups = new RegExp(pattern).exec(match);
 
 				if (match === undefined) return;
 
