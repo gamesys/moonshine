@@ -120,21 +120,30 @@
 
 
 	// Create wrapped window API
-	shine.DOMAPI = {
-		window: jsToLua(window)
-	};
+	shine.DOMAPI = { window: jsToLua(window) };
 
 
 	// Add expand method
-	shine.DOMAPI.window.expand = function () {
+	shine.DOMAPI.window.extract = function () {
+		var vm = shine.getCurrentVM(),
+			property;
+
 		for (var i in window) {
 			if (i !== 'print' && i !== 'window' && window[i] !== null) {
-				vm.setGlobal(i, jsToLua(window[i]));
+
+				if (typeof window[i] == 'function') {
+					property = (function (i) {
+						return function () { return window[i].apply(window, arguments); };
+					})(i);
+
+				} else {
+					property = jsToLua(window[i]);
+				}
+
+				vm.setGlobal(i, property);
 			}
 		}
 	};
 
-
-	return shine;
 
 })(shine || {});
