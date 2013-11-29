@@ -693,15 +693,21 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function unm (a, b) {
-		var mt, f;
+		var mt, f, result;
 
-		if ((this._register.getItem(b) || shine.EMPTY_OBJ) instanceof shine.Table && (mt = this._register.getItem(b).__shine.metatable) && (f = mt.getMember('__unm'))) {
-			this._register.setItem(a, f.apply(null, [this._register.getItem(b)], true)[0]);
+		b = this._register.getItem(b);
+
+		if ((b || shine.EMPTY_OBJ) instanceof shine.Table && (mt = b.__shine.metatable) && (f = mt.getMember('__unm'))) {
+			result = shine.gc.createArray();
+			result.push(b);
+			result = f.apply(null, [b], true)[0];
 
 		} else {
-			b = shine.utils.coerce(this._register.getItem(b), 'number', 'attempt to perform arithmetic on a non-numeric value');
-			this._register.setItem(a, -b);
+			b = shine.utils.coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			result = -b;
 		}
+
+		this._register.setItem(a, result);
 	}
 
 
@@ -715,27 +721,26 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function len (a, b) {
-		var length = 0;
+		var length,
+			i;
 
-		if ((this._register.getItem(b) || shine.EMPTY_OBJ) instanceof shine.Table) {
+		b = this._register.getItem(b);
 
-			//while (this._register.getItem(b)[length + 1] != undefined) length++;
-			//this._register.setItem(a, length);
-			this._register.setItem(a, shine.lib.table.getn(this._register.getItem(b)));
+		if ((b || shine.EMPTY_OBJ) instanceof shine.Table) {
+			length = shine.lib.table.getn(b);
 
-		} else if (typeof this._register.getItem(b) == 'object') {				
-			for (var i in this._register.getItem(b)) if (this._register.getItem(b).hasOwnProperty(i)) length++;
-			this._register.setItem(a, length);
+		} else if (typeof b == 'object') {
+			length = 0;
+			for (i in b) if (b.hasOwnProperty(i)) length++;
 
-		} else if (this._register.getItem(b) == undefined) {
+		} else if (b == undefined) {
 			throw new shine.Error('attempt to get length of a nil value');
 
-		} else if (this._register.getItem(b).length === undefined) {
-			this._register.setItem(a, undefined);
-			
 		} else {
-			this._register.setItem(a, this._register.getItem(b).length);
+			length = b.length;
 		}
+
+		this._register.setItem(a, length);
 	}
 
 
@@ -1019,11 +1024,15 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function forloop (a, sbx) {
-		this._register.setItem(a, this._register.getItem(a) + this._register.getItem(a + 2));
-		var parity = this._register.getItem(a + 2) / Math.abs(this._register.getItem(a + 2));
+		var step = this._register.getItem(a + 2),
+			limit = this._register.getItem(a + 1),
+			index = this._register.getItem(a) + step,
+			parity = step / Math.abs(step);
 		
-		if ((parity === 1 && this._register.getItem(a) <= this._register.getItem(a + 1)) || (parity !== 1 && this._register.getItem(a) >= this._register.getItem(a + 1))) {	//TODO This could be nicer
-			this._register.setItem(a + 3, this._register.getItem(a));
+		this._register.setItem(a, index);
+		
+		if ((parity === 1 && index <= limit) || (parity !== 1 && index >= limit)) {
+			this._register.setItem(a + 3, index);
 			this._pc += sbx;
 		}
 	}
@@ -1040,17 +1049,25 @@ shine.Closure.prototype.dispose = function (force) {
 
 
 	function tforloop (a, b, c) {
-		var args = [this._register.getItem(a + 1), this._register.getItem(a + 2)],
-			retvals = this._register.getItem(a).apply(null, args),
+		var args = shine.gc.createArray(),
+			retvals,
+			val,
 			index;
 
-		if (!((retvals || shine.EMPTY_OBJ) instanceof Array)) retvals = [retvals];
-		if (retvals[0] && retvals[0] === '' + (index = parseInt(retvals[0], 10))) retvals[0] = index;
-		
+		args.push(this._register.getItem(a + 1), this._register.getItem(a + 2));
+		retvals = this._register.getItem(a).apply(undefined, args);
+
+		if (!((retvals || shine.EMPTY_OBJ) instanceof Array)) {
+			val = shine.gc.createArray();
+			val.push(retvals);
+			retvals = val;
+		}
+
+		if ((val = retvals[0]) && val === '' + (index = parseInt(val, 10))) retvals[0] = index;
 		for (var i = 0; i < c; i++) this._register.setItem(a + i + 3, retvals[i]);
 
-		if (this._register.getItem(a + 3) !== undefined) {
-			this._register.setItem(a + 2, this._register.getItem(a + 3));
+		if ((val = this._register.getItem(a + 3)) !== undefined) {
+			this._register.setItem(a + 2, val);
 		} else {
 			this._pc++;
 		}
