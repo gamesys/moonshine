@@ -112,6 +112,49 @@ assertTrue (g == -122, 'math.ceil() should round up to the next integer [7]')
 
 
 
+
+-- math.deg
+
+a = math.deg (0)
+b = math.deg (math.pi)
+c = math.deg (math.pi * 2)
+d = math.deg (math.pi / 2)
+
+assertTrue (a == 0, 'math.deg() should return 0 when passed zero')
+assertTrue (b == 180, 'math.deg() should return 180 when passed Pi')
+assertTrue (c == 360, 'math.deg() should return 360 when passed 2Pi')
+assertTrue (d == 90, 'math.deg() should return 90 when passed Pi/2')
+
+
+
+--math.frexp
+
+a, b = math.frexp(63)
+assertTrue (a == 0.984375, 'math.frexp should return the correct mantissa when passed a positive number.')
+assertTrue (b == 6, 'math.frexp should return the correct exponent when passed a positive number.')
+
+a, b = math.frexp(-63)
+assertTrue (a == -0.984375, 'math.frexp should return the correct mantissa when passed a negative number.')
+assertTrue (b == 6, 'math.frexp should return the correct exponent when passed a negative number.')
+
+a, b = math.frexp(0)
+assertTrue (a == 0, 'math.frexp should return a zero mantissa when passed zero.')
+assertTrue (b == 0, 'math.frexp should return a zero exponent when passed zero.')
+
+
+
+
+--math.huge
+
+a = math.huge + 1
+b = -math.huge - 1
+
+assertTrue (a == math.huge, 'math.huge should not change value with addition.')
+assertTrue (b == -math.huge, 'Negative math.huge should not change value with subtraction.')
+
+
+
+
 -- math.rad
 
 a = math.rad (0)
@@ -149,31 +192,5 @@ d = math.random()
 assertTrue (c == ((16807 * 123) % 2147483647) / 2147483647, 'math.random() should follow the right sequence [2]')
 assertTrue (d == ((16807 * c * 2147483647) % 2147483647) / 2147483647, 'math.random() should follow the right sequence [3]')
 
-
-
-
-
-
--- math.deg
-
-a = math.deg (0)
-b = math.deg (math.pi)
-c = math.deg (math.pi * 2)
-d = math.deg (math.pi / 2)
-
-assertTrue (a == 0, 'math.deg() should return 0 when passed zero')
-assertTrue (b == 180, 'math.deg() should return 180 when passed Pi')
-assertTrue (c == 360, 'math.deg() should return 360 when passed 2Pi')
-assertTrue (d == 90, 'math.deg() should return 90 when passed Pi/2')
-
-
-
---math.huge
-
-a = math.huge + 1
-b = -math.huge - 1
-
-assertTrue (a == math.huge, 'math.huge should not change value with addition.')
-assertTrue (b == -math.huge, 'Negative math.huge should not change value with subtraction.')
 
 

@@ -985,8 +985,17 @@ var shine = shine || {};
 		
 		
 		
-		frexp: function (x, y) {
-			// TODO
+		frexp: function (x) {
+			var delta, exponent, mantissa;
+			if (x == 0) return [0, 0];
+
+			delta = x > 0? 1 : -1;
+			x = x * delta;
+			
+			exponent = Math.floor(Math.log(x) / Math.log(2)) + 1;
+			mantissa = x / Math.pow(2, exponent);
+
+			return [mantissa * delta, exponent];
 		},
 		
 		
