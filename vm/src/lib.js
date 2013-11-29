@@ -169,7 +169,7 @@ var shine = shine || {};
 
 		this.fileManager.load(filename, function (err, file) {
 			if (err) {
-				vm._trigger('module-load-error', file, err);
+				vm._trigger('module-load-error', [file, err]);
 
 				if (err == 404 && /\.lua$/.test(filename)) {
 					loadfile.call(vm, filename + '.json', callback);
@@ -181,9 +181,9 @@ var shine = shine || {};
 			}
 
 			var func = new shine.Function(vm, file, file.data, vm._globals);
-			vm._trigger('module-loaded', file, func);
+			vm._trigger('module-loaded', [file, func]);
 			
-			callback(func);			
+			callback(func);
 		});
 
 		this._trigger('loading-module', filename);
