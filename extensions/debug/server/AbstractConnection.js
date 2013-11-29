@@ -24,7 +24,7 @@
 var http = require('http'),
 	express = require('express'),
 	socketio = require('socket.io'),
-	EventEmitter = require('../../vm/src/EventEmitter').EventEmitter;
+	EventEmitter = require('../../../vm/src/EventEmitter').EventEmitter;
 
 
 
