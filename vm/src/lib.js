@@ -130,7 +130,7 @@ var shine = shine || {};
 	function translatePattern (pattern) {
 		// TODO Add support for balanced character matching (not sure this is easily achieveable).
 		pattern = '' + pattern;
-		
+
 		var n = 0,
 			i, l, character, addSlash;
 					
@@ -151,7 +151,8 @@ var shine = shine || {};
 			}
 
 			if (addSlash) {
-				pattern = pattern.substr(0, i) + '\\' + pattern.substr(i++);
+				// pattern = pattern.substr(0, i) + '\\' + pattern.substr(i++);
+				pattern = pattern.substr(0, i) + pattern.substr(i++ + 1);
 				l++;
 			}
 		}			

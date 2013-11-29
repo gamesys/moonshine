@@ -89,6 +89,10 @@ assertEqual (c, 7, 'string.find() should return the location of the last charact
 assertEqual (d, 'u', 'string.find() should return the groups that are specified in the regex. [1]')
 assertEqual (e, 'i', 'string.find() should return the groups that are specified in the regex. [2]')
 
+b = string.find('[', '[_%w]')
+assertTrue (b == nil, 'string.find() should not return the location of special syntax [ and ].')
+
+
 
 
 
