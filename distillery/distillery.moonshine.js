@@ -160,9 +160,10 @@ var shine = shine || {};
 		if (!length) return '';
 
 		result = this._readByte(length);
-		pos = result.indexOf(String.fromCharCode(0));
+		if (result.charCodeAt(length - 1) == 0) result = result.substr(0, length - 1);
+//		pos = result.indexOf(String.fromCharCode(0));
 
-		if (pos >= 0) result = result.substr(0, pos);
+//		if (pos >= 0) result = result.substr(0, pos);
 		return result;
 	};
 

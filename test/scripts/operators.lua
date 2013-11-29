@@ -46,6 +46,12 @@ assertTrue (result == .25, 'Division should handle floating point results')
 result = 5 % 3
 assertTrue (result == 2, 'Modulo operator should return the remainder of the division of the two operands')
 
+result = #'moo\0moo'
+assertTrue (result == 7, 'Length operator should return the correct length of string with null character inside')
+
+result = #'moo\0'
+assertTrue (result == 4, 'Length operator should return the correct length of string with null character appended')
+
 do
 	local a = 5
 	local b = 3
