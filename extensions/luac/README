@@ -1,0 +1,156 @@
+
+  Yueliang
+  Lua implemented in Lua
+
+  Copyright (c) 2005-2008 Kein-Hong Man <khman@users.sf.net>
+  The COPYRIGHT file describes the conditions under which this
+  software may be distributed (basically a Lua 5-style license.)
+
+  Website: 	http://yueliang.luaforge.net/
+  Project page: http://luaforge.net/projects/yueliang/
+
+--
+
+INTRODUCTION
+
+The goal of Yueliang is to implement Lua 5 in Lua 5. Such a codebase, if
+well documented, can be a useful prototyping and educational tool.
+Initially, the focus is on the front side of Lua, i.e. the lexical
+analyzer, the parser and the code generator, in order to generate binary
+chunks. Yueliang currently produces the exact binary chunk as the
+original Lua 5 itself for Lua 5.0.3 and Lua 5.1.3. Yueliang is moon in
+Mandarin.
+
+A port of the back side (the VM) is being considered, but note that
+there is a recent project on LuaForge called LuLu that does just this.
+
+Note: the codebase is currently a no-brainer port of Lua's front side C
+source code to Lua code, and the C heritage is retained as much as
+possible to allow for easy comparison. Due to certain implementation
+methods, processing might be slow (especially if the source file causes
+a lot of string processing.) The initial version is not meant to be
+fast. Even unused arguments are retained. Asserts are currently enabled.
+While the Lua code itself is portable, portions of the code is
+hard-coded to generate output for an x86-type platform (32-bit ints,
+doubles, little-endian.)
+
+See the test_lua directory for an automatic tester, test_scripts*.lua.
+Only the lexer currently has a basic test suite. Performance for the
+no-brainer port of the Lua 5.0.2 front end in Yueliang 0.1.0 is 28
+seconds on an Athlon 2500+, or about 29.5KB/sec. (Native C is virtually
+instantaneous, so a comparison is pointless, really.) I think a test
+suite for the parser will be better than running it on random files. See
+below for a list of todos.
+
+For versions of Yueliang corresponding to older minor releases of Lua,
+for example Lua 5.0.2 or Lua 5.1.1, please look at the README files in
+each of the orig-5.* directory for information on the last version of
+Yueliang corresponding to the particular Lua release.
+
+--
+
+NOTES
+
+* there is a failed assert in luaK:addk for both versions of lcode.lua,
+  the assert is currently incorrectly written
+* luaG_checkcode() in both versions of lparser.lua has currently not
+  been implemented (better put in the runtime backend?)
+* need to check compliance of lexers with recognizing characters beyond
+  normal ASCII (accented characters) when used in identifiers
+
+--
+
+WHAT'S NEW
+
+Major changes for version 0.4.1 (details in the ChangeLog):
+* Tested native 5.0.x and 5.1.x parsers with lots of test cases
+* Fixed two bugs in native 5.1.x parser, # and % operator handling
+
+Major changes for version 0.4.0 (details in the ChangeLog):
+* A working native parser skeleton for Lua 5.1.x, plus code
+  to deal with variable classification
+* Sample parser log files covering all of the grammar
+
+Major changes for version 0.3.2 (details in the ChangeLog):
+* A working native lexer for Lua 5.1.x
+
+Major changes for version 0.3.1 (details in the ChangeLog):
+* Mark 2 of the native parser skeleton for 5.0.3 which does
+  variable classification into locals, upvalues or globals
+* Sample parser log files exercising variable classification
+
+Major changes for version 0.3.0 (details in the ChangeLog):
+* Native parser skeleton for 5.0.3 mostly works
+* Sample parser log files covering all of the grammar
+
+Older items can be found in OlderNews
+
+--
+
+SOME SIZE STATS
+
+Here are some 0.1.0 size statistics (note that embedding the sources is
+redundant or pretty useless, as you will need an already present front
+end to process the source code!) for the 6 files main in orig-5.0.3
+minus luac.lua:
+
+			Size	Zipped
+Original sources*	130162	 29546
+with LuaSrcDiet*	 48308	 13841
+luac			108174	 32238
+luac -s			 64930	 21867
+
+*note: embedding these would be a little pointless
+
+There are some more size stats in the README file in the nat-5.0.3
+directory, for native lexers.
+
+--
+
+IMPLEMENTATION PLAN
+
+Here are some ideas, in no particular order or priority, with no
+particular implementation time frame:
+
+(a) A straight no-brainer port of Lua's front side C source code to
+    Lua code, no optimization or heavy rewriting is done (MOSTLY DONE)
+(b) A test suite for the lexer (MOSTLY DONE)
+(c) A test suite for the:
+    (i) parser (MOSTLY DONE)
+    (ii) code generator (CAN ADAPT LUA'S TEST SUITE)
+(d) Documentation for Lua code generation (STUDYING)
+(e) A straight no-brainer port of Lua's back side C source code to
+    Lua code, no optimization or heavy rewriting is done (ON HIATUS)
+    *** NOTE: there is a Lua-on-Lua project called LuLu on LuaForge
+(f) A test suite for the VM (CAN ADAPT LUA'S TEST SUITE)
+(g) Partial rewrites of Yueliang. (NATIVE LEXERS AND PARSERS DONE
+    FOR BOTH 5.0 AND 5.1)
+(h) Addition of features to Yueliang.
+
+--
+
+ACKNOWLEDGEMENTS
+
+Yueliang is a straight port of Lua 5 code, so I have included the Lua
+5.0.x copyright as well the Lua 5.1.x copyright files.
+
+Thanks to the LuaForge people for hosting this.
+Developed on SciTE http://www.scintilla.org/. Two thumbs up.
+
+--
+
+FEEDBACK
+
+Feedback and contributions are welcome. Your name will be acknowledged,
+as long as you are willing to comply with COPYRIGHT. If your material is
+self-contained, you can retain a copyright notice for those material in
+your own name, as long as you use the same Lua 5/MIT-style copyright.
+
+I am on dial-up, so I might not be able to reply immediately. My
+alternative e-mail address is: keinhong AT gmail DOT com
+
+Enjoy!!
+
+Kein-Hong Man (esq.)
+Kuala Lumpur
+Malaysia 20080531
