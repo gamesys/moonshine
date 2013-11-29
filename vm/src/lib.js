@@ -1636,7 +1636,7 @@ var shine = shine || {};
 
 			return function () {
 				var match = matches.shift(),
-					groups = new RegExp(reg).exec(match);
+					groups = new RegExp(pattern).exec(match);
 
 				if (match === undefined) return;
 
