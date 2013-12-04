@@ -180,6 +180,7 @@ shine.gc = {
 		var i, l, 
 			meta = val.__shine;
 
+		for (i = 0, l = meta.keys.length; i < l; i++) this.decrRef(meta.keys[i]);
 		for (i = 0, l = meta.values.length; i < l; i++) this.decrRef(meta.values[i]);
 		for (i = 0, l = meta.numValues.length; i < l; i++) this.decrRef(meta.numValues[i]);
 

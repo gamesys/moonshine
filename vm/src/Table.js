@@ -153,6 +153,7 @@ shine.Table.prototype.setMember = function (key, value) {
 			index = keys.indexOf(key);
 
 			oldValue = index == -1? undefined : this.__shine.values[index];
+			if (oldValue === undefined) shine.gc.incrRef(key);
 	}
 
 	if (oldValue === undefined && mt && mt.__newindex) {
