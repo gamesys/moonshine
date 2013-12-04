@@ -1063,7 +1063,6 @@ shine.Closure.prototype.dispose = function (force) {
 			retvals = val;
 		}
 
-		if ((val = retvals[0]) && val === '' + (index = parseInt(val, 10))) retvals[0] = index;
 		for (var i = 0; i < c; i++) this._register.setItem(a + i + 3, retvals[i]);
 
 		if ((val = this._register.getItem(a + 3)) !== undefined) {
