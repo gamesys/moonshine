@@ -31,10 +31,8 @@ shine.debug = shine.debug || {};
 
 
 shine.debug.LOCAL_UI_URL = (function () {
-	var scriptTag = document.querySelector('script[src$="local.debug.moonshine.js"][data-ui-url]');
-
-	if (scriptTag) return scriptTag.getAttribute('data-ui-url');
-	return shine.debug.LOCAL_UI_URL || './js/moonshine/extensions/debug/ui/index.html';
+	var script = document.querySelector('script[src$="local.debug.moonshine.js"]');
+	return shine.debug.LOCAL_UI_URL || (script? script.src.substr(0, script.src.length - 25) : './js/moonshine/extensions/debug') + '/ui';
 })();
 
 
