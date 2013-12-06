@@ -4266,7 +4266,6 @@ do
 	end
 
 
-	if setCompiler then setCompiler(compile) end
-
+	if shine and shine.setCompiler then shine.setCompiler(compile) end
 end
 
