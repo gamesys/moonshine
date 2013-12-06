@@ -545,6 +545,8 @@ shine.debug.pause = function () {
 				}, 1);
 
 				return;
+		} else if (debug._currentLine && lineNumber != debug._currentLine) {
+			debug._currentLine = undefined;
 		}
 
 
