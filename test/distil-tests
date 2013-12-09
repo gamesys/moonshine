@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-moonshine distil ./scripts -o ./test-package.json -pm ./scripts/test-runner.lua
+../bin/moonshine distil ./scripts -o ./test-package.json -pm ./scripts/test-runner.lua

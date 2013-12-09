@@ -249,6 +249,8 @@ function distilPackage (files, switches, callback) {
 			if (main) packageData.main = destination;
 
 			distil(source, switches, function (tree) {
+				tree.sourcePath = getRelativePath(source, pathLib.dirname(destination));
+
 				packageData.files[destination] = tree;
 				console.log(COLORS.WHITE + 'Added to package: ' + source + (main? ' [main]' : '') + COLORS.RESET);
 
