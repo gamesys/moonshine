@@ -104,6 +104,9 @@ shine.debug.ui = {
 		if (typeof io == 'object') {
 			this._initSocket(url);
 
+		} else if (typeof require == 'function') {
+			require([url + '/socket.io/socket.io.js'], function () { me._initSocket(url); });
+
 		} else {
 			script = document.createElement('script');
 
@@ -112,7 +115,6 @@ shine.debug.ui = {
 			script.addEventListener('load', function () { me._initSocket(url); });
 			script.addEventListener('error', function (e) { me.showStatus(false, 'Not found.'); });
 		}
-
 	},
 
 
@@ -335,20 +337,7 @@ shine.debug.ui = {
 	_handleStopClick: function () {
 		if (localStorage) localStorage.setItem('autoConnect', 'false');
 
-		if (this._socket && this._socket.socket.connected) {
-			this.showStatus(false, 'Disconnecting...');
-			this._socket.disconnect();
-
-			for (var i in io.sockets) {
-				if (io.sockets[i] === this._socket.socket) {
-					delete io.sockets[i];
-					break;
-				}
-			}
-
-			delete this._socket;
-		}
-
+		this._closeSocket();
 		this.start();
 	},
 
@@ -379,6 +368,33 @@ shine.debug.ui = {
 		this.elements.status.style.backgroundPositionY = connected? '-4px' : '-36px';
 		this.elements.status.textContent = caption;
 		this.elements.status.style.display = this.elements.stop.style.display = 'inline-block';
+	},
+
+
+
+
+	_closeSocket: function () {
+		if (this._socket && this._socket.socket.connected) {
+			this.showStatus(false, 'Disconnecting...');
+			this._socket.disconnect();
+
+			for (var i in io.sockets) {
+				if (io.sockets[i] === this._socket.socket) {
+					delete io.sockets[i];
+					break;
+				}
+			}
+
+			delete this._socket;
+		}
+	},
+
+
+
+
+	dispose: function () {
+		this._closeSocket();
+		document.body.removeChild(this.elements.main);
 	}
 
 
