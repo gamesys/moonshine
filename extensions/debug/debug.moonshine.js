@@ -400,11 +400,11 @@ shine.debug.stepOut = function () {
 	var target,
 		i = 1;
 
-	// do {
+	do {
 		target = this._resumeStack[i++];
-	// } while (target !== undefined && !(target instanceof shine.Closure));
+	} while (target !== undefined && !(target instanceof shine.Closure));
 
-	// if (!target) return this.resume();
+	if (!target) return this.resume();
 
 	this._steppingTo = target;
 	this._stepping = true;
@@ -521,16 +521,17 @@ shine.debug.pause = function () {
 			jsonUrl = this._file.url,
 			opcode = this._instructions[pc * 4];
 
-		if ((
-				(debug._stepping && (!debug._steppingTo || debug._steppingTo == this)) || 			// Only break if stepping in, out or over  
-				(debug._stopAtBreakpoints && debug._breakpoints[jsonUrl][lineNumber - 1])			// or we've hit a breakpoint.
-			) &&		
+		if (
 			this._vm._status == shine.RUNNING &&													// Don't break if we're in the middle of resuming or suspending the VM.
 			!debug._resumeStack.length && 															// Don't break if we're in the middle of resuming from the previous debug step.
 			lineNumber != debug._currentLine && 													// Don't step more than once per line.
 			[35, 36].indexOf(opcode) < 0 && 														// Don't break on closure declarations.
-			!(shine.Coroutine._running && shine.Coroutine._running.status == shine.RESUMING)) {		// Don't break while a coroutine is resuming.
-
+			!(shine.Coroutine._running && shine.Coroutine._running.status == shine.RESUMING)		// Don't break while a coroutine is resuming.
+		) {		
+			if (
+				(debug._stepping && (!debug._steppingTo || debug._steppingTo == this)) || 			// Only break if stepping in, out or over  
+				(debug._stopAtBreakpoints && debug._breakpoints[jsonUrl][lineNumber - 1])			// or we've hit a breakpoint.
+			) {
 				// Break execution
 
 				debug._setStatus(shine.SUSPENDING);
@@ -545,14 +546,16 @@ shine.debug.pause = function () {
 				}, 1);
 
 				return;
-		} else if (debug._currentLine && lineNumber != debug._currentLine) {
-			debug._currentLine = undefined;
+
+			} else {
+				debug._currentLine = undefined;
+			}
 		}
 
 
 		debug._lastFileUrl = jsonUrl;
 		debug._lastLine = lineNumber;
-
+	
 
 		try {
 			var result = executeInstruction.apply(this, arguments);
@@ -568,7 +571,8 @@ shine.debug.pause = function () {
 			throw e;
 		}
 
-		if ([30, 35].indexOf(opcode) >= 0) {	// If returning from or closing a function call, step out = step over = step in
+
+		if ([30, 35].indexOf(opcode) >= 0 && debug._steppingTo == this) {	// If returning from or closing a function call, step over = step in
 			delete debug._steppingTo;
 		}
 
