@@ -219,7 +219,7 @@ shine.debug.handleFileLoaded = function (file, callback) {
 
 	if (sourcePath) {
 		pathData = (jsonUrl || '').match(/^(.*)\/.*?$/);
-		pathData = (pathData && pathData[1]) || '';
+		pathData = pathData === null? '.' : pathData[1] || '';
 
 		url = pathData + '/' + sourcePath;
 		url = url.replace(/\/\.\//g, '/').replace(/\/.*?\/\.\.\//g, '/');
