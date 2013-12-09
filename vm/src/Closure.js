@@ -111,7 +111,7 @@ shine.Closure.prototype.execute = function (args) {
 
 	if (this._vm._status != shine.RUNNING) {
 		this._vm._callbackQueue.push(function () {
-			me.execute.apply(me, args);
+			me.execute.call(me, args);
 		});
 
 		return;		
