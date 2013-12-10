@@ -1017,7 +1017,7 @@ shine.Closure.prototype.execute = function (args) {
 
 	if (this._vm._status != shine.RUNNING) {
 		this._vm._callbackQueue.push(function () {
-			me.execute.apply(me, args);
+			me.execute.call(me, args);
 		});
 
 		return;		
@@ -2838,7 +2838,8 @@ shine.Error.prototype._stackToString = function () {
 
 
 			if (filename = closure._file.data.sourcePath) {
-				filename = closure._file.url.match('^(.*)\/.*?$')[1] + '/' + filename;
+				filename = closure._file.url.match('^(.*)\/.*?$');
+				filename = (filename === null? '.' : filename[1] || '') + '/' + filename;
 				filename = filename.replace(/\/\.\//g, '/').replace(/\/.*?\/\.\.\//g, '/');
 			} else {
 				filename = closure._file.url;
