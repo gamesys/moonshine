@@ -34,6 +34,11 @@ The port the localhost from which to serve the debug console. Default is 1969.
 .RS 4
 Semicolon-delimited list of source paths in which to search for Lua source scripts.
 .RE
+.PP
+\-m path-map-list, \-\-path-maps path-map-list
+.RS 4
+Semicolon-delimited list of path maps. Path maps are in turn a colon delimited search:replace pair, for example: "/cdn/assets/lua/:~/projects/lua/"
+.RE
 .SH EXAMPLES
 .PP
 moonshine debug

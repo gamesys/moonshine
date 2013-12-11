@@ -29,8 +29,30 @@ var DebugServer = require('../../extensions/debug/server/DebugServer'),
 	defaultSwitches = {
 		sourcePaths: ['-src', ''],
 		appPort: ['-ap', ''],
-		consolePort: ['-cp', '']
+		consolePort: ['-cp', ''],
+		pathMaps: ['-m', '']
 	};
+
+
+
+
+function parsePathMaps (mapStr) {
+	var mapArr = mapStr.split(';'),
+		map, 
+		mapPair, 
+		pattern, 
+		result = {},
+		i;
+
+	for (i = 0; map = mapArr[i]; i++) {
+		mapPair = map.split(':');
+		pattern = mapPair[0].replace(/[\.\+\*\?\[\]\(\)\\\/\^\$\-]/g, function (c) { return '\\' + c; });
+		pattern = pattern.replace('\\*\\*', '.+').replace('\\*', '[^\/\\]+');
+		result[pattern] = mapPair[1];
+	}
+
+	return result;
+}
 
 
 
@@ -40,11 +62,11 @@ module.exports = {
 	exec: function () {
 		require('./common').showLicense();
 
-
 		var args = parseArgs(defaultSwitches),
 			switches = args.switches,
 			config = {
 				sourcePaths: switches.sourcePaths && switches.sourcePaths.split(';'),
+				pathMaps: switches.pathMaps && parsePathMaps(switches.pathMaps),
 				appPort: switches.appPort,
 				consolePort: switches.consolePort
 			};

@@ -33,8 +33,11 @@ DebugServer = function (config) {
 	config = config || {};
 
 	this._sourcePaths = config.sourcePaths;
+	this._pathMaps = config.pathMaps;
 	this._initAppConnection(config);
 	this._initConsoleConnection(config);
+
+	if (this._pathMaps && !this._sourcePaths) this._sourcePaths = ['.'];
 };
 
 
@@ -69,14 +72,14 @@ DebugServer.prototype._initAppConnection = function (config) {
 
 
 	conn.on('lua-loaded', function (jsonUrl, url, code) {
-		if (me._sourcePaths) code = me.getLocalSourceCode(url, code);
+		if (me._sourcePaths || me._pathMaps) code = me.getLocalSourceCode(url, code);
 		if (me._consoleConnection) me._consoleConnection.luaLoaded(jsonUrl, url, code);
 	});
 
 
 	conn.on('lua-load-failed', function (jsonUrl, url) {
 		var code;
-		if (me._sourcePaths) code = me.getLocalSourceCode(url);
+		if (me._sourcePaths || me.pathMaps) code = me.getLocalSourceCode(url);
 
 		if (me._consoleConnection) {
 			if (code) {
@@ -137,7 +140,7 @@ DebugServer.prototype._initConsoleConnection = function (config) {
 	conn.on('get-state-request', function (callback) {
 		var state, loaded, i;
 
-		if (!me._sourcePaths) {
+		if (!me._sourcePaths && !me._pathMaps) {
 			state = me._appConnection.state;
 
 		} else {
@@ -207,8 +210,18 @@ DebugServer.prototype._initConsoleConnection = function (config) {
 
 
 DebugServer.prototype.getLocalSourceCode = function (url, defaultCode) {
-	var attempts = [],
-		i, filename;
+	var attempts = [], 
+		maps = this._pathMaps,
+		filename, match,
+		map,
+		i;
+
+	for (i in maps) {
+		if (maps.hasOwnProperty(i) && (match = url.match(i))) {
+			url = maps[i] + url.substr(match[0].length);
+			break;
+		}
+	}
 
 	for (i = this._sourcePaths.length - 1; i >= 0; i--) {
 		filename = path.resolve(this._sourcePaths[i] + '/' + url);
