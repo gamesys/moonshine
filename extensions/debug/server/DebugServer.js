@@ -37,7 +37,7 @@ DebugServer = function (config) {
 	this._initAppConnection(config);
 	this._initConsoleConnection(config);
 
-	if (this._pathMaps && !this._sourcePaths) this._sourcePaths = ['.'];
+	if (!this._sourcePaths) this._sourcePaths = ['.'];
 };
 
 
