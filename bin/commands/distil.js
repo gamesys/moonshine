@@ -98,7 +98,7 @@ function parseCommand (args) {
 
 
 	if (args.switches.outputFilename && files.length > 1) {
-		distilPackage(files, args.switches, success);
+		distilPackage(files, root, args.switches, success);
 
 	} else {
 		for (i = 0, l = files.length; i < l; i++) {
@@ -215,7 +215,7 @@ function distilFile (source, destination, switches, callback) {
 
 
 
-function distilPackage (files, switches, callback) {
+function distilPackage (files, root, switches, callback) {
 	var outstanding = 0,
 		outputFilename = switches.outputFilename,
 		packageMain = pathLib.relative('.', pathLib.resolve(switches.packageMain)),
@@ -240,7 +240,6 @@ function distilPackage (files, switches, callback) {
 		}
 	}
 
-
 	for (i = 0, l = files.length; i < l; i++) {
 		outstanding++;
 
@@ -249,7 +248,7 @@ function distilPackage (files, switches, callback) {
 			if (main) packageData.main = destination;
 
 			distil(source, switches, function (tree) {
-				tree.sourcePath = getRelativePath(source, pathLib.dirname(destination));
+				tree.sourcePath = getRelativePath(source, root + '/' + pathLib.dirname(destination));
 
 				packageData.files[destination] = tree;
 				console.log(COLORS.WHITE + 'Added to package: ' + source + (main? ' [main]' : '') + COLORS.RESET);
