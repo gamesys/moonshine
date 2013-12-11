@@ -152,7 +152,7 @@ function minifyLibrary () {
 		if (err) throw err;
 
 		var output = fs.openSync(MINIFIED_OUTPUT_FILENAME, 'w');
-		appendFile(output, HEADER_FILENAME, true);	
+		appendFile(output, HEADER_FILENAME, true);
 		appendFile(output, filename);
 
 		fs.closeSync(output);
@@ -197,6 +197,7 @@ function buildSWC () {
 function buildModule () {
 	var output = fs.openSync(MODULE_FILENAME, 'w');
 
+	appendFile(output, HEADER_FILENAME, true);
 	fs.writeSync(output, 'define(function(require,exports,module){\n');
 	appendFile(output, MINIFIED_OUTPUT_FILENAME);
 	fs.writeSync(output, '\n});');
