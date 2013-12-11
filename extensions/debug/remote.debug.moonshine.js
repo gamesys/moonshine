@@ -34,6 +34,7 @@ shine.debug = shine.debug || {};
 
 shine.debug.ui = {
 
+	name: 'remote',
 	
 	_socket: null,
 	_files: {},

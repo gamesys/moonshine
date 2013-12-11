@@ -230,16 +230,6 @@ shine.debug.handleFileLoaded = function (file, callback) {
 
 	this._breakpoints[jsonUrl] = this._breakpoints[jsonUrl] || [];
 
-	function success (data) {
-		debug._loaded[jsonUrl] = {
-			filename: url,
-			source: data
-		};
-
-		debug._trigger('lua-loaded', [jsonUrl, url, data]);
-		callback();
-	}
-
 	function error (e) {
 		debug._loaded[jsonUrl] = {
 			filename: url,
@@ -250,6 +240,18 @@ shine.debug.handleFileLoaded = function (file, callback) {
 		callback();
 	}
 	
+	if (this.ui.name == 'remote') return error();	// Don't attempt to load locally when remote debugging (to prevent 404s).
+
+	function success (data) {
+		debug._loaded[jsonUrl] = {
+			filename: url,
+			source: data
+		};
+
+		debug._trigger('lua-loaded', [jsonUrl, url, data]);
+		callback();
+	}
+
 	shine.utils.get(url, success, error);
 };
 

@@ -40,6 +40,8 @@ shine.debug.LOCAL_UI_URL = (function () {
 
 shine.debug.ui = {
 
+	name: 'local',
+
 	init: function () {
 
 		var me = this,
