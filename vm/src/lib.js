@@ -116,6 +116,18 @@ var shine = shine || {};
 
 
 
+	function getVM (context) {
+		if (context && context instanceof shine.VM) return context;
+
+		var vm = shine.getCurrentVM();
+		if (!vm) throw new shine.Error("Can't call library function without passing a VM object as the context");
+
+		return vm;
+	}
+
+
+
+
 	function getWeekOfYear (d, firstDay, utc) { 
 		var dayOfYear = parseInt(DATE_FORMAT_HANDLERS['%j'](d), 10),
 			jan1 = new Date(d.getFullYear (), 0, 1, 12),
@@ -164,11 +176,11 @@ var shine = shine || {};
 
 
 	function loadfile (filename, callback) {
-		var vm = this,
+		var vm = getVM(this),
 			file,
 			pathData;
 
-		this.fileManager.load(filename, function (err, file) {
+		vm.fileManager.load(filename, function (err, file) {
 			if (err) {
 				vm._trigger('module-load-error', [file, err]);
 
@@ -187,7 +199,7 @@ var shine = shine || {};
 			callback(func);
 		});
 
-		this._trigger('loading-module', filename);
+		vm._trigger('loading-module', filename);
 	}
 
 
@@ -266,41 +278,41 @@ var shine = shine || {};
 	
 		
 		load: function (func, chunkname) {
-			var vm = this,
+			var vm = getVM(this),
 				chunk = '', piece, lastPiece;
 
 			while ((piece = func.apply(func)) && (piece = piece[0])) {
 				chunk += (lastPiece = piece);
 			}
 
-			return shine.lib.loadstring.call(this, chunk);
+			return shine.lib.loadstring.call(vm, chunk);
 		},
 	
 	
 	
 		
 		loadfile: function (filename) {
-			var vm = this,
+			var vm = getVM(this),
 				callback = function (result) {
 					vm.resume(result || []);
 				};
 
 			vm.suspend();
-			loadfile.call(this, filename, callback);
+			loadfile.call(vm, filename, callback);
 		},
 	
 	
 	
 		
 		loadstring: function (string, chunkname) {
-			var vm = this;
+			var vm = getVM(this);
 			
 			if (typeof string != 'string') throw new shine.Error('bad argument #1 to \'loadstring\' (string expected, got ' + shine.utils.coerce(string, 'string') + ')');
-			if (!string) return new shine.Function(this);
+			if (!string) return new shine.Function(vm);
 
-			this.suspend();
+			vm.suspend();
 
-			this.fileManager.load(string, function (err, file) {
+			vm.fileManager.load(string, function (err, file) {
 				if (err) {
 					vm.resume([]);
 					return;
@@ -451,9 +463,9 @@ var shine = shine || {};
 
 
 		require: function (modname) {
-			var packageLib = this._globals['package'],
+			var vm = getVM(this),
+				packageLib = vm._globals['package'],
 				current = shine.Closure._current,
-				vm = this,
 				module,
 				preload,
 				paths,
@@ -737,7 +749,7 @@ var shine = shine || {};
 		
 		wrap: function (closure) {
 			var co = shine.lib.coroutine.create(closure),
-				vm = this;
+				vm = getVM(this);
 			
 			var result = function () {			
 				var args = [co];
