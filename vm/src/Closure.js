@@ -167,7 +167,8 @@ shine.Closure.prototype._run = function () {
 	var instruction,
 		line,
 		retval,
-		yieldVars;
+		yieldVars,
+		running;
 
 	this.terminated = false;
 	
@@ -191,15 +192,15 @@ shine.Closure.prototype._run = function () {
 			shine.debug._setStatus(shine.RUNNING);
 		}
 
-	} else if (shine.Coroutine._running && shine.Coroutine._running.status == shine.RESUMING) {
-	 	if (shine.Coroutine._running._resumeStack.length) {
+	} else if ((running = this._vm._coroutineRunning) && running.status == shine.RESUMING) {
+	 	if (running._resumeStack.length) {
 			this._pc--;
 			
 		} else {
-			shine.Coroutine._running.status = shine.RUNNING;
+			running.status = shine.RUNNING;
 			//shine.stddebug.write('[coroutine resumed]\n');
 	
-			yieldVars = shine.Coroutine._running._yieldVars;
+			yieldVars = running._yieldVars;
 		}
 	}	
 	
@@ -238,13 +239,13 @@ shine.Closure.prototype._run = function () {
 		line = this._data.linePositions && this._data.linePositions[this._pc];
 		retval = this._executeInstruction(this._pc++, line);
 
-		if (shine.Coroutine._running && shine.Coroutine._running.status == shine.SUSPENDING) {
-			shine.Coroutine._running._resumeStack.push(this);
+		if ((running = this._vm._coroutineRunning) && running.status == shine.SUSPENDING) {
+			running._resumeStack.push(this);
 
-			if (shine.Coroutine._running._func._instance == this) {
-				retval = shine.Coroutine._running._yieldVars;
+			if (running._func._instance == this) {
+				retval = running._yieldVars;
 
-				shine.Coroutine._running.status = shine.SUSPENDED;
+				running.status = shine.SUSPENDED;
 				shine.Coroutine._remove();
 
 				//shine.stddebug.write('[coroutine suspended]\n');
@@ -881,6 +882,7 @@ shine.Closure.prototype.dispose = function (force) {
 			i, l,
 			retvals,
 			funcToResume,
+			running,
 			f, o, mt;
 
 
@@ -905,10 +907,10 @@ shine.Closure.prototype.dispose = function (force) {
 				retvals = funcToResume();
 			}
 			
-		} else if (shine.Coroutine._running && shine.Coroutine._running.status == shine.RESUMING) {
+		} else if ((running = this._vm._coroutineRunning) && running.status == shine.RESUMING) {
 			// If we're resuming a coroutine function...
 			
-			funcToResume = shine.Coroutine._running._resumeStack.pop();
+			funcToResume = running._resumeStack.pop();
 			retvals = funcToResume._run();
 			
 		} else {
@@ -960,7 +962,7 @@ shine.Closure.prototype.dispose = function (force) {
 
 		if (!(retvals && retvals instanceof Array)) retvals = [retvals];
 
-		if (shine.Coroutine._running && shine.Coroutine._running.status == shine.SUSPENDING) return;
+		if ((running = this._vm._coroutineRunning) && running.status == shine.SUSPENDING) return;
 
 
 		if (c === 0) {

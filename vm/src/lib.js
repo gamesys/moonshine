@@ -730,7 +730,8 @@ var shine = shine || {};
 		
 		
 		running: function () {
-			return shine.Coroutine._running;
+			var vm = getVM(this);
+			return vm._coroutineRunning;
 		},
 		
 	
@@ -738,7 +739,7 @@ var shine = shine || {};
 		
 		status: function (co) {
 			switch (co.status) {
-				case shine.RUNNING: return (co === shine.Coroutine._running)? 'running' : 'normal';
+				case shine.RUNNING: return (co === getVM()._coroutineRunning)? 'running' : 'normal';
 				case shine.SUSPENDED: return 'suspended';
 				case shine.DEAD: return 'dead';
 			}
@@ -773,13 +774,14 @@ var shine = shine || {};
 		
 		
 		yield: function () {
+			var running = getVM()._coroutineRunning,
+				args;
+
 			// If running in main thread, throw error.
-			if (!shine.Coroutine._running) throw new shine.Error('attempt to yield across metamethod/C-call boundary (not in coroutine)');
-			if (shine.Coroutine._running.status != shine.RUNNING) throw new shine.Error('attempt to yield non-running coroutine in host');
+			if (!running) throw new shine.Error('attempt to yield across metamethod/C-call boundary (not in coroutine)');
+			if (running.status != shine.RUNNING) throw new shine.Error('attempt to yield non-running coroutine in host');
 
-			var args = shine.gc.createArray(),
-				running = shine.Coroutine._running;
-
+			args = shine.gc.createArray();
 			for (var i = 0, l = arguments.length; i < l; i++) args.push(arguments[i]);	
 	
 			running._yieldVars = args;

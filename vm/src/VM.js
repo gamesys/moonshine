@@ -50,6 +50,7 @@ shine.VM = function (env) {
 	this._status = shine.RUNNING;
 	this._resumeStack = [];
 	this._callbackQueue = [];
+	this._coroutineStack = [];
 
 	this._resetGlobals();
 };

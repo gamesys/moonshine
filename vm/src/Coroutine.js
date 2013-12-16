@@ -58,7 +58,6 @@ shine.Coroutine.prototype.constructor = shine.Function;
 
 
 shine.Coroutine._index = 0;
-shine.Coroutine._stack = [];
 shine.Coroutine._graveyard = [];
 
 
@@ -83,8 +82,9 @@ shine.Coroutine.create = function (closure) {
  * @param {shine.Coroutine} co A running coroutine.
  */
 shine.Coroutine._add = function (co) {
-	shine.Coroutine._stack.push(shine.Coroutine._running);
-	shine.Coroutine._running = co;
+	var vm = shine.getCurrentVM();
+	vm._coroutineStack.push(vm._coroutineRunning);
+	vm._coroutineRunning = co;
 };
 
 
@@ -95,7 +95,8 @@ shine.Coroutine._add = function (co) {
  * @static
  */
 shine.Coroutine._remove = function () {
-	shine.Coroutine._running = shine.Coroutine._stack.pop();
+	var vm = shine.getCurrentVM();
+	vm._coroutineRunning = vm._coroutineStack.pop();
 };
 
 
