@@ -505,6 +505,7 @@ shine.VM = function (env) {
 	this._status = shine.RUNNING;
 	this._resumeStack = [];
 	this._callbackQueue = [];
+	this._coroutineStack = [];
 
 	this._resetGlobals();
 };
@@ -1073,7 +1074,8 @@ shine.Closure.prototype._run = function () {
 	var instruction,
 		line,
 		retval,
-		yieldVars;
+		yieldVars,
+		running;
 
 	this.terminated = false;
 	
@@ -1097,15 +1099,15 @@ shine.Closure.prototype._run = function () {
 			shine.debug._setStatus(shine.RUNNING);
 		}
 
-	} else if (shine.Coroutine._running && shine.Coroutine._running.status == shine.RESUMING) {
-	 	if (shine.Coroutine._running._resumeStack.length) {
+	} else if ((running = this._vm._coroutineRunning) && running.status == shine.RESUMING) {
+	 	if (running._resumeStack.length) {
 			this._pc--;
 			
 		} else {
-			shine.Coroutine._running.status = shine.RUNNING;
+			running.status = shine.RUNNING;
 			//shine.stddebug.write('[coroutine resumed]\n');
 	
-			yieldVars = shine.Coroutine._running._yieldVars;
+			yieldVars = running._yieldVars;
 		}
 	}	
 	
@@ -1144,13 +1146,13 @@ shine.Closure.prototype._run = function () {
 		line = this._data.linePositions && this._data.linePositions[this._pc];
 		retval = this._executeInstruction(this._pc++, line);
 
-		if (shine.Coroutine._running && shine.Coroutine._running.status == shine.SUSPENDING) {
-			shine.Coroutine._running._resumeStack.push(this);
+		if ((running = this._vm._coroutineRunning) && running.status == shine.SUSPENDING) {
+			running._resumeStack.push(this);
 
-			if (shine.Coroutine._running._func._instance == this) {
-				retval = shine.Coroutine._running._yieldVars;
+			if (running._func._instance == this) {
+				retval = running._yieldVars;
 
-				shine.Coroutine._running.status = shine.SUSPENDED;
+				running.status = shine.SUSPENDED;
 				shine.Coroutine._remove();
 
 				//shine.stddebug.write('[coroutine suspended]\n');
@@ -1787,6 +1789,7 @@ shine.Closure.prototype.dispose = function (force) {
 			i, l,
 			retvals,
 			funcToResume,
+			running,
 			f, o, mt;
 
 
@@ -1811,10 +1814,10 @@ shine.Closure.prototype.dispose = function (force) {
 				retvals = funcToResume();
 			}
 			
-		} else if (shine.Coroutine._running && shine.Coroutine._running.status == shine.RESUMING) {
+		} else if ((running = this._vm._coroutineRunning) && running.status == shine.RESUMING) {
 			// If we're resuming a coroutine function...
 			
-			funcToResume = shine.Coroutine._running._resumeStack.pop();
+			funcToResume = running._resumeStack.pop();
 			retvals = funcToResume._run();
 			
 		} else {
@@ -1866,7 +1869,7 @@ shine.Closure.prototype.dispose = function (force) {
 
 		if (!(retvals && retvals instanceof Array)) retvals = [retvals];
 
-		if (shine.Coroutine._running && shine.Coroutine._running.status == shine.SUSPENDING) return;
+		if ((running = this._vm._coroutineRunning) && running.status == shine.SUSPENDING) return;
 
 
 		if (c === 0) {
@@ -2380,7 +2383,6 @@ shine.Coroutine.prototype.constructor = shine.Function;
 
 
 shine.Coroutine._index = 0;
-shine.Coroutine._stack = [];
 shine.Coroutine._graveyard = [];
 
 
@@ -2405,8 +2407,9 @@ shine.Coroutine.create = function (closure) {
  * @param {shine.Coroutine} co A running coroutine.
  */
 shine.Coroutine._add = function (co) {
-	shine.Coroutine._stack.push(shine.Coroutine._running);
-	shine.Coroutine._running = co;
+	var vm = shine.getCurrentVM();
+	vm._coroutineStack.push(vm._coroutineRunning);
+	vm._coroutineRunning = co;
 };
 
 
@@ -2417,7 +2420,8 @@ shine.Coroutine._add = function (co) {
  * @static
  */
 shine.Coroutine._remove = function () {
-	shine.Coroutine._running = shine.Coroutine._stack.pop();
+	var vm = shine.getCurrentVM();
+	vm._coroutineRunning = vm._coroutineStack.pop();
 };
 
 
@@ -2995,6 +2999,18 @@ var shine = shine || {};
 
 
 
+	function getVM (context) {
+		if (context && context instanceof shine.VM) return context;
+
+		var vm = shine.getCurrentVM();
+		if (!vm) throw new shine.Error("Can't call library function without passing a VM object as the context");
+
+		return vm;
+	}
+
+
+
+
 	function getWeekOfYear (d, firstDay, utc) { 
 		var dayOfYear = parseInt(DATE_FORMAT_HANDLERS['%j'](d), 10),
 			jan1 = new Date(d.getFullYear (), 0, 1, 12),
@@ -3043,11 +3059,11 @@ var shine = shine || {};
 
 
 	function loadfile (filename, callback) {
-		var vm = this,
+		var vm = getVM(this),
 			file,
 			pathData;
 
-		this.fileManager.load(filename, function (err, file) {
+		vm.fileManager.load(filename, function (err, file) {
 			if (err) {
 				vm._trigger('module-load-error', [file, err]);
 
@@ -3066,7 +3082,7 @@ var shine = shine || {};
 			callback(func);
 		});
 
-		this._trigger('loading-module', filename);
+		vm._trigger('loading-module', filename);
 	}
 
 
@@ -3145,41 +3161,41 @@ var shine = shine || {};
 	
 		
 		load: function (func, chunkname) {
-			var vm = this,
+			var vm = getVM(this),
 				chunk = '', piece, lastPiece;
 
 			while ((piece = func.apply(func)) && (piece = piece[0])) {
 				chunk += (lastPiece = piece);
 			}
 
-			return shine.lib.loadstring.call(this, chunk);
+			return shine.lib.loadstring.call(vm, chunk);
 		},
 	
 	
 	
 		
 		loadfile: function (filename) {
-			var vm = this,
+			var vm = getVM(this),
 				callback = function (result) {
 					vm.resume(result || []);
 				};
 
 			vm.suspend();
-			loadfile.call(this, filename, callback);
+			loadfile.call(vm, filename, callback);
 		},
 	
 	
 	
 		
 		loadstring: function (string, chunkname) {
-			var vm = this;
+			var vm = getVM(this);
 			
 			if (typeof string != 'string') throw new shine.Error('bad argument #1 to \'loadstring\' (string expected, got ' + shine.utils.coerce(string, 'string') + ')');
-			if (!string) return new shine.Function(this);
+			if (!string) return new shine.Function(vm);
 
-			this.suspend();
+			vm.suspend();
 
-			this.fileManager.load(string, function (err, file) {
+			vm.fileManager.load(string, function (err, file) {
 				if (err) {
 					vm.resume([]);
 					return;
@@ -3330,9 +3346,9 @@ var shine = shine || {};
 
 
 		require: function (modname) {
-			var packageLib = this._globals['package'],
+			var vm = getVM(this),
+				packageLib = vm._globals['package'],
 				current = shine.Closure._current,
-				vm = this,
 				module,
 				preload,
 				paths,
@@ -3597,7 +3613,8 @@ var shine = shine || {};
 		
 		
 		running: function () {
-			return shine.Coroutine._running;
+			var vm = getVM(this);
+			return vm._coroutineRunning;
 		},
 		
 	
@@ -3605,7 +3622,7 @@ var shine = shine || {};
 		
 		status: function (co) {
 			switch (co.status) {
-				case shine.RUNNING: return (co === shine.Coroutine._running)? 'running' : 'normal';
+				case shine.RUNNING: return (co === getVM()._coroutineRunning)? 'running' : 'normal';
 				case shine.SUSPENDED: return 'suspended';
 				case shine.DEAD: return 'dead';
 			}
@@ -3616,7 +3633,7 @@ var shine = shine || {};
 		
 		wrap: function (closure) {
 			var co = shine.lib.coroutine.create(closure),
-				vm = this;
+				vm = getVM(this);
 			
 			var result = function () {			
 				var args = [co];
@@ -3640,13 +3657,14 @@ var shine = shine || {};
 		
 		
 		yield: function () {
+			var running = getVM()._coroutineRunning,
+				args;
+
 			// If running in main thread, throw error.
-			if (!shine.Coroutine._running) throw new shine.Error('attempt to yield across metamethod/C-call boundary (not in coroutine)');
-			if (shine.Coroutine._running.status != shine.RUNNING) throw new shine.Error('attempt to yield non-running coroutine in host');
+			if (!running) throw new shine.Error('attempt to yield across metamethod/C-call boundary (not in coroutine)');
+			if (running.status != shine.RUNNING) throw new shine.Error('attempt to yield non-running coroutine in host');
 
-			var args = shine.gc.createArray(),
-				running = shine.Coroutine._running;
-
+			args = shine.gc.createArray();
 			for (var i = 0, l = arguments.length; i < l; i++) args.push(arguments[i]);	
 	
 			running._yieldVars = args;
