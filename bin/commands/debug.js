@@ -24,13 +24,16 @@
 'use strict';
 
 
-var DebugServer = require('../../extensions/debug/server/DebugServer'),
+var fs = require('fs'),
+	DebugServer = require('../../extensions/debug/server/DebugServer'),
+	COLORS = require('../../extensions/debug/server/constants').COLORS,
 	parseArgs = require('./common').parseArgs,
 	defaultSwitches = {
 		sourcePaths: ['-src', ''],
 		appPort: ['-ap', ''],
 		consolePort: ['-cp', ''],
-		pathMaps: ['-m', '']
+		pathMaps: ['-m', ''],
+		configFile: ['-c', '']
 	};
 
 
@@ -64,12 +67,35 @@ module.exports = {
 
 		var args = parseArgs(defaultSwitches),
 			switches = args.switches,
+			configFile = switches.configFile || './debug-config.json',
 			config = {
 				sourcePaths: switches.sourcePaths && switches.sourcePaths.split(';'),
 				pathMaps: switches.pathMaps && parsePathMaps(switches.pathMaps),
 				appPort: switches.appPort,
-				consolePort: switches.consolePort
-			};
+				consolePort: switches.consolePort,
+				configFile: switches.configFile
+			},
+			json, i;
+
+
+		if (!fs.existsSync(configFile)) {
+			if (switches.configFile) throw ReferenceError('Config file not found: ' + configFile);
+
+		} else {
+			json = fs.readFileSync(configFile);
+
+			try {
+				json = JSON.parse(json);
+			} catch (e) {
+				throw new SyntaxError('Error while parsing "' + configFile + '": ' + e.message);
+			}
+
+			for (i in json) {
+				if (!config[i]) config[i] = json[i];
+			}
+
+			console.log (COLORS.WHITE + 'Using config file: ' + configFile + COLORS.RESET);
+		}
 
 		new DebugServer(config);
 	}

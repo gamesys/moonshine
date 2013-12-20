@@ -39,6 +39,23 @@ Semicolon-delimited list of source paths in which to search for Lua source scrip
 .RS 4
 Semicolon-delimited list of path maps. Path maps are in turn a colon delimited search:replace pair, for example: "/cdn/assets/lua/:~/projects/lua/"
 .RE
+.PP
+\-c filename, \-\-config-file filename
+.RS 4
+Name of a JSON file where all the above settings can be found. If not provided yet a file called "debug-config.json" is present in the current path, that file will be used instead. Switches added in the command line will override those values in the config file.
+.PP
+Use the long name for the switch camel-cased as the property names in the JSON file. For example, the content of debug-config.json could be:
+.RS 0
+{
+.RS 4
+"appPort": 2000,
+.RS 0
+"consolePort": 3000,
+.RS 0
+"sourcePath": "lib;src"
+.RS -4
+}
+.RE
 .SH EXAMPLES
 .PP
 moonshine debug
