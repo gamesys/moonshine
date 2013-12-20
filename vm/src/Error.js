@@ -156,5 +156,5 @@ shine.Error.prototype._stackToString = function () {
  * @return {string} String representation of error.
  */
 shine.Error.prototype.toString = function () {
-	return 'Moonshine Error: ' + this.message;
+	return 'Moonshine run-time error: ' + this.message;
 };
