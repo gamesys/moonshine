@@ -284,7 +284,7 @@ shine.debug.ui = {
 		this.elements.ip.placeholder = 'Debug IP';
 		this.elements.ip.name = 'ip';
 		this.elements.ip.value = '127.0.0.1';
-		this.elements.ip.style.width = '80px';
+		this.elements.ip.style.width = '95px';
 		this.elements.ip.style.margin = '0 2px';
 
 		this.elements.port.placeholder = 'Port';
