@@ -368,6 +368,16 @@ do
 	assertTrue (l == '0x007b  ', 'string.format() should format hex correctly[12]')
 	assertTrue (n == '7b', 'string.format() should format hex correctly[14]')
 
+
+	a = string.format("%8.2f\n", 1.234)
+	b = string.format("\n%8.2f", 1.234)
+	c = string.format("\n%8.2f\n", 1.234)
+
+	assertTrue (a == '    1.23\n', 'string.format() should correctly format patterns that contain new lines.[1]')
+	assertTrue (b == '\n    1.23', 'string.format() should correctly format patterns that contain new lines.[2]')
+	assertTrue (c == '\n    1.23\n', 'string.format() should correctly format patterns that contain new lines.[3]')
+
+
 -- TODO!!!!
 --	assertTrue (j == '    007b', 'string.format() should format hex correctly[10]')
 --	assertTrue (m == '0000007b', 'string.format() should format hex correctly[13]')

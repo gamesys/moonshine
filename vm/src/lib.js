@@ -1404,13 +1404,14 @@ var shine = shine || {};
 		
 		
 		format: function (formatstring) {
-			var FIND_PATTERN = /^(.*?)%(.*)$/,
-				PARSE_PATTERN = /^(%?)([+\-#\ 0]*)(\d*)(\.(\d*))?([cdeEfgGiouqsxX])(.*)$/,
+			var FIND_PATTERN = /^((.|\s)*?)(%)((.|\s)*)$/,
+				PARSE_PATTERN = /^(%?)([+\-#\ 0]*)(\d*)(\.(\d*))?([cdeEfgGiouqsxX])((.|\s)*)$/,
 				findData,
 				result = '',
 				parseData,
 				args = [].splice.call(arguments, 0),
-				argIndex = 2;
+				argIndex = 2,
+				index = 2;
 
 			args.shift();
 
@@ -1589,7 +1590,8 @@ var shine = shine || {};
 
 			while (findData = ('' + formatstring).match(FIND_PATTERN)) {
 				result += findData[1];
-				parseData = ('' + findData[2]).match(PARSE_PATTERN);
+				while (findData[index] != '%') index++;
+				parseData = ('' + findData[index + 1]).match(PARSE_PATTERN);
 
 				if (parseData[1]) {
 					// %%
