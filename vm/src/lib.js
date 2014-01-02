@@ -890,15 +890,85 @@ var shine = shine || {};
 
 	shine.lib.io = {
 		
-		
+
+		close: function (file) {
+			if (file) shine.Error('File operations currently not supported.');
+			// Default behaviour: Do nothing.
+		},
+
+
+
+
+		flush: function () {
+			// Default behaviour: Do nothing.
+			// TODO: shine.stdout.flush(); // ??
+		},
+
+
+
+
+		input: function (file) {
+			shine.Error('File operations currently not supported.');
+		},
+
+
+
+
+		lines: function (filename) {
+			shine.Error('File operations currently not supported.');
+		},
+
+
+
+
+		open: function (filename) {
+			shine.Error('File operations currently not supported.');
+		},
+
+
+
+
+		output: function (file) {
+			shine.Error('File operations currently not supported.');
+		},
+
+
+
+
+		popen: function (prog, mode) {
+			shine.Error('File operations currently not supported.');
+		},
+
+
+
+
+		read: function () {
+			shine.Error('File operations currently not supported.');
+		},
+
+
+
+
+		tmpfile: function () {
+			shine.Error('File operations currently not supported.');
+		},
+
+
+
+
+		'type': function () {
+			// Return nil
+		},
+
+
+
+
 		write: function () {
 			var i, arg, output = '';
 			
 			for (var i in arguments) {
 				if (arguments.hasOwnProperty(i)) {
-					var arg = arguments[i];
-					if (['string', 'number'].indexOf(typeof arg) == -1) throw new shine.Error('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
-					output += arg;
+					output += shine.utils.coerce(arguments[i], 'string', 'bad argument #' + i + ' to \'write\' (string expected, got %type)');
 				}
 			}
 			

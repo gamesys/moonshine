@@ -2864,7 +2864,7 @@ shine.Error.prototype._stackToString = function () {
  * @return {string} String representation of error.
  */
 shine.Error.prototype.toString = function () {
-	return 'Moonshine Error: ' + this.message;
+	return 'Moonshine run-time error: ' + this.message;
 };
 
 
@@ -3773,15 +3773,85 @@ var shine = shine || {};
 
 	shine.lib.io = {
 		
-		
+
+		close: function (file) {
+			if (file) shine.Error('File operations currently not supported.');
+			// Default behaviour: Do nothing.
+		},
+
+
+
+
+		flush: function () {
+			// Default behaviour: Do nothing.
+			// TODO: shine.stdout.flush(); // ??
+		},
+
+
+
+
+		input: function (file) {
+			shine.Error('File operations currently not supported.');
+		},
+
+
+
+
+		lines: function (filename) {
+			shine.Error('File operations currently not supported.');
+		},
+
+
+
+
+		open: function (filename) {
+			shine.Error('File operations currently not supported.');
+		},
+
+
+
+
+		output: function (file) {
+			shine.Error('File operations currently not supported.');
+		},
+
+
+
+
+		popen: function (prog, mode) {
+			shine.Error('File operations currently not supported.');
+		},
+
+
+
+
+		read: function () {
+			shine.Error('File operations currently not supported.');
+		},
+
+
+
+
+		tmpfile: function () {
+			shine.Error('File operations currently not supported.');
+		},
+
+
+
+
+		'type': function () {
+			// Return nil
+		},
+
+
+
+
 		write: function () {
 			var i, arg, output = '';
 			
 			for (var i in arguments) {
 				if (arguments.hasOwnProperty(i)) {
-					var arg = arguments[i];
-					if (['string', 'number'].indexOf(typeof arg) == -1) throw new shine.Error('bad argument #' + i + ' to \'write\' (string expected, got ' + typeof arg +')');
-					output += arg;
+					output += shine.utils.coerce(arguments[i], 'string', 'bad argument #' + i + ' to \'write\' (string expected, got %type)');
 				}
 			}
 			
@@ -4287,13 +4357,14 @@ var shine = shine || {};
 		
 		
 		format: function (formatstring) {
-			var FIND_PATTERN = /^(.*?)%(.*)$/,
-				PARSE_PATTERN = /^(%?)([+\-#\ 0]*)(\d*)(\.(\d*))?([cdeEfgGiouqsxX])(.*)$/,
+			var FIND_PATTERN = /^((.|\s)*?)(%)((.|\s)*)$/,
+				PARSE_PATTERN = /^(%?)([+\-#\ 0]*)(\d*)(\.(\d*))?([cdeEfgGiouqsxX])((.|\s)*)$/,
 				findData,
 				result = '',
 				parseData,
 				args = [].splice.call(arguments, 0),
-				argIndex = 2;
+				argIndex = 2,
+				index = 2;
 
 			args.shift();
 
@@ -4472,7 +4543,8 @@ var shine = shine || {};
 
 			while (findData = ('' + formatstring).match(FIND_PATTERN)) {
 				result += findData[1];
-				parseData = ('' + findData[2]).match(PARSE_PATTERN);
+				while (findData[index] != '%') index++;
+				parseData = ('' + findData[index + 1]).match(PARSE_PATTERN);
 
 				if (parseData[1]) {
 					// %%
