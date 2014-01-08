@@ -1935,9 +1935,9 @@ var shine = shine || {};
 	
 			if (obj == undefined) {
 				obj = index;
-				// index = 1;
-				// while (table.getMember(index) !== undefined) index++;
 				index = table.__shine.numValues.length;
+			} else {
+				index = shine.utils.coerce(index, 'number', "Bad argument #2 to 'insert' (number expected)");
 			}
 	
 			var oldValue = table.getMember(index);

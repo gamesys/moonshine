@@ -125,6 +125,34 @@ assertTrue (z == nil, 'table.concat() should update list in place and return nil
 assertTrue (z2 == nil, 'table.concat() should update list in place and return nil')
 
 
+local function insertStringKey () 
+	table.insert({}, 'string key', 1) 
+end
+a, b = pcall(insertStringKey)
+assertTrue (a == false, 'table.insert() should error when passed a string key')
+
+
+local function insertStringKey () 
+	table.insert({}, '23', 1) 
+end
+a, b = pcall(insertStringKey)
+assertTrue (a, 'table.insert() should not error when passed a string key that can be coerced to a number [1]')
+
+
+local function insertStringKey () 
+	table.insert({}, '1.23e33', 1)
+end
+a, b = pcall(insertStringKey)
+assertTrue (a, 'table.insert() should not error when passed a string key that can be coerced to a number [2]')
+
+
+local function insertStringKey () 
+	table.insert({}, '-23', 1) 
+end
+a, b = pcall(insertStringKey)
+assertTrue (a, 'table.insert() should not error when passed a string key that can be coerced to a negative number')
+
+
 
 
 -- maxn
