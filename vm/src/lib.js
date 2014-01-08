@@ -892,7 +892,7 @@ var shine = shine || {};
 		
 
 		close: function (file) {
-			if (file) shine.Error('File operations currently not supported.');
+			if (file) throw new shine.Error('File operations currently not supported.');
 			// Default behaviour: Do nothing.
 		},
 
@@ -908,49 +908,56 @@ var shine = shine || {};
 
 
 		input: function (file) {
-			shine.Error('File operations currently not supported.');
+			throw new shine.Error('File operations currently not supported.');
 		},
 
 
 
 
 		lines: function (filename) {
-			shine.Error('File operations currently not supported.');
+			throw new shine.Error('File operations currently not supported.');
 		},
 
 
 
 
 		open: function (filename) {
-			shine.Error('File operations currently not supported.');
+			throw new shine.Error('File operations currently not supported.');
 		},
 
 
 
 
 		output: function (file) {
-			shine.Error('File operations currently not supported.');
+			throw new shine.Error('File operations currently not supported.');
 		},
 
 
 
 
 		popen: function (prog, mode) {
-			shine.Error('File operations currently not supported.');
+			throw new shine.Error('File operations currently not supported.');
 		},
 
 
 
 
 		read: function () {
-			shine.Error('File operations currently not supported.');
+			throw new shine.Error('File operations currently not supported.');
 		},
 
 
 
 
+		stderr: {},	// Userdata
+		stdin: {},
+		stdout: {},
+
+
+
+
 		tmpfile: function () {
-			shine.Error('File operations currently not supported.');
+			throw new shine.Error('File operations currently not supported.');
 		},
 
 
