@@ -1310,8 +1310,8 @@ var shine = shine || {};
 	
 	
 	
-		exit: function () {
-			throw 'Execution terminated.';
+		exit: function (code) {
+			throw new shine.Error('Execution terminated [' + (code || 0) + ']');
 		},
 	
 	
