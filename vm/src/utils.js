@@ -65,32 +65,43 @@ var shine = shine || {};
 		coerce: function (val, type, errorMessage) {
 			var n, match, mantissa;
 
+			function error () {
+				if (!errorMessage) return;
+				errorMessage = ('' + errorMessage).replace(/\%type/gi, shine.lib.type(val));
+				throw new shine.Error(errorMessage);
+			}
+
 			switch (type) {
 				case 'boolean':
 					return !(val === false || val === undefined);
 
 				case 'string':
 					switch(true) {
-						case val === undefined || val === null: return 'nil';
+						case typeof val == 'string': return val;
+
+						case val === undefined:
+						case val === null: 
+							return 'nil';
+						
 						case val === Infinity: return 'inf';
 						case val === -Infinity: return '-inf';
-						case typeof val == 'number' && window.isNaN(val): return 'nan';
-						case typeof val == 'function': return 'function: [host code]';
-						case val instanceof shine.Table: return shine.Table.prototype.toString.call(val);
-						default: return val.toString();					}
+
+						case typeof val == 'number': 
+						case typeof val == 'boolean': 
+							return window.isNaN(val)? 'nan' : '' + val;
+
+						default: return error() || '';
+					}
 
 				case 'number':
-					switch (val) {
-						case undefined: return;
-						case Infinity:
-						case -Infinity: return val;
-						case 'inf': return Infinity;
-						case '-inf': return -Infinity;
-						case 'nan': return NaN;
+					switch (true) {
+						case typeof val == 'number': return val;
+						case val === undefined: return;
+						case val === 'inf': return Infinity;
+						case val === '-inf': return -Infinity;
+						case val === 'nan': return NaN;
 
 						default:
-							if (typeof val == 'number' && window.isNaN(val)) return val;
-
 							if (('' + val).match(FLOATING_POINT_PATTERN)) {
 								n = parseFloat(val);
 
@@ -104,7 +115,7 @@ var shine = shine || {};
 								}
 							}
 
-							if (n === undefined && errorMessage) throw new shine.Error(errorMessage);
+							if (n === undefined) error();
 							return n;
 					}
 
