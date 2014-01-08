@@ -1405,7 +1405,11 @@ var shine = shine || {};
 
 
 		seeall: function (module) {
-			// Not implemented
+			var vm = getVM(this),
+				mt = new shine.Table();
+
+			mt.setMember('__index', vm._globals);
+			shine.lib.setmetatable(module, mt);
 		}
 		
 	};
