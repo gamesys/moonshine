@@ -90,7 +90,7 @@ assertTrue (b == '[1=2][2=4][3=8]', 'ipairs() should iterate over table items [1
 
 -- load
 
-if (getTimestamp) then	-- if we're running in Moonshine test env
+if (arg and arg[-1] == 'moonshine') then
 	src = '{"sourceName":"@test.lua","lineDefined":0,"lastLineDefined":0,"upvalueCount":0,"paramCount":0,"is_vararg":2,"maxStackSize":2,"instructions":[1,0,0,0,30,0,2,0,30,0,1,0],"constants":["hello"],"functions":[],"linePositions":[82,82,82],"locals":[],"upvalues":[],"sourcePath":"./test.lua"}'
 else
 	src = 'return "hello"'

@@ -40,6 +40,7 @@ var command = process.argv[2];
 switch (command) {
 	case 'distil':
 	case 'debug':
+	case 'exec':
 	case 'help':
 		return require('./commands/' + command).exec();
 

@@ -72,7 +72,11 @@ shine.DEAD = 4;
  * Resets all global variables to their original values.
  */
 shine.VM.prototype._resetGlobals = function () {
+	var arg = new shine.Table();
+	arg.setMember(-1, 'moonshine');
+
 	this._globals = this._bindLib(shine.lib);
+	this._globals.arg = arg;
 
 	// Load standard lib into package.loaded:
 	for (var i in this._globals) if (this._globals.hasOwnProperty(i) && this._globals[i] instanceof shine.Table) this._globals['package'].loaded[i] = this._globals[i];

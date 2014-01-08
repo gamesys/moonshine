@@ -34,7 +34,7 @@ window = global;
 
 shine.utils.get = function (url, success, error) {
 	fs.readFile(url, function (err, data) {
-		if (err) return error(err.message);
+		if (err) return error(404);
 		success(data);
 	});
 };

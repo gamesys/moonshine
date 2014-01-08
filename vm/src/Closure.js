@@ -128,7 +128,7 @@ shine.Closure.prototype.execute = function (args) {
 	this._register.set(args.splice(0, this._data.paramCount));
 
 	if (this._data.is_vararg == 7) {	// v5.0 compatibility (LUA_COMPAT_VARARG)
-		var arg = [].concat(args),
+		var arg = shine.gc.createArray().concat(args),
 			length = arg.length;
 					
 		arg = new shine.Table(arg);
