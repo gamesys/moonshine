@@ -1189,10 +1189,10 @@ shine.Closure.prototype.dispose = function (force) {
 
 	function vararg (a, b) {
 		var i, l,
-			limit = b === 0? this._params.length - this._data.paramCount : b - 1;
-		
+			limit = b === 0? Math.max(0, this._params.length - this._data.paramCount) : b - 1;
+
 		for (i = 0; i < limit; i++) {
-			this._register.setItem(a + i, this._params[this._data.paramCount + i]);
+			this._register.setItem(a + i, this._params[this._data.paramCount + i]);			
 		}
 
 		// Assumption: Clear the remaining items in the register.
