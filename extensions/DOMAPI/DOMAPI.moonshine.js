@@ -20,8 +20,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-(function () {
-
+(function (shine) {
 
 	function jsToLua (obj) {
 		var t, mt;
@@ -32,7 +31,7 @@
 				var property = obj[key];
 
 				// Bind methods to object and convert args and return values
-				if (typeof property == 'function') {
+				if (typeof property == 'function' || (property && property.prototype && typeof property.prototype.constructor == 'function')) {	// KLUDGE: Safari reports native constructors as objects, not functions :-s
 					var f = function () {
 						var args = convertArguments(arguments, luaToJS),
 							retval = property.apply(args.shift(), args);
@@ -45,12 +44,14 @@
 					f.new = function () { 
 						var args = convertArguments(arguments, luaToJS),
 							argStr,
+							obj,
 							i, l;
 
 						argStr = (l = args.length)? 'args[0]' : '';
 						for (i = 1; i < l; i++) argStr += ',args[' + i + ']';
 
-						return eval('new property(' + argStr + ')'); 
+						obj = eval('new property(' + argStr + ')');
+						return jsToLua(obj);
 					};
 
 					return f;
@@ -93,8 +94,30 @@
 			};
 		}
 
-		// If object hase been wrapped by jsToLua(), use original object instead
-		if (val instanceof shine.Table && (mt = shine.lib.getmetatable(val)) && mt.source) return mt.source;
+		if (val instanceof shine.Table) {
+			// If object has been wrapped by jsToLua(), use original object instead
+			if ((mt = shine.lib.getmetatable(val)) && mt.source) return mt.source;
+
+			// Else iterate over table
+			var isArr = shine.lib.table.getn(val) > 0,
+				result = shine.gc['create' + (isArr? 'Array' : 'Object')](),
+				numValues = val.__shine.numValues,
+				i,
+				l = numValues.length;
+
+			for (i = 1; i < l; i++) {
+				result[i - 1] = ((numValues[i] || shine.EMPTY_OBJ) instanceof shine.Table)? luaToJS(numValues[i]) : numValues[i];
+			}
+
+			for (i in val) {
+				if (val.hasOwnProperty(i) && !(i in shine.Table.prototype) && i !== '__shine') {
+					result[i] = ((val[i] || shine.EMPTY_OBJ) instanceof shine.Table)? luaToJS(val[i]) : val[i];
+				}
+			}
+			
+			return result;
+		}
+
 
 		// Convert tables to objects
 		if (typeof val == 'object') return shine.utils.toObject(val);
@@ -126,21 +149,13 @@
 	// Add expand method
 	shine.DOMAPI.window.extract = function () {
 		var vm = shine.getCurrentVM(),
-			property;
+			keys = Object.getOwnPropertyNames && Object.getOwnPropertyNames(window);
 
-		for (var i in window) {
+		for (var i in keys || window) {
+			if (keys) i = keys[i];
+
 			if (i !== 'print' && i !== 'window' && window[i] !== null) {
-
-				if (typeof window[i] == 'function') {
-					property = (function (i) {
-						return function () { return window[i].apply(window, arguments); };
-					})(i);
-
-				} else {
-					property = jsToLua(window[i]);
-				}
-
-				vm.setGlobal(i, property);
+				vm.setGlobal(i, shine.DOMAPI.window.getMember(i));
 			}
 		}
 	};
