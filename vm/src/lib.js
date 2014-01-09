@@ -632,7 +632,11 @@ var shine = shine || {};
 			var mt, mm;
 
 			if (e !== undefined && e instanceof shine.Table && (mt = e.__shine.metatable) && (mm = mt.getMember('__tostring'))) return mm.call(mm, e);
-			return shine.utils.coerce(e, 'string');
+
+			if (e instanceof shine.Table || e instanceof shine.Function) return e.toString();
+			if (typeof e == 'function') return 'function: [host code]';
+
+			return shine.utils.coerce(e, 'string') || 'userdata';
 		},
 		
 		

@@ -421,14 +421,16 @@ d = tostring (function () return true end)
 e = tostring(math.huge)
 f = tostring(-math.huge)
 g = tostring(0/0)
+h = tostring(true)
  
 assertTrue (a == '123', 'tostring() should convert a number to a string')
 assertTrue (string.sub(b, 1, 9) == 'table: 0x', 'tostring() should convert an empty table to a string')
 assertTrue (string.sub(c, 1, 9) == 'table: 0x', 'tostring() should convert a table to a string')
-assertTrue (string.sub(d, 1, 12) == 'function: 0x', 'tostring() should convert a number to a string')
+assertTrue (string.sub(d, 1, 12) == 'function: 0x', 'tostring() should convert a function to a string')
 assertTrue (e == 'inf', 'tostring() should convert infinity to "inf"')
 assertTrue (f == '-inf', 'tostring() should convert negative infinity to "-inf"')
 assertTrue (g == 'nan', 'tostring() should convert not-a-number to "nan"')
+assertTrue (h == 'true', 'tostring() should convert a boolean to a string')
 
 a = {}
 setmetatable(a, { __tostring = function () return 'Les Revenants' end })
