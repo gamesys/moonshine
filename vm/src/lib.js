@@ -414,7 +414,7 @@ var shine = shine || {};
 				}
 	
 			} catch (e) {
-				return [false, e.message];
+				return [false, e && e.message || e];
 			}
 			
 			if (!((result || shine.EMPTY_OBJ) instanceof Array)) result = [result];
@@ -427,7 +427,6 @@ var shine = shine || {};
 		
 	
 		print: function () {
-	
 			var output = shine.gc.createArray(),
 				item;
 			
