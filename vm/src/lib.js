@@ -1805,8 +1805,9 @@ var shine = shine || {};
 		
 		
 		len: function (s) {
-			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("bad argument #1 to 'len' (string expected, got " + typeof s + ")");
-			return ('' + s).length;
+			// if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("bad argument #1 to 'len' (string expected, got " + typeof s + ")");
+			s = shine.utils.coerce(s, 'string', "bad argument #1 to 'len' (string expected, got %type)");
+			return s.length;
 		},
 		
 		
