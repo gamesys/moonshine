@@ -103,7 +103,8 @@ var shine = shine || {};
 		},
 
 
-		randomSeed = 1;
+		randomSeed = 1,
+		stringMetatable;
 
 
 
@@ -251,9 +252,13 @@ var shine = shine || {};
 		getmetatable: function (table) {
 			var mt;
 
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in getmetatable(). Table expected');
-			if ((mt = table.__shine.metatable) && (mt = mt.__metatable)) return mt;
-			return table.__shine.metatable;
+			if (table instanceof shine.Table) {
+				if ((mt = table.__shine.metatable) && (mt = mt.__metatable)) return mt;
+				return table.__shine.metatable;
+
+			} else if (typeof table == 'string') {
+				return stringMetatable;
+			}
 		},
 		
 	
@@ -706,7 +711,7 @@ var shine = shine || {};
 	
 	
 	
-	shine.lib.coroutine = {
+	shine.lib.coroutine = new shine.Table({
 
 		
 		create: function (closure) {
@@ -808,12 +813,12 @@ var shine = shine || {};
 			}
 		}
 			
-	};
+	});
 
 
 	
 
-	shine.lib.debug = {
+	shine.lib.debug = new shine.Table({
 
 		debug: function () {
 			// Not implemented
@@ -883,12 +888,12 @@ var shine = shine || {};
 		traceback: function (thread, message, level) {
 			// Not implemented
 		}
-	};
+	});
 
 
 
 
-	shine.lib.io = {
+	shine.lib.io = new shine.Table({
 		
 
 		close: function (file) {
@@ -983,12 +988,12 @@ var shine = shine || {};
 		}
 		
 		
-	};
+	});
 	
 	
 	
 		
-	shine.lib.math = {
+	shine.lib.math = new shine.Table({
 	
 	
 		abs: function (x) {
@@ -1234,12 +1239,12 @@ var shine = shine || {};
 		}
 	
 		
-	};
+	});
 	
 	
 
 	
-	shine.lib.os = {
+	shine.lib.os = new shine.Table({
 	
 	
 		clock: function () {
@@ -1380,12 +1385,12 @@ var shine = shine || {};
 		}
 	
 			
-	};
+	});
 
 
 
 
-	shine.lib['package'] = {
+	shine.lib['package'] = new shine.Table({
 
 		cpath: undefined,
 
@@ -1412,12 +1417,12 @@ var shine = shine || {};
 			shine.lib.setmetatable(module, mt);
 		}
 		
-	};
+	});
 
 
 
 
-	shine.lib.string = {
+	shine.lib.string = new shine.Table({
 		
 		
 		'byte': function (s, i, j) {
@@ -1878,12 +1883,15 @@ var shine = shine || {};
 		}	
 		
 		
-	};
+	});
+	
+
+	stringMetatable = new shine.Table({ __index: shine.lib.string });
+
+
 	
 	
-	
-	
-	shine.lib.table = {
+	shine.lib.table = new shine.Table({
 		
 		
 		concat: function (table, sep, i, j) {
@@ -2051,9 +2059,7 @@ var shine = shine || {};
 		}
 
 
-	}
-
-	
+	});
 	
 	
 })();

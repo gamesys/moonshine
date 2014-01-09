@@ -61,17 +61,31 @@ assertTrue (not a, 'Assert should throw an error when passed false')
 
 
 -- getmetatable
--- TODO
+
+local mt = {}
+local t = {}
+setmetatable(t, mt)
+
+a = getmetatable(t)
+b = getmetatable('moo')
+c = getmetatable(123)
+d = getmetatable({})
+e = getmetatable(true)
+f = getmetatable(function () end)
+g = getmetatable('baa')
+
+assertTrue (a == mt, 'getmetatable() should return a table\'s metatable if set')
+assertTrue (type(b) == 'table', 'getmetatable() should return a metatable when passed a string')
+assertTrue (b.__index == string, 'getmetatable() should return the string module as a prototype of string')
+assertTrue (c == nil, 'getmetatable() should return nil when passed a number')
+assertTrue (d == nil, 'getmetatable() should return nil when passed a table without a metatable')
+assertTrue (e == nil, 'getmetatable() should return nil when passed a boolean')
+assertTrue (f == nil, 'getmetatable() should return nil when passed a function')
+assertTrue (g == b, 'The metatable of all strings should be the same table')
 
 
-function paul1 ()
-	function paul2 ()
-		local a = 'a'..6
-	end
-	
-	paul2 ()
-end
-paul1 ()
+
+
 
 
 -- ipairs

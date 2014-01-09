@@ -441,7 +441,7 @@ shine.Closure.prototype.dispose = function (force) {
 		var result;
 
 		if (this._getConstant(b) == '_G') {	// Special case
-			result = new shine.Table(this._globals);
+			result = this._globals; //new shine.Table(this._globals);
 			
 		} else if (this._globals[this._getConstant(b)] !== undefined) {
 			result = this._globals[this._getConstant(b)];
