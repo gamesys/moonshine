@@ -566,7 +566,7 @@ var shine = shine || {};
 				return args;
 				
 			} else {
-				throw new shine.Error('Bad argument #1 in select(). Number or "#" expected');
+				throw new shine.Error('bad argument #1 in select(). Number or "#" expected');
 			}
 		},
 		
@@ -1863,7 +1863,7 @@ var shine = shine || {};
 		
 		
 		sub: function (s, i, j) {
-			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("bad argument #1 to 'sub' (string expected, got " + typeof s + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("Bad argument #1 to 'sub' (string expected, got " + typeof s + ")");
 			s = '' + s;
 			i = i || 1;
 			j = j || s.length;
@@ -1899,7 +1899,7 @@ var shine = shine || {};
 		
 		
 		concat: function (table, sep, i, j) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.concat(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error("Bad argument #1 to 'concat' (table expected)");
 	
 			sep = sep || '';
 			i = i || 1;
@@ -1913,7 +1913,7 @@ var shine = shine || {};
 	
 	
 		getn: function (table) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.getn(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error("Bad argument #1 in 'getn' (table expected)");
 
 			var vals = table.__shine.numValues, 
 				keys = shine.gc.createArray(),
@@ -1954,7 +1954,7 @@ var shine = shine || {};
 		 * @param {object} obj The value to insert.
 		 */
 		insert: function (table, index, obj) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.insert(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error("Bad argument #1 to 'insert' (table expected)");
 	
 			if (obj == undefined) {
 				obj = index;
@@ -1975,7 +1975,7 @@ var shine = shine || {};
 		maxn: function (table) {
 			// v5.2: shine.warn ('table.maxn is deprecated');
 			
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.maxn(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error("Bad argument #1 to 'maxn' (table expected)");
 	
 			// // length = 0;
 			// // while (table[length + 1] != undefined) length++;
@@ -2001,7 +2001,7 @@ var shine = shine || {};
 		 * @param {object} index The position of the element to remove.
 		 */
 		remove: function (table, index) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.remove(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error("Bad argument #1 to 'remove' (table expected)");
 	
 			var max = shine.lib.table.getn(table),
 				vals = table.__shine.numValues,
@@ -2050,7 +2050,7 @@ var shine = shine || {};
 
 
 		unpack: function (table, i, j) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in unpack(). Table expected');	
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error("Bad argument #1 to 'unpack' (table expected)");	
 	
 			i = i || 1;
 			if (j === undefined) j = shine.lib.table.getn(table);

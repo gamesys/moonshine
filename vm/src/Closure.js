@@ -567,8 +567,8 @@ shine.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
-			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
-			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a %type value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a %type value');
 			this._register.setItem(a, b + c);
 		}
 	}
@@ -588,8 +588,8 @@ shine.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
-			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
-			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a %type value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a %type value');
 			this._register.setItem(a, b - c);
 		}
 	}
@@ -609,8 +609,8 @@ shine.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
-			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
-			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a %type value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a %type value');
 			this._register.setItem(a, b * c);
 		}
 	}
@@ -630,8 +630,8 @@ shine.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
-			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
-			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a %type value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a %type value');
 			this._register.setItem(a, b / c);
 		}
 	}
@@ -651,8 +651,8 @@ shine.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
-			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
-			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a %type value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a %type value');
 
 			if (c === 0 || c === -Infinity || c === Infinity || window.isNaN(b) || window.isNaN(c)) {
 				result = NaN;
@@ -684,8 +684,8 @@ shine.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
-			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
-			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a %type value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a %type value');
 			this._register.setItem(a, Math.pow(b, c));
 		}
 	}
@@ -704,7 +704,7 @@ shine.Closure.prototype.dispose = function (force) {
 			result = f.apply(null, [b], true)[0];
 
 		} else {
-			b = shine.utils.coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			b = shine.utils.coerce(b, 'number', 'attempt to perform arithmetic on a %type value');
 			result = -b;
 		}
 
