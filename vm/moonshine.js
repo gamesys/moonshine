@@ -527,7 +527,11 @@ shine.DEAD = 4;
  * Resets all global variables to their original values.
  */
 shine.VM.prototype._resetGlobals = function () {
+	var arg = new shine.Table();
+	arg.setMember(-1, 'moonshine');
+
 	this._globals = this._bindLib(shine.lib);
+	this._globals.arg = arg;
 
 	// Load standard lib into package.loaded:
 	for (var i in this._globals) if (this._globals.hasOwnProperty(i) && this._globals[i] instanceof shine.Table) this._globals['package'].loaded[i] = this._globals[i];
@@ -549,20 +553,20 @@ shine.VM.prototype._bindLib = function (lib) {
 	for (var i in lib) {
 		if (lib.hasOwnProperty(i)) {
 
-			if (lib[i] && lib[i].constructor === shine.Table) {
-				result[i] = new shine.Table(shine.utils.toObject(lib[i]));
+			// if (lib[i] && lib[i].constructor === shine.Table) {
+			// 	result[i] = lib[i];//new shine.Table(shine.utils.toObject(lib[i]));
 
-			} else if (lib[i] && lib[i].constructor === Object) {
-				result[i] = this._bindLib(lib[i]);
+			// } else if (lib[i] && lib[i].constructor === Object) {
+			// 	result[i] = this._bindLib(lib[i]);
 
-			} else if (typeof lib[i] == 'function') {
-				result[i] = (function (func, context) {
-					return function () { return func.apply(context, arguments); };
-				})(lib[i], this);
+			// } else if (typeof lib[i] == 'function') {
+			// 	result[i] = (function (func, context) {
+			// 		return function () { return func.apply(context, arguments); };
+			// 	})(lib[i], this);
 
-			} else {
+			// } else {
 				result[i] = lib[i];
-			}
+			// }
 		}
 	}
 
@@ -1035,7 +1039,7 @@ shine.Closure.prototype.execute = function (args) {
 	this._register.set(args.splice(0, this._data.paramCount));
 
 	if (this._data.is_vararg == 7) {	// v5.0 compatibility (LUA_COMPAT_VARARG)
-		var arg = [].concat(args),
+		var arg = shine.gc.createArray().concat(args),
 			length = arg.length;
 					
 		arg = new shine.Table(arg);
@@ -1348,7 +1352,7 @@ shine.Closure.prototype.dispose = function (force) {
 		var result;
 
 		if (this._getConstant(b) == '_G') {	// Special case
-			result = new shine.Table(this._globals);
+			result = this._globals; //new shine.Table(this._globals);
 			
 		} else if (this._globals[this._getConstant(b)] !== undefined) {
 			result = this._globals[this._getConstant(b)];
@@ -1474,8 +1478,8 @@ shine.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
-			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
-			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a %type value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a %type value');
 			this._register.setItem(a, b + c);
 		}
 	}
@@ -1495,8 +1499,8 @@ shine.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
-			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
-			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a %type value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a %type value');
 			this._register.setItem(a, b - c);
 		}
 	}
@@ -1516,8 +1520,8 @@ shine.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
-			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
-			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a %type value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a %type value');
 			this._register.setItem(a, b * c);
 		}
 	}
@@ -1537,8 +1541,8 @@ shine.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
-			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
-			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a %type value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a %type value');
 			this._register.setItem(a, b / c);
 		}
 	}
@@ -1558,8 +1562,8 @@ shine.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
-			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
-			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a %type value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a %type value');
 
 			if (c === 0 || c === -Infinity || c === Infinity || window.isNaN(b) || window.isNaN(c)) {
 				result = NaN;
@@ -1591,8 +1595,8 @@ shine.Closure.prototype.dispose = function (force) {
 			this._register.setItem(a, f.apply(null, [b, c], true)[0]);
 
 		} else {
-			b = coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
-			c = coerce(c, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			b = coerce(b, 'number', 'attempt to perform arithmetic on a %type value');
+			c = coerce(c, 'number', 'attempt to perform arithmetic on a %type value');
 			this._register.setItem(a, Math.pow(b, c));
 		}
 	}
@@ -1611,7 +1615,7 @@ shine.Closure.prototype.dispose = function (force) {
 			result = f.apply(null, [b], true)[0];
 
 		} else {
-			b = shine.utils.coerce(b, 'number', 'attempt to perform arithmetic on a non-numeric value');
+			b = shine.utils.coerce(b, 'number', 'attempt to perform arithmetic on a %type value');
 			result = -b;
 		}
 
@@ -2096,10 +2100,10 @@ shine.Closure.prototype.dispose = function (force) {
 
 	function vararg (a, b) {
 		var i, l,
-			limit = b === 0? this._params.length - this._data.paramCount : b - 1;
-		
+			limit = b === 0? Math.max(0, this._params.length - this._data.paramCount) : b - 1;
+
 		for (i = 0; i < limit; i++) {
-			this._register.setItem(a + i, this._params[this._data.paramCount + i]);
+			this._register.setItem(a + i, this._params[this._data.paramCount + i]);			
 		}
 
 		// Assumption: Clear the remaining items in the register.
@@ -2986,7 +2990,8 @@ var shine = shine || {};
 		},
 
 
-		randomSeed = 1;
+		randomSeed = 1,
+		stringMetatable;
 
 
 
@@ -3134,9 +3139,13 @@ var shine = shine || {};
 		getmetatable: function (table) {
 			var mt;
 
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in getmetatable(). Table expected');
-			if ((mt = table.__shine.metatable) && (mt = mt.__metatable)) return mt;
-			return table.__shine.metatable;
+			if (table instanceof shine.Table) {
+				if ((mt = table.__shine.metatable) && (mt = mt.__metatable)) return mt;
+				return table.__shine.metatable;
+
+			} else if (typeof table == 'string') {
+				return stringMetatable;
+			}
 		},
 		
 	
@@ -3292,7 +3301,7 @@ var shine = shine || {};
 				}
 	
 			} catch (e) {
-				return [false, e.message];
+				return [false, e && e.message || e];
 			}
 			
 			if (!((result || shine.EMPTY_OBJ) instanceof Array)) result = [result];
@@ -3305,7 +3314,6 @@ var shine = shine || {};
 		
 	
 		print: function () {
-	
 			var output = shine.gc.createArray(),
 				item;
 			
@@ -3445,7 +3453,7 @@ var shine = shine || {};
 				return args;
 				
 			} else {
-				throw new shine.Error('Bad argument #1 in select(). Number or "#" expected');
+				throw new shine.Error('bad argument #1 in select(). Number or "#" expected');
 			}
 		},
 		
@@ -3510,7 +3518,11 @@ var shine = shine || {};
 			var mt, mm;
 
 			if (e !== undefined && e instanceof shine.Table && (mt = e.__shine.metatable) && (mm = mt.getMember('__tostring'))) return mm.call(mm, e);
-			return shine.utils.coerce(e, 'string');
+
+			if (e instanceof shine.Table || e instanceof shine.Function) return e.toString();
+			if (typeof e == 'function') return 'function: [host code]';
+
+			return shine.utils.coerce(e, 'string') || 'userdata';
 		},
 		
 		
@@ -3589,7 +3601,7 @@ var shine = shine || {};
 	
 	
 	
-	shine.lib.coroutine = {
+	shine.lib.coroutine = new shine.Table({
 
 		
 		create: function (closure) {
@@ -3691,12 +3703,12 @@ var shine = shine || {};
 			}
 		}
 			
-	};
+	});
 
 
 	
 
-	shine.lib.debug = {
+	shine.lib.debug = new shine.Table({
 
 		debug: function () {
 			// Not implemented
@@ -3766,16 +3778,16 @@ var shine = shine || {};
 		traceback: function (thread, message, level) {
 			// Not implemented
 		}
-	};
+	});
 
 
 
 
-	shine.lib.io = {
+	shine.lib.io = new shine.Table({
 		
 
 		close: function (file) {
-			if (file) shine.Error('File operations currently not supported.');
+			if (file) throw new shine.Error('File operations currently not supported.');
 			// Default behaviour: Do nothing.
 		},
 
@@ -3791,49 +3803,56 @@ var shine = shine || {};
 
 
 		input: function (file) {
-			shine.Error('File operations currently not supported.');
+			throw new shine.Error('File operations currently not supported.');
 		},
 
 
 
 
 		lines: function (filename) {
-			shine.Error('File operations currently not supported.');
+			throw new shine.Error('File operations currently not supported.');
 		},
 
 
 
 
 		open: function (filename) {
-			shine.Error('File operations currently not supported.');
+			throw new shine.Error('File operations currently not supported.');
 		},
 
 
 
 
 		output: function (file) {
-			shine.Error('File operations currently not supported.');
+			throw new shine.Error('File operations currently not supported.');
 		},
 
 
 
 
 		popen: function (prog, mode) {
-			shine.Error('File operations currently not supported.');
+			throw new shine.Error('File operations currently not supported.');
 		},
 
 
 
 
 		read: function () {
-			shine.Error('File operations currently not supported.');
+			throw new shine.Error('File operations currently not supported.');
 		},
 
 
 
 
+		stderr: {},	// Userdata
+		stdin: {},
+		stdout: {},
+
+
+
+
 		tmpfile: function () {
-			shine.Error('File operations currently not supported.');
+			throw new shine.Error('File operations currently not supported.');
 		},
 
 
@@ -3859,12 +3878,12 @@ var shine = shine || {};
 		}
 		
 		
-	};
+	});
 	
 	
 	
 		
-	shine.lib.math = {
+	shine.lib.math = new shine.Table({
 	
 	
 		abs: function (x) {
@@ -4110,12 +4129,12 @@ var shine = shine || {};
 		}
 	
 		
-	};
+	});
 	
 	
 
 	
-	shine.lib.os = {
+	shine.lib.os = new shine.Table({
 	
 	
 		clock: function () {
@@ -4186,8 +4205,8 @@ var shine = shine || {};
 	
 	
 	
-		exit: function () {
-			throw 'Execution terminated.';
+		exit: function (code) {
+			throw new shine.Error('Execution terminated [' + (code || 0) + ']');
 		},
 	
 	
@@ -4256,12 +4275,12 @@ var shine = shine || {};
 		}
 	
 			
-	};
+	});
 
 
 
 
-	shine.lib['package'] = {
+	shine.lib['package'] = new shine.Table({
 
 		cpath: undefined,
 
@@ -4281,15 +4300,19 @@ var shine = shine || {};
 
 
 		seeall: function (module) {
-			// Not implemented
+			var vm = getVM(this),
+				mt = new shine.Table();
+
+			mt.setMember('__index', vm._globals);
+			shine.lib.setmetatable(module, mt);
 		}
 		
-	};
+	});
 
 
 
 
-	shine.lib.string = {
+	shine.lib.string = new shine.Table({
 		
 		
 		'byte': function (s, i, j) {
@@ -4669,8 +4692,9 @@ var shine = shine || {};
 		
 		
 		len: function (s) {
-			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("bad argument #1 to 'len' (string expected, got " + typeof s + ")");
-			return ('' + s).length;
+			// if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("bad argument #1 to 'len' (string expected, got " + typeof s + ")");
+			s = shine.utils.coerce(s, 'string', "bad argument #1 to 'len' (string expected, got %type)");
+			return s.length;
 		},
 		
 		
@@ -4726,7 +4750,7 @@ var shine = shine || {};
 		
 		
 		sub: function (s, i, j) {
-			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("bad argument #1 to 'sub' (string expected, got " + typeof s + ")");
+			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("Bad argument #1 to 'sub' (string expected, got " + typeof s + ")");
 			s = '' + s;
 			i = i || 1;
 			j = j || s.length;
@@ -4750,16 +4774,19 @@ var shine = shine || {};
 		}	
 		
 		
-	};
+	});
+	
+
+	stringMetatable = new shine.Table({ __index: shine.lib.string });
+
+
 	
 	
-	
-	
-	shine.lib.table = {
+	shine.lib.table = new shine.Table({
 		
 		
 		concat: function (table, sep, i, j) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.concat(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error("Bad argument #1 to 'concat' (table expected)");
 	
 			sep = sep || '';
 			i = i || 1;
@@ -4773,7 +4800,7 @@ var shine = shine || {};
 	
 	
 		getn: function (table) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.getn(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error("Bad argument #1 in 'getn' (table expected)");
 
 			var vals = table.__shine.numValues, 
 				keys = shine.gc.createArray(),
@@ -4814,13 +4841,13 @@ var shine = shine || {};
 		 * @param {object} obj The value to insert.
 		 */
 		insert: function (table, index, obj) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.insert(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error("Bad argument #1 to 'insert' (table expected)");
 	
 			if (obj == undefined) {
 				obj = index;
-				// index = 1;
-				// while (table.getMember(index) !== undefined) index++;
 				index = table.__shine.numValues.length;
+			} else {
+				index = shine.utils.coerce(index, 'number', "Bad argument #2 to 'insert' (number expected)");
 			}
 	
 			var oldValue = table.getMember(index);
@@ -4835,7 +4862,7 @@ var shine = shine || {};
 		maxn: function (table) {
 			// v5.2: shine.warn ('table.maxn is deprecated');
 			
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.maxn(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error("Bad argument #1 to 'maxn' (table expected)");
 	
 			// // length = 0;
 			// // while (table[length + 1] != undefined) length++;
@@ -4861,7 +4888,7 @@ var shine = shine || {};
 		 * @param {object} index The position of the element to remove.
 		 */
 		remove: function (table, index) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.remove(). Table expected');
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error("Bad argument #1 to 'remove' (table expected)");
 	
 			var max = shine.lib.table.getn(table),
 				vals = table.__shine.numValues,
@@ -4910,7 +4937,7 @@ var shine = shine || {};
 
 
 		unpack: function (table, i, j) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in unpack(). Table expected');	
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error("Bad argument #1 to 'unpack' (table expected)");	
 	
 			i = i || 1;
 			if (j === undefined) j = shine.lib.table.getn(table);
@@ -4923,9 +4950,7 @@ var shine = shine || {};
 		}
 
 
-	}
-
-	
+	});
 	
 	
 })();
@@ -4975,32 +5000,43 @@ var shine = shine || {};
 		coerce: function (val, type, errorMessage) {
 			var n, match, mantissa;
 
+			function error () {
+				if (!errorMessage) return;
+				errorMessage = ('' + errorMessage).replace(/\%type/gi, shine.lib.type(val));
+				throw new shine.Error(errorMessage);
+			}
+
 			switch (type) {
 				case 'boolean':
 					return !(val === false || val === undefined);
 
 				case 'string':
 					switch(true) {
-						case val === undefined || val === null: return 'nil';
+						case typeof val == 'string': return val;
+
+						case val === undefined:
+						case val === null: 
+							return 'nil';
+						
 						case val === Infinity: return 'inf';
 						case val === -Infinity: return '-inf';
-						case typeof val == 'number' && window.isNaN(val): return 'nan';
-						case typeof val == 'function': return 'function: [host code]';
-						case val instanceof shine.Table: return shine.Table.prototype.toString.call(val);
-						default: return val.toString();					}
+
+						case typeof val == 'number': 
+						case typeof val == 'boolean': 
+							return window.isNaN(val)? 'nan' : '' + val;
+
+						default: return error() || '';
+					}
 
 				case 'number':
-					switch (val) {
-						case undefined: return;
-						case Infinity:
-						case -Infinity: return val;
-						case 'inf': return Infinity;
-						case '-inf': return -Infinity;
-						case 'nan': return NaN;
+					switch (true) {
+						case typeof val == 'number': return val;
+						case val === undefined: return;
+						case val === 'inf': return Infinity;
+						case val === '-inf': return -Infinity;
+						case val === 'nan': return NaN;
 
 						default:
-							if (typeof val == 'number' && window.isNaN(val)) return val;
-
 							if (('' + val).match(FLOATING_POINT_PATTERN)) {
 								n = parseFloat(val);
 
@@ -5014,7 +5050,7 @@ var shine = shine || {};
 								}
 							}
 
-							if (n === undefined && errorMessage) throw new shine.Error(errorMessage);
+							if (n === undefined) error();
 							return n;
 					}
 
