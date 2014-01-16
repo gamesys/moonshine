@@ -1048,7 +1048,7 @@ var shine = shine || {};
 		
 		
 		cosh: function (x) {
-			var e = lib.math.exp;
+			var e = shine.lib.math.exp;
 			return (e(x) + e(-x)) / 2;
 		},
 		
@@ -1214,7 +1214,7 @@ var shine = shine || {};
 	
 		
 		sinh: function (x) {
-			var e = lib.math.exp;
+			var e = shine.lib.math.exp;
 			return (e(x) - e(-x)) / 2;
 		},
 	
@@ -1236,7 +1236,7 @@ var shine = shine || {};
 	
 		
 		tanh: function (x) {
-			var e = lib.math.exp;
+			var e = shine.lib.math.exp;
 			return (e(x) - e(-x))/(e(x) + e(-x));
 		}
 	
