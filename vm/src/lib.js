@@ -517,7 +517,7 @@ var shine = shine || {};
 				return packageLib.loaded[modname];
 			}
 
-			modname = shine.utils.coerce(modname, 'string');
+			modname = shine.utils.coerceToString(modname);
 			if (module = packageLib.loaded[modname]) return module;
 			if (preload = packageLib.preload[modname]) return load(preload);
 
@@ -610,9 +610,9 @@ var shine = shine || {};
             e = ('' + e).replace(/^\s+|\s+$/g, '');    // Trim
 
             // If using base 10, use normal coercion.
-			if (base == 10) return shine.utils.coerce(e, 'number');
+			if (base == 10) return shine.utils.coerceToNumber(e);
 
-			e = shine.utils.coerce(e, 'string');
+			e = shine.utils.coerceToString(e);
 
             // If using base 16, ingore any "0x" prefix
 			if (base == 16 && (match = e.match(/^(\-)?0[xX](.+)$/))) e = (match[1] || '') + match[2];
@@ -633,9 +633,9 @@ var shine = shine || {};
 			if (e !== undefined && e instanceof shine.Table && (mt = e.__shine.metatable) && (mm = mt.getMember('__tostring'))) return mm.call(mm, e);
 
 			if (e instanceof shine.Table || e instanceof shine.Function) return e.toString();
-			if (typeof e == 'function') return 'function: [host code]';
+			if (typeof e == 'function') return e.toString && e.toString() || 'function: [host code]';
 
-			return shine.utils.coerce(e, 'string') || 'userdata';
+			return shine.utils.coerceToString(e) || 'userdata';
 		},
 		
 		
@@ -983,7 +983,7 @@ var shine = shine || {};
 			
 			for (var i in arguments) {
 				if (arguments.hasOwnProperty(i)) {
-					output += shine.utils.coerce(arguments[i], 'string', 'bad argument #' + i + ' to \'write\' (string expected, got %type)');
+					output += shine.utils.coerceToString(arguments[i], 'bad argument #' + i + ' to \'write\' (string expected, got %type)');
 				}
 			}
 			
@@ -1158,9 +1158,9 @@ var shine = shine || {};
 		
 		
 		pow: function (x, y) {
-			var coerce = shine.utils.coerce;
-			x = coerce(x, 'number', "bad argument #1 to 'pow' (number expected)")
-			y = coerce(y, 'number', "bad argument #2 to 'pow' (number expected)")
+			var coerceToNumber = shine.utils.coerceToNumber;
+			x = coerceToNumber(x, "bad argument #1 to 'pow' (number expected)")
+			y = coerceToNumber(y, "bad argument #2 to 'pow' (number expected)")
 			return Math.pow(x, y);
 		},
 		
@@ -1168,7 +1168,7 @@ var shine = shine || {};
 		
 		
 		rad: function (x) {
-			x = shine.utils.coerce(x, 'number', "bad argument #1 to 'rad' (number expected)")
+			x = shine.utils.coerceToNumber(x, "bad argument #1 to 'rad' (number expected)")
 			return (Math.PI / 180) * x;
 		},
 	
@@ -1558,13 +1558,13 @@ var shine = shine || {};
 
 
 			function c (arg) {
-				arg = shine.utils.coerce(arg, 'number', 'bad argument #' + argIndex + ' to \'format\' (number expected)');
+				arg = shine.utils.coerceToNumber(arg, 'bad argument #' + argIndex + ' to \'format\' (number expected)');
 				return String.fromCharCode(arg);
 			}
 
 
 			function d (arg) {
-				arg = shine.utils.coerce(arg, 'number', 'bad argument #' + argIndex + ' to \'format\' (number expected)');
+				arg = shine.utils.coerceToNumber(arg, 'bad argument #' + argIndex + ' to \'format\' (number expected)');
 
 				var meta = parseMeta(parseData),
 					neg = arg < 0,
@@ -1582,7 +1582,7 @@ var shine = shine || {};
 
 
 			function f (arg) {
-				arg = shine.utils.coerce(arg, 'number', 'bad argument #' + argIndex + ' to \'format\' (number expected)');
+				arg = shine.utils.coerceToNumber(arg, 'bad argument #' + argIndex + ' to \'format\' (number expected)');
 
 				var meta = parseMeta(parseData),
 					neg = arg < 0,
@@ -1597,7 +1597,7 @@ var shine = shine || {};
 
 
 			function o (arg, limit) {
-				arg = shine.utils.coerce(arg, 'number', 'bad argument #' + argIndex + ' to \'format\' (number expected)');
+				arg = shine.utils.coerceToNumber(arg, 'bad argument #' + argIndex + ' to \'format\' (number expected)');
 
 				var neg = arg < 0,
 					limit = Math.pow(2, 32),
@@ -1621,7 +1621,7 @@ var shine = shine || {};
 
 
 			function q (arg) {
-				arg = shine.utils.coerce(arg, 'string');
+				arg = shine.utils.coerceToString(arg);
 				return '"' + arg.replace(/([\n"])/g, '\\$1') + '"';
 			}
 
@@ -1630,7 +1630,7 @@ var shine = shine || {};
 				var meta = parseMeta(parseData),
 					l;
 
-				arg = shine.utils.coerce(arg, 'string');
+				arg = shine.utils.coerceToString(arg);
 				arg = arg.substr(0, meta.precision);
 
 				if ((l = meta.minWidth - arg.length) > 0) {
@@ -1646,7 +1646,7 @@ var shine = shine || {};
 
 
 			function x (arg) {
-				arg = shine.utils.coerce(arg, 'number', 'bad argument #' + argIndex + ' to \'format\' (number expected)');
+				arg = shine.utils.coerceToNumber(arg, 'bad argument #' + argIndex + ' to \'format\' (number expected)');
 
 				var neg = arg < 0,
 					intSize = 4, //vm && vm._thread && vm._thread._file.data.meta && vm._thread._file.data.meta.sizes.int || 4,
@@ -1756,7 +1756,7 @@ var shine = shine || {};
 		gsub: function (s, pattern, repl, n) {
 			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("bad argument #1 to 'gsub' (string expected, got " + typeof s + ")");
 			if (typeof pattern != 'string' && typeof pattern != 'number') throw new shine.Error("bad argument #2 to 'gsub' (string expected, got " + typeof pattern + ")");
-			if (n !== undefined && (n = shine.utils.coerce(n, 'number')) === undefined) throw new shine.Error("bad argument #4 to 'gsub' (number expected, got " + typeof n + ")");
+			if (n !== undefined && (n = shine.utils.coerceToNumber(n)) === undefined) throw new shine.Error("bad argument #4 to 'gsub' (number expected, got " + typeof n + ")");
 
 			s = '' + s;
 			pattern = translatePattern('' + pattern);
@@ -1806,7 +1806,7 @@ var shine = shine || {};
 		
 		len: function (s) {
 			// if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("bad argument #1 to 'len' (string expected, got " + typeof s + ")");
-			s = shine.utils.coerce(s, 'string', "bad argument #1 to 'len' (string expected, got %type)");
+			s = shine.utils.coerceToString(s, "bad argument #1 to 'len' (string expected, got %type)");
 			return s.length;
 		},
 		
@@ -1960,7 +1960,7 @@ var shine = shine || {};
 				obj = index;
 				index = table.__shine.numValues.length;
 			} else {
-				index = shine.utils.coerce(index, 'number', "Bad argument #2 to 'insert' (number expected)");
+				index = shine.utils.coerceToNumber(index, "Bad argument #2 to 'insert' (number expected)");
 			}
 	
 			var oldValue = table.getMember(index);

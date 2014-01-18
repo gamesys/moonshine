@@ -42,16 +42,25 @@ var shine = shine || {};
  * @param {object} [upvalues] The upvalues passed from the parent closure.
  */
 shine.Function = function (vm, file, data, globals, upvalues) {
+	var me, compiled;
+
 	this._vm = vm;
 	this._file = file;
 	this._data = data || shine.gc.createObject();
 	this._globals = globals;
-	this._upvalues = upvalues || shine.gc.createObject();
+	this._upvalues = upvalues || shine.gc.createArray();
 	this._index = shine.Function._index++;
 	this.instances = shine.gc.createArray();
 	this._retainCount = 0;
 
+
  	this._convertInstructions();
+
+	if (compiled = shine.operations.compile(this)) {
+		me = this;
+		compiled.toString = function () { return me.toString(); };
+		return compiled; 
+	}
 };
 
 
@@ -241,7 +250,4 @@ shine.Function.prototype.dispose = function (force) {
 
 	return true;
 };
-
-
-
 

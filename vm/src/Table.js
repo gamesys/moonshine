@@ -116,8 +116,12 @@ shine.Table.prototype.getMember = function (key) {
 	if ((mt = this.__shine.metatable) && (mm = mt.__index)) {
 		switch (mm.constructor) {
 			case shine.Table: return mm.getMember(key);
-			case Function: return mm(this, key);
-			case shine.Function: return mm.apply(this, [this, key])[0];
+			// case Function: return mm(this, key);
+			// case shine.Function: return mm.apply(this, [this, key])[0];
+			case Function:
+			case shine.Function:
+				value = mm.apply(this, [this, key]);
+				return (value instanceof Array)? value[0] : value;
 		}
 	}
 };

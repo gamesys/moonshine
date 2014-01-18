@@ -55,6 +55,7 @@ var switches = getSwitches(process.argv),
 		'../src/Table.js',
 		'../src/Error.js',
 		'../src/File.js',
+		'../src/operations.js',
 		'../src/lib.js',
 		'../src/utils.js',
 		'../src/output.js'		

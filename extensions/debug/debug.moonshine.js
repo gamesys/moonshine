@@ -91,20 +91,20 @@ shine.debug._formatValue = function (val) {
 
 		case val && val instanceof shine.Table:
 			result = {
-				caption: shine.utils.coerce(val, 'string')
+				caption: shine.utils.coerceToString(val)
 			};
 
 			fields = {};
 
 			for (i in val) {
-				if (val.hasOwnProperty(i) && i != '__shine') fields[i] = typeof val[i] == 'number'? val[i] : shine.utils.coerce(val[i], 'string');
+				if (val.hasOwnProperty(i) && i != '__shine') fields[i] = typeof val[i] == 'number'? val[i] : shine.utils.coerceToString(val[i]);
 			}
 
 			result.fields = fields;
 			return result;
 
 		default:
-			return shine.utils.coerce(val, 'string');
+			return shine.utils.coerceToString(val);
 	}			
 };
 

@@ -39,11 +39,34 @@ var shine = shine || {};
 	 * @constant
 	 */
 	var FLOATING_POINT_PATTERN = /^[-+]?[0-9]*\.?([0-9]+([eE][-+]?[0-9]+)?)?$/,
-
-
-
-
 		HEXIDECIMAL_CONSTANT_PATTERN = /^(\-)?0x([0-9a-fA-F]*)\.?([0-9a-fA-F]*)$/;
+
+
+
+
+	function throwCoerceError (val, errorMessage) {
+		if (!errorMessage) return;
+		errorMessage = ('' + errorMessage).replace(/\%type/gi, shine.lib.type(val));
+		throw new shine.Error(errorMessage);
+	}
+
+
+
+
+	function jsonToTable (obj) {
+		for (var i in obj) {
+			if (obj.hasOwnProperty(i)) {
+				if (typeof obj[i] === 'object') {
+					obj[i] = jsonToTable(obj[i]);
+					
+				} else if (obj[i] === null) {
+					obj[i] = undefined;
+				}
+			}
+		}
+		
+		return new shine.Table(obj);
+	};
 
 
 
@@ -56,72 +79,85 @@ var shine = shine || {};
 
 
 		/**
-		 * Coerces a value from its current type to another type in the same manner as Lua.
+		 * Coerces a value from its current type to a boolean in the same manner as Lua.
 		 * @param {Object} val The value to be converted.
-		 * @param {String} type The type to which to convert. Possible values: 'boolean', 'string', number'.
 		 * @param {String} [error] The error message to throw if the conversion fails.
-		 * @returns {Object} The converted value.
+		 * @returns {Boolean} The converted value.
 		 */
-		coerce: function (val, type, errorMessage) {
+		coerceToBoolean: function (val, errorMessage) {
+			return !(val === false || val === undefined);
+		},
+
+
+
+
+		/**
+		 * Coerces a value from its current type to a string in the same manner as Lua.
+		 * @param {Object} val The value to be converted.
+		 * @param {String} [error] The error message to throw if the conversion fails.
+		 * @returns {String} The converted value.
+		 */
+		coerceToString: function (val, errorMessage) {
+			switch(true) {
+				case typeof val == 'string': 
+					return val;
+
+				case val === undefined:
+				case val === null: 
+					return 'nil';
+				
+				case val === Infinity: 
+					return 'inf';
+
+				case val === -Infinity: 
+					return '-inf';
+
+				case typeof val == 'number': 
+				case typeof val == 'boolean': 
+					return window.isNaN(val)? 'nan' : '' + val;
+
+				default: 
+					return throwCoerceError(val, errorMessage) || '';
+			}
+		},
+
+
+
+
+		/**
+		 * Coerces a value from its current type to a number in the same manner as Lua.
+		 * @param {Object} val The value to be converted.
+		 * @param {String} [error] The error message to throw if the conversion fails.
+		 * @returns {Number} The converted value.
+		 */
+		coerceToNumber: function (val, errorMessage) {
 			var n, match, mantissa;
 
-			function error () {
-				if (!errorMessage) return;
-				errorMessage = ('' + errorMessage).replace(/\%type/gi, shine.lib.type(val));
-				throw new shine.Error(errorMessage);
-			}
-
-			switch (type) {
-				case 'boolean':
-					return !(val === false || val === undefined);
-
-				case 'string':
-					switch(true) {
-						case typeof val == 'string': return val;
-
-						case val === undefined:
-						case val === null: 
-							return 'nil';
-						
-						case val === Infinity: return 'inf';
-						case val === -Infinity: return '-inf';
-
-						case typeof val == 'number': 
-						case typeof val == 'boolean': 
-							return window.isNaN(val)? 'nan' : '' + val;
-
-						default: return error() || '';
-					}
-
-				case 'number':
-					switch (true) {
-						case typeof val == 'number': return val;
-						case val === undefined: return;
-						case val === 'inf': return Infinity;
-						case val === '-inf': return -Infinity;
-						case val === 'nan': return NaN;
-
-						default:
-							if (('' + val).match(FLOATING_POINT_PATTERN)) {
-								n = parseFloat(val);
-
-							} else if (match = ('' + val).match(HEXIDECIMAL_CONSTANT_PATTERN)) {
-								mantissa = match[3];
-
-								if ((n = match[2]) || mantissa) {
-									n = parseInt(n, 16) || 0;
-									if (mantissa) n += parseInt(mantissa, 16) / Math.pow(16, mantissa.length);
-									if (match[1]) n *= -1;
-								}
-							}
-
-							if (n === undefined) error();
-							return n;
-					}
+			switch (true) {
+				case typeof val == 'number': return val;
+				case val === undefined: return;
+				case val === 'inf': return Infinity;
+				case val === '-inf': return -Infinity;
+				case val === 'nan': return NaN;
 
 				default:
-					throw new ReferenceError('Can not coerce to type: ' + type);
+					if (('' + val).match(FLOATING_POINT_PATTERN)) {
+						n = parseFloat(val);
+
+					} else if (match = ('' + val).match(HEXIDECIMAL_CONSTANT_PATTERN)) {
+						mantissa = match[3];
+
+						if ((n = match[2]) || mantissa) {
+							n = parseInt(n, 16) || 0;
+							if (mantissa) n += parseInt(mantissa, 16) / Math.pow(16, mantissa.length);
+							if (match[1]) n *= -1;
+						}
+					}
+
+					if (n === undefined) throwCoerceError(val, errorMessage);
+					return n;
 			}
+
 		},
 
 
@@ -161,23 +197,7 @@ var shine = shine || {};
 		 * @returns {shine.Table} The resulting table.
 		 */
 		parseJSON: function (json) {
-
-			var convertToTable = function (obj) {
-				for (var i in obj) {
-					if (obj.hasOwnProperty(i)) {
-						if (typeof obj[i] === 'object') {
-							obj[i] = convertToTable(obj[i]);
-							
-						} else if (obj[i] === null) {
-							obj[i] = undefined;
-						}
-					}
-				}
-				
-				return new shine.Table(obj);
-			};
-
-			return convertToTable(JSON.parse(json));
+			return jsonToTable(JSON.parse(json));
 		},
 		
 		

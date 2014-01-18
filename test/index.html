@@ -15,6 +15,7 @@
 		<script src="../vm/src/Table.js"></script>
 		<script src="../vm/src/Error.js"></script>
 		<script src="../vm/src/File.js"></script>
+		<script src="../vm/src/operations.js"></script>
 		<script src="../vm/src/lib.js"></script>
 		<script src="../vm/src/utils.js"></script>
 		<script src="../vm/src/output.js"></script>
@@ -70,9 +71,9 @@
 					}
 				};
 	
-				var vm = new shine.VM(api);
-				vm.load('./test-package.json');
-
+				window.vm = new shine.VM(api);
+				vm.load('./scripts/test-no-require.lua.json');
+				// vm.load('./test-package.json');
 			})();
 		</script>
 	</body>
