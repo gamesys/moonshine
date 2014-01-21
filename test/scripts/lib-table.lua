@@ -90,39 +90,39 @@ local z = table.insert (e, 3, 'Mika')
 local f = {'Kimi'}
 local z2 = table.insert (f, 4, 2)
 
-assertTrue (b[1] == 'Lewis', 'table.concat() should add argument 2 to the end of the table in argument 1, when the third argument is absent [1]')
-assertTrue (b[2] == nil, 'table.concat() should only add argument 2 to the end of the table in argument 1, when the third argument is absent [2]')
+assertTrue (b[1] == 'Lewis', 'table.insert() should add argument 2 to the end of the table in argument 1, when the third argument is absent [1]')
+assertTrue (b[2] == nil, 'table.insert() should only add argument 2 to the end of the table in argument 1, when the third argument is absent [2]')
 
-assertTrue (c[1] == nil, 'table.concat() should pad the table with nils when the desired index is greater than the length of the table [1]')
-assertTrue (c[2] == nil, 'table.concat() should pad the table with nils when the desired index is greater than the length of the table [2]')
-assertTrue (c[3] == 'Jenson', 'table.concat() should add argument 2 to the end of the table in argument 1, when the third argument is greater than the length of the table [1]')
-assertTrue (c[4] == nil, 'table.concat() should only add argument 2 to the end of the table in argument 1, when the third argument is greater than the length of the table [2]')
+assertTrue (c[1] == nil, 'table.insert() should pad the table with nils when the desired index is greater than the length of the table [1]')
+assertTrue (c[2] == nil, 'table.insert() should pad the table with nils when the desired index is greater than the length of the table [2]')
+assertTrue (c[3] == 'Jenson', 'table.insert() should add argument 2 to the end of the table in argument 1, when the third argument is greater than the length of the table [1]')
+assertTrue (c[4] == nil, 'table.insert() should only add argument 2 to the end of the table in argument 1, when the third argument is greater than the length of the table [2]')
 
-assertTrue (d[1] == 'We', 'table.concat()  should not affect existing items in the table when the third argument is missing [1]')
-assertTrue (d[2] == 'exist', 'table.concat() should not affect existing items in the table when the third argument is missing [2]')
-assertTrue (d[3] == 'to', 'table.concat() should not affect existing items in the table when the third argument is missing [3]')
-assertTrue (d[4] == 'win', 'table.concat() should add argument 2 to the end of the table in argument 1, when the third argument is missing [1]')
-assertTrue (d[5] == nil, 'table.concat() should only add argument 2 to the end of the table in argument 1, when the third argument is missing [2]')
+assertTrue (d[1] == 'We', 'table.insert()  should not affect existing items in the table when the third argument is missing [1]')
+assertTrue (d[2] == 'exist', 'table.insert() should not affect existing items in the table when the third argument is missing [2]')
+assertTrue (d[3] == 'to', 'table.insert() should not affect existing items in the table when the third argument is missing [3]')
+assertTrue (d[4] == 'win', 'table.insert() should add argument 2 to the end of the table in argument 1, when the third argument is missing [1]')
+assertTrue (d[5] == nil, 'table.insert() should only add argument 2 to the end of the table in argument 1, when the third argument is missing [2]')
 
-assertTrue (e[1] == 1, 'table.concat() should not affect existing items in the table at indices less than that specified in the third argument [1]')
-assertTrue (e[2] == 1998, 'table.concat() should not affect existing items in the table at indices less than that specified in the third argument [2]')
-assertTrue (e[3] == 'Mika', 'table.concat() should add argument 3 into the table in argument 1 at the index specified in argument 2')
-assertTrue (e[4] == 1, 'table.concat() should shift items in the table in argument 1 down by one after and including the index at argument 2 [1]')
-assertTrue (e[5] == 1999, 'table.concat() should shift items in the table in argument 1 down by one after and including the index at argument 2 [2]')
-assertTrue (e[6] == nil, 'table.concat() should only add one index to the table in argument 1 [1]')
+assertTrue (e[1] == 1, 'table.insert() should not affect existing items in the table at indices less than that specified in the third argument [1]')
+assertTrue (e[2] == 1998, 'table.insert() should not affect existing items in the table at indices less than that specified in the third argument [2]')
+assertTrue (e[3] == 'Mika', 'table.insert() should add argument 3 into the table in argument 1 at the index specified in argument 2')
+assertTrue (e[4] == 1, 'table.insert() should shift items in the table in argument 1 down by one after and including the index at argument 2 [1]')
+assertTrue (e[5] == 1999, 'table.insert() should shift items in the table in argument 1 down by one after and including the index at argument 2 [2]')
+assertTrue (e[6] == nil, 'table.insert() should only add one index to the table in argument 1 [1]')
 
-assertTrue (f[1] == 'Kimi', 'table.concat() should not affect existing items in the table at indices less than that specified in the third argument [3]')
-assertTrue (f[2] == nil, 'table.concat() should pad the table with nils when the desired index is greater than the length of the table [3]')
-assertTrue (f[3] == nil, 'table.concat() should pad the table with nils when the desired index is greater than the length of the table [4]')
-assertTrue (f[4] == 2, 'table.concat() should not affect existing items in the table at indices less than that specified in the third argument [2]')
-assertTrue (f[5] == nil, 'table.concat() should only add one index to the table in argument 1 [2]')
+assertTrue (f[1] == 'Kimi', 'table.insert() should not affect existing items in the table at indices less than that specified in the third argument [3]')
+assertTrue (f[2] == nil, 'table.insert() should pad the table with nils when the desired index is greater than the length of the table [3]')
+assertTrue (f[3] == nil, 'table.insert() should pad the table with nils when the desired index is greater than the length of the table [4]')
+assertTrue (f[4] == 2, 'table.insert() should not affect existing items in the table at indices less than that specified in the third argument [2]')
+assertTrue (f[5] == nil, 'table.insert() should only add one index to the table in argument 1 [2]')
 
 
-assertTrue (w == nil, 'table.concat() should update list in place and return nil')
-assertTrue (x == nil, 'table.concat() should update list in place and return nil')
-assertTrue (y == nil, 'table.concat() should update list in place and return nil')
-assertTrue (z == nil, 'table.concat() should update list in place and return nil')
-assertTrue (z2 == nil, 'table.concat() should update list in place and return nil')
+assertTrue (w == nil, 'table.insert() should update list in place and return nil')
+assertTrue (x == nil, 'table.insert() should update list in place and return nil')
+assertTrue (y == nil, 'table.insert() should update list in place and return nil')
+assertTrue (z == nil, 'table.insert() should update list in place and return nil')
+assertTrue (z2 == nil, 'table.insert() should update list in place and return nil')
 
 
 local function insertStringKey () 
@@ -231,6 +231,7 @@ assertTrue (#c == 0, 'Length operator should return the first empty index minus 
 assertTrue (c[1] == nil, 'table.remove() should not affect the array if index > initial length [4]')
 assertTrue (c[2] == 123, 'table.remove() should not affect the array if index > initial length [5]')
 assertTrue (c[3] == nil, 'table.remove() should not affect the array if index > initial length [6]')
+
 
 
 

@@ -570,8 +570,7 @@
 				return arguments.length - 1;
 				
 			} else if (index = parseInt(index, 10)) {
-				for (var i = index, l = arguments.length; i < l; i++) args.push(arguments[i]);
-				return args;
+				return Array.prototype.slice.call(arguments, index);
 				
 			} else {
 				throw new shine.Error('bad argument #1 in select(). Number or "#" expected');
@@ -1962,7 +1961,7 @@
 		 * @param {object} obj The value to insert.
 		 */
 		insert: function (table, index, obj) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error("Bad argument #1 to 'insert' (table expected)");
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.insert(). Table expected');
 	
 			if (obj == undefined) {
 				obj = index;
@@ -1971,11 +1970,9 @@
 				index = shine.utils.coerceToNumber(index, "Bad argument #2 to 'insert' (number expected)");
 			}
 	
-			var oldValue = table.getMember(index);
+			table.__shine.numValues.splice(index, 0, undefined);
 			table.setMember(index, obj);
-	
-			if (oldValue) shine.lib.table.insert(table, index + 1, oldValue);
-		},	
+		},
 		
 		
 		
@@ -2009,7 +2006,7 @@
 		 * @param {object} index The position of the element to remove.
 		 */
 		remove: function (table, index) {
-			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error("Bad argument #1 to 'remove' (table expected)");
+			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in table.remove(). Table expected');
 	
 			var max = shine.lib.table.getn(table),
 				vals = table.__shine.numValues,
@@ -2020,15 +2017,11 @@
 				
 			result = vals.splice(index, 1);
 			while (index < max && vals[index] === undefined) delete vals[index++];
-			// table[index] = table[index + 1];	
-			
-			// shine.lib.table.remove (table, index + 1);
-			// if (table[index] === undefined) delete table[index];
-	
+
 			return result;
-		},
+		},		
 		
-		
+
 		
 		
 		sort: function (table, comp) {
