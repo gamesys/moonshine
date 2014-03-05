@@ -278,8 +278,9 @@ shine.VM.prototype.resume = function (retvals) {
 		}
 	}
 	
-	// if (this._status == shine.RUNNING) this._trigger(shine.RUNNING);
-	while (this._callbackQueue[0]) this._callbackQueue.shift()();
+	if (this._status == shine.RUNNING) {
+		while (this._callbackQueue[0]) this._callbackQueue.shift()();
+	}
 };
 
 
