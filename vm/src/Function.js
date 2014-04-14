@@ -42,7 +42,7 @@ var shine = shine || {};
  * @param {object} [upvalues] The upvalues passed from the parent closure.
  */
 shine.Function = function (vm, file, data, globals, upvalues) {
-	var me, compiled;
+	var me, compiled, closure, runner;
 
 	this._vm = vm;
 	this._file = file;
@@ -53,13 +53,37 @@ shine.Function = function (vm, file, data, globals, upvalues) {
 	this.instances = shine.gc.createArray();
 	this._retainCount = 0;
 
-
  	this._convertInstructions();
 
-	if (compiled = shine.operations.compile(this)) {
+
+	if (!(compiled = data._compiled)) {
+		compiled = data._compiled = shine.jit.compile(this);
+	}
+
+	if (compiled) {
 		me = this;
-		compiled.toString = function () { return me.toString(); };
-		return compiled; 
+		closure = shine.gc.createObject();
+
+		closure._vm = vm;
+		closure._globals = globals;
+		closure._upvalues = me._upvalues;
+		closure._constants = data.constants;
+		closure._functions = data.functions;
+		closure._localsUsedAsUpvalues = shine.gc.createArray();
+
+
+		runner = function () {
+			return compiled.apply(closure, arguments);
+		}
+
+		runner.toString = function () {
+			return me.toString.apply(me, arguments);
+		}
+
+		runner.retain = function () {};
+		runner.release = function () {};
+
+		return runner;
 	}
 };
 
