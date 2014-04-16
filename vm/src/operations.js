@@ -824,7 +824,15 @@ shine.operations = {};
 
 
 
-	function close_internal (a, getValue) {
+	function close_clearItem (index) {
+		this._register.clearItem(index);
+	}
+
+
+				
+
+
+	function close_internal (a, getValue, clearItem) {
 		
 		for (var i = 0, l = this._localsUsedAsUpvalues.length; i < l; i++) {
 			var local = this._localsUsedAsUpvalues[i];
@@ -835,7 +843,8 @@ shine.operations = {};
 
 				this._localsUsedAsUpvalues.splice(i--, 1);
 				l--;
-				this._register.clearItem(local.registerIndex);
+
+				if (clearItem) clearItem(local.registerIndex);
 			}
 		}
 	}
