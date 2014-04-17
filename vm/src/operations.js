@@ -25,6 +25,13 @@
  * @author <a href="mailto:paul.cuthbertson@gamesys.co.uk">Paul Cuthbertson</a>
  */
 
+/*
+	** Notes: 
+	1. A shine.Closure instance is passed in as the context for the operation handlers.
+	2. The main operation functions are the entry point for the interpretor.
+	3. The internal functions are used by the JIT compiler where the main functions use registers.
+*/
+
 
 'use strict';
 
@@ -35,9 +42,18 @@ shine.operations = {};
 
 
 
-// Note: The Closure instance is passed in as the "this" object for these handlers.
 (function () {
 	
+
+	/******************************************************************
+	*  Operations
+	******************************************************************/
+
+
+
+
+	/******************************************************************/
+	// move
 
 	function move (a, b) {
 		var val = this._register.getItem(b),
@@ -57,12 +73,18 @@ shine.operations = {};
 			
 
 
+	/******************************************************************/
+	// loadk
+
 	function loadk (a, bx) {
 		this._register.setItem(a, this.getConstant(bx));
 	}
 
 
 
+
+	/******************************************************************/
+	// loadbool
 
 	function loadbool (a, b, c) {
 		this._register.setItem(a, !!b);
@@ -72,12 +94,18 @@ shine.operations = {};
 
 
 
+	/******************************************************************/
+	// loadnil
+
 	function loadnil (a, b) {
 		for (var i = a; i <= b; i++) this._register.setItem(i, undefined);
 	}
 
 
 
+
+	/******************************************************************/
+	// getupval
 
 	function getupval (a, b) {
 		// if (this._upvalues[b] === undefined) return;
@@ -87,6 +115,9 @@ shine.operations = {};
 
 
 
+
+	/******************************************************************/
+	// getglobal
 
 	function getglobal (a, b) {
 		b = this.getConstant(b);
@@ -102,6 +133,9 @@ shine.operations = {};
 
 		
 
+
+	/******************************************************************/
+	// gettable
 
 	function gettable (a, b, c) {
 		b = this._register.getItem(b);
@@ -138,13 +172,15 @@ shine.operations = {};
 
 
 
+	/******************************************************************/
+	// setglobal
+
 	function setglobal(a, b) {
 		var key = this.getConstant(b),
 			value = this._register.getItem(a);
 
 		setglobal_internal.call(this, key, value);
 	}
-
 
 
 
@@ -161,12 +197,18 @@ shine.operations = {};
 
 
 
+	/******************************************************************/
+	// setupval
+
 	function setupval (a, b) {
 		this._upvalues[b].setValue(this._register.getItem(a));
 	}
 
 
 
+
+	/******************************************************************/
+	// settable
 
 	function settable (a, b, c) {
 		a = this._register.getItem(a);
@@ -193,6 +235,9 @@ shine.operations = {};
 
 
 
+	/******************************************************************/
+	// newtable
+
 	function newtable (a, b, c) {
 		this._register.setItem(a, newtable_internal());
 	}
@@ -208,6 +253,9 @@ shine.operations = {};
 
 
 
+
+	/******************************************************************/
+	// self
 
 	function self (a, b, c) {
 		b = this._register.getItem(b);
@@ -230,6 +278,9 @@ shine.operations = {};
 
 
 
+
+	/******************************************************************/
+	// add, sub, mul, div, mod, pow
 
 	function binary_arithmetic (a, b, c, mm, f) {
 		b = (b >= 256)? this.getConstant(b - 256) : this._register.getItem(b);
@@ -260,6 +311,9 @@ shine.operations = {};
 
 
 
+	/*****************/
+	// add
+
 	function add (a, b, c) {
 		binary_arithmetic.call(this, a, b, c, '__add', add_internal);
 	}
@@ -273,6 +327,9 @@ shine.operations = {};
 
 
 
+
+	/*****************/
+	// sub
 
 	function sub (a, b, c) {
 		binary_arithmetic.call(this, a, b, c, '__sub', sub_internal);
@@ -288,6 +345,9 @@ shine.operations = {};
 
 
 
+	/*****************/
+	// mul
+
 	function mul (a, b, c) {
 		binary_arithmetic.call(this, a, b, c, '__mul', mul_internal);
 	}
@@ -302,6 +362,9 @@ shine.operations = {};
 
 
 
+	/*****************/
+	// div
+
 	function div (a, b, c) {
 		binary_arithmetic.call(this, a, b, c, '__div', div_internal);
 	}
@@ -315,6 +378,9 @@ shine.operations = {};
 
 
 
+
+	/*****************/
+	// mod
 
 	function mod (a, b, c) {
 		binary_arithmetic.call(this, a, b, c, '__mod', mod_internal);
@@ -337,12 +403,18 @@ shine.operations = {};
 
 
 
+	/*****************/
+	// pow
+
 	function pow (a, b, c) {
 		binary_arithmetic.call(this, a, b, c, '__pow', Math.pow);
 	}
 
 
 
+
+	/******************************************************************/
+	// unm
 
 	function unm (a, b) {
 		b = this._register.getItem(b);
@@ -368,12 +440,18 @@ shine.operations = {};
 
 
 
+	/******************************************************************/
+	// not
+
 	function not (a, b) {
 		this._register.setItem(a, !this._register.getItem(b));
 	}
 
 
 
+
+	/******************************************************************/
+	// len
 
 	function len (a, b) {
 		b = this._register.getItem(b);
@@ -401,6 +479,9 @@ shine.operations = {};
 
 
 
+
+	/******************************************************************/
+	// concat
 
 	function concat (a, b, c) {
 		var text = this._register.getItem(c),
@@ -445,12 +526,18 @@ shine.operations = {};
 
 
 
+	/******************************************************************/
+	// jmp
+
 	function jmp (a, sbx) {
 		this._pc += sbx;
 	}
 
 
 
+
+	/******************************************************************/
+	// eq
 
 	function eq (a, b, c) {
 		b = (b >= 256)? this.getConstant(b - 256) : this._register.getItem(b);
@@ -476,6 +563,9 @@ shine.operations = {};
 
 
 
+
+	/******************************************************************/
+	// lt, le
 
 	function compare (a, b, c, mm, f) {
 		b = (b >= 256)? this.getConstant(b - 256) : this._register.getItem(b);
@@ -513,6 +603,9 @@ shine.operations = {};
 
 
 
+	/*****************/
+	// lt
+
 	function lt (a, b, c) {
 		compare.call(this, a, b, c, '__lt', lt_func);
 	}
@@ -526,6 +619,9 @@ shine.operations = {};
 
 
 
+
+	/*****************/
+	// le
 
 	function le (a, b, c) {
 		compare.call(this, a, b, c, '__le', le_func);
@@ -541,6 +637,9 @@ shine.operations = {};
 
 
 
+	/******************************************************************/
+	// test
+
 	function test (a, b, c) {
 		a = this._register.getItem(a);
 		if (shine.utils.coerceToBoolean(a) !== !!c) this._pc++;
@@ -548,6 +647,9 @@ shine.operations = {};
 
 
 
+
+	/******************************************************************/
+	// testset
 
 	function testset (a, b, c) {
 		b = this._register.getItem(b);
@@ -561,6 +663,9 @@ shine.operations = {};
 
 
 
+
+	/******************************************************************/
+	// call
 
 	function call (a, b, c) {
 
@@ -647,8 +752,10 @@ shine.operations = {};
 
 
 	function call_prep (a, b) {
+		//TODO: Try splitting this into two functions and chose at jit-time depending on value of b
+
 		var i, l, args = [];
-//TODO: Try splitting this into two functions and chose at jit-time depending on value of b
+
 		if (b === 0) {
 			l = this._register.getLength();
 		
@@ -695,6 +802,9 @@ shine.operations = {};
 
 
 
+	/******************************************************************/
+	// tailcall
+
 	function tailcall (a, b) {	
 		return call.call(this, a, b, 0);
 		
@@ -704,6 +814,9 @@ shine.operations = {};
 
 
 
+
+	/******************************************************************/
+	// return
 
 	function return_ (a, b) {
 		var retvals = shine.gc.createArray(),
@@ -735,6 +848,9 @@ shine.operations = {};
 
 
 
+	/******************************************************************/
+	// forloop
+
 	function forloop (a, sbx) {
 		var step = this._register.getItem(a + 2),
 			limit = this._register.getItem(a + 1),
@@ -752,6 +868,9 @@ shine.operations = {};
 
 
 
+	/******************************************************************/
+	// forprep
+
 	function forprep (a, sbx) {
 		this._register.setItem(a, this._register.getItem(a) - this._register.getItem(a + 2));
 		this._pc += sbx; 
@@ -759,6 +878,9 @@ shine.operations = {};
 
 
 
+
+	/******************************************************************/
+	// tforloop
 
 	function tforloop (a, b, c) {
 		var args = shine.gc.createArray(),
@@ -797,6 +919,9 @@ shine.operations = {};
 
 
 
+	/******************************************************************/
+	// setlist
+
 	function setlist (a, b, c) {
 		var length = b || this._register.getLength() - a - 1,
 		i;
@@ -807,8 +932,10 @@ shine.operations = {};
 	}
 
 
-// here
 
+
+	/******************************************************************/
+	// close
 
 	function close (a, b, c) {
 		close_internal.call(this, a, close_getValue);
@@ -827,7 +954,6 @@ shine.operations = {};
 	function close_clearItem (index) {
 		this._register.clearItem(index);
 	}
-
 
 				
 
@@ -852,35 +978,8 @@ shine.operations = {};
 
 
 
-// 	function closure (a, bx) {
-// 		var x = closure_upvalues.call(this, bx); console.log (x)
-// 		var f = new shine.Function(this._vm, this._file, this._functions[bx], this._globals, x);
-// 		this._register.setItem(a, f);
-// 	};
-
-
-
-
-// 	function closure_upvalues (bx) {
-// 		var upvalues = shine.gc.createArray(),
-// 			opcode,
-// 			offset, A, B, C;
-
-// 		while ((opcode = this._instructions[this._pc * 4]) !== undefined && (opcode === 0 || opcode === 4) && this._instructions[this._pc * 4 + 1] === 0) {	// move, getupval
-// 			offset = this._pc * 4;
-// 			A = this._instructions[offset + 1];
-// 			B = this._instructions[offset + 2];
-// 			C = this._instructions[offset + 3];
-
-// 			upvalues.push((opcode? closure_getupval : closure_move).call(this, bx, upvalues.length, A, B, C));
-// 			this._pc++;
-// 		}
-
-// //console.log (upvalues)
-// 		return upvalues;
-// 	}
-
-
+	/******************************************************************/
+	// closure
 
 	function closure (a, bx) {
 		var upvalueData = shine.gc.createArray(),
@@ -996,6 +1095,9 @@ shine.operations = {};
 
 
 
+	/******************************************************************/
+	// vararg
+
 	function vararg (a, b) {
 		var i, l,
 			limit = b === 0? Math.max(0, this._params.length - this._data.paramCount) : b - 1;
@@ -1013,13 +1115,33 @@ shine.operations = {};
 
 
 
+	/*****************************************************************/
 
+
+	/**
+	 * Array of operation handlers indexed by opcode.
+	 * @type Array
+	 * @constant
+	 */
 	shine.operations.HANDLERS = [move, loadk, loadbool, loadnil, getupval, getglobal, gettable, setglobal, setupval, settable, newtable, self, add, sub, mul, div, mod, pow, unm, not, len, concat, jmp, eq, lt, le, test, testset, call, tailcall, return_, forloop, forprep, tforloop, setlist, close, closure, vararg];
+
+
+	/**
+	 * Array of instruction names indexed by opcode.
+	 * @type Array
+	 * @constant
+	 */
 	shine.operations.NAMES = ['move', 'loadk', 'loadbool', 'loadnil', 'getupval', 'getglobal', 'gettable', 'setglobal', 'setupval', 'settable', 'newtable', 'self', 'add', 'sub', 'mul', 'div', 'mod', 'pow', 'unm', 'not', 'len', 'concat', 'jmp', 'eq', 'lt', 'le', 'test', 'testset', 'call', 'tailcall', 'return', 'forloop', 'forprep', 'tforloop', 'setlist', 'close', 'closure', 'vararg'];
 
 
 
 
+	/**
+	 * Creates a new JavaScript function in the current scope. 
+	 * Can be used by the JIT compiler to make use of the operation handlers.
+	 * @param {string} funcDef String containing a JavaScript function definition.
+	 * @returns {function} Resulting JavaScript function.
+	 */
 	shine.operations.evaluateInScope = function (funcDef) {
 		var func;
 		eval('func=' + funcDef);

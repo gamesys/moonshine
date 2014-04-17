@@ -52,21 +52,9 @@ shine.Function = function (vm, file, data, globals, upvalues) {
 	this._index = shine.Function._index++;
 	this.instances = shine.gc.createArray();
 	this._retainCount = 0;
+	this._runCount = 0;
 
  	this._convertInstructions();
-
- 	if (!this._jitData) {
- 		this._jitData = {
-			calls: 0,
-			execTimes: [],
-			jitCalls: 0,
-			jitExecTimes: [],
-			timeToJIT: null,
-			jits: 0
-		};
- 	}
-
- 	this._compile();
 };
 
 
@@ -121,31 +109,9 @@ shine.Function.prototype._compile = function () {
 		// closure._localFunctions = shine.gc.createArray();
 		closure._localsUsedAsUpvalues = shine.gc.createArray();
 
-
 		this.apply = function (context, args) {
-			me._jitData.jitCalls++;
-			var t = performance.now();
-
-			
-			var x = compiled.apply(closure, args); 
-			
-			me._jitData.jitExecTimes.push(performance.now() - t);
-			if (shine.jit.data.indexOf(this) < 0) shine.jit.data.push(me);
-
-			return x;
+			return compiled.apply(closure, args); 
 		}
-
-		// runner.toString = function () {
-		// 	return me.toString.apply(me, arguments);
-		// }
-
-		// runner.retain = function () {};
-		// runner.release = function () {};
-
-		this._jitData.timeToJIT = performance.now() - t;
-		this._jitData.jits++;
-
-		// this._compiled = runner;
 	}
 };
 
@@ -227,16 +193,13 @@ shine.Function.prototype.apply = function (obj, args, internal) {
 		obj = undefined;
 	}
 
- 	this._jitData.calls++;
-	var t = performance.now(),
-		x;
+	if (++this._runCount == 2) {
+		this._compile();
+		return this.apply.apply(this, arguments);
+	}
 
 	try {
-		x = this.getInstance().apply(obj, args);
-
-		this._jitData.execTimes.push(performance.now() - t);
-		if (shine.jit.data.indexOf(this) < 0) shine.jit.data.push(this);
-		return x;
+		return this.getInstance().apply(obj, args);
 
 	} catch (e) {
 		shine.Error.catchExecutionError(e);
@@ -244,7 +207,6 @@ shine.Function.prototype.apply = function (obj, args, internal) {
 
 };
 
-shine.jit.data = [];
 
 
 /**
