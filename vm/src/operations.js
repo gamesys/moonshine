@@ -130,7 +130,7 @@ shine.operations = {};
 			result = b[c];
 		}
 
-		if (result && result instanceof shine.Function) this._localFunctions[c] = result;
+		if (this && this._localFunctions && result && result instanceof shine.Function) this._localFunctions[c] = result;
 
 		return result;
 	}

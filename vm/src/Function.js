@@ -55,36 +55,18 @@ shine.Function = function (vm, file, data, globals, upvalues) {
 
  	this._convertInstructions();
 
+ 	if (!this._jitData) {
+ 		this._jitData = {
+			calls: 0,
+			execTimes: [],
+			jitCalls: 0,
+			jitExecTimes: [],
+			timeToJIT: null,
+			jits: 0
+		};
+ 	}
 
-	if (!(compiled = data._compiled)) {
-		compiled = data._compiled = shine.jit.compile(this);
-	}
-
-	if (compiled) {
-		me = this;
-		closure = shine.gc.createObject();
-
-		closure._vm = vm;
-		closure._globals = globals;
-		closure._upvalues = me._upvalues;
-		closure._constants = data.constants;
-		closure._functions = data.functions;
-		closure._localsUsedAsUpvalues = shine.gc.createArray();
-
-
-		runner = function () {
-			return compiled.apply(closure, arguments);
-		}
-
-		runner.toString = function () {
-			return me.toString.apply(me, arguments);
-		}
-
-		runner.retain = function () {};
-		runner.release = function () {};
-
-		return runner;
-	}
+ 	this._compile();
 };
 
 
@@ -108,6 +90,63 @@ shine.Function._index = 0;
  */
 shine.Function.prototype.getInstance = function () {
 	return shine.Closure.create(this._vm, this._file, this._data, this._globals, this._upvalues);
+};
+
+
+
+
+
+/**
+ * Compiles the function to JavaScript.
+ */
+shine.Function.prototype._compile = function () {
+	var data = this._data,
+		me, closure, compiled;
+
+ 	var t = performance.now();
+
+	if (!(compiled = data._compiled)) {
+		compiled = data._compiled = shine.jit.compile(this);
+	}
+
+	if (compiled) {
+		me = this;
+		closure = shine.gc.createObject();
+
+		closure._vm = this._vm;
+		closure._globals = this._globals;
+		closure._upvalues = this._upvalues;
+		closure._constants = data.constants;
+		closure._functions = data.functions;
+		// closure._localFunctions = shine.gc.createArray();
+		closure._localsUsedAsUpvalues = shine.gc.createArray();
+
+
+		this.apply = function (context, args) {
+			me._jitData.jitCalls++;
+			var t = performance.now();
+
+			
+			var x = compiled.apply(closure, args); 
+			
+			me._jitData.jitExecTimes.push(performance.now() - t);
+			if (shine.jit.data.indexOf(this) < 0) shine.jit.data.push(me);
+
+			return x;
+		}
+
+		// runner.toString = function () {
+		// 	return me.toString.apply(me, arguments);
+		// }
+
+		// runner.retain = function () {};
+		// runner.release = function () {};
+
+		this._jitData.timeToJIT = performance.now() - t;
+		this._jitData.jits++;
+
+		// this._compiled = runner;
+	}
 };
 
 
@@ -164,13 +203,13 @@ shine.Function.prototype._convertInstructions = function () {
  * Calls the function, implicitly creating a new instance and passing on the arguments provided.
  * @returns {Array} Array of the return values from the call.
  */
-shine.Function.prototype.call = function () {
+shine.Function.prototype.call = function (context) {
 	var args = shine.gc.createArray(),
 		l = arguments.length,
 		i;
 		
 	for (i = 1; i < l; i++) args.push(arguments[i]);
-	return this.apply(args);
+	return this.apply(context, args);
 };
 
 
@@ -188,15 +227,24 @@ shine.Function.prototype.apply = function (obj, args, internal) {
 		obj = undefined;
 	}
 
+ 	this._jitData.calls++;
+	var t = performance.now(),
+		x;
+
 	try {
-		return this.getInstance().apply(obj, args);
+		x = this.getInstance().apply(obj, args);
+
+		this._jitData.execTimes.push(performance.now() - t);
+		if (shine.jit.data.indexOf(this) < 0) shine.jit.data.push(this);
+		return x;
 
 	} catch (e) {
 		shine.Error.catchExecutionError(e);
 	}
+
 };
 
-
+shine.jit.data = [];
 
 
 /**
