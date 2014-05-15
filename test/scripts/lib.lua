@@ -160,6 +160,11 @@ assertTrue (type(f) == 'function', 'loadstring() should return a function when p
 local result = f()
 assertTrue (result == 'hello', 'The function returned from loadstring() should return the value from the script')
 
+local s = string.dump(function () return 'bar' end)
+f = loadstring(s)
+result = f()
+
+assertTrue (result == 'bar', 'loadstring() should be able to create a function from the output of string.dump()')
 
 
 

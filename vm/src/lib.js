@@ -1453,7 +1453,16 @@ var shine = shine || {};
 		
 		
 		dump: function (func) {
-			return JSON.stringify(func._data);
+			var data = func._data,
+				result = shine.gc.createObject(),
+				i;
+
+			for (i in data) {
+				if (data.hasOwnProperty(i)) result[i] = data[i];
+			}
+
+			result.instructions = Array.apply(shine.gc.createArray(), result.instructions);
+			return JSON.stringify(result);
 		},
 		
 		
