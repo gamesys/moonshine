@@ -2030,7 +2030,7 @@ var shine = shine || {};
 				arr = table.__shine.numValues;
 		
 			if (comp) {
-				if (!((comp || shine.EMPTY_OBJ) instanceof shine.Function)) throw new shine.Error("Bad argument #2 to 'sort' (function expected)");
+				if (!(comp instanceof shine.Function || comp.constructor === Function)) throw new shine.Error("Bad argument #2 to 'sort' (function expected)");
 	
 				sortFunc = function (a, b) {
 					return comp.apply(null, [a, b], true)[0]? -1 : 1;

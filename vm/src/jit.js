@@ -29,7 +29,7 @@
 'use strict';
 
 
-var shine = shine || {};
+if (typeof shine == 'undefined') shine = {};
 
 
 
@@ -153,7 +153,10 @@ shine.jit = {};
 
 
 	function translate_getglobal (a, b) {
-		return 'R' + a + '=getglobal_internal.call(cl,' + formatValue(this.getConstant(b)) + ');';
+		var key = this.getConstant(b);
+
+		// return 'R' + a + '=cl._globals' + ((key == '_G')? '' : '[' + formatValue(key) + ']') + ';';
+		return 'R' + a + '=shine_precompiler_globals' + ((key == '_G')? '' : '[' + formatValue(key) + ']') + ';';
 	}
 
 
@@ -186,7 +189,7 @@ shine.jit = {};
 		b = (b >= 256)? formatValue(this.getConstant(b - 256)) : 'R' + b;
 		c = (c >= 256)? formatValue(this.getConstant(c - 256)) : 'R' + c;
 
-		return 'settable_internal.call(cl, R' + a + ',' + b + ',' + c + ');';
+		return 'settable_internal(R' + a + ',' + b + ',' + c + ');';
 	}
 
 
@@ -565,6 +568,18 @@ shine.jit = {};
 	 * @returns {function} A JavaScript representation of the function.
 	 */
 	shine.jit.compile = function (func) {
+		var js = shine.jit.toJS(func);
+		return shine.operations.evaluateInScope(js);
+	};
+
+
+
+	/**
+	 * Translates a Moonshine function definition to a JavaScript function definition.
+	 * @param {shine.Function} func The input Moonshine function definition.
+	 * @returns {string} JavaScript source of the function.
+	 */
+	shine.jit.toJS = function (func) {
 
 		var instructions = func._data.instructions,
 			paramCount = func._data.paramCount,
@@ -584,7 +599,6 @@ shine.jit = {};
 
 		// Setup state
 		state = {
-			getConstant: shine.Closure.prototype.getConstant,
 			paramCount: paramCount,
 			isVararg: isVararg,
 			stackSize: func._data.maxStackSize,
@@ -596,6 +610,11 @@ shine.jit = {};
 
 			_constants: func._data.constants,
 			_instructions: func._data.instructions,
+
+			getConstant: function (index) {
+				if (this._constants[index] === null) return;
+				return this._constants[index];
+			}			
 		};
 
 
@@ -641,11 +660,12 @@ shine.jit = {};
 		code.push('}}');
 
 
-		// Create compiled function
-		return shine.operations.evaluateInScope('function(' + createNumberString(paramCount - 1, 'R') + '){' + code.join('\n') + '}');
+		// Output JS function
+		return 'function(' + createNumberString(paramCount - 1, 'R') + '){' + code.join('\n') + '}';
 	};
 
 
 
 
 })();
+if (typeof module != 'undefined') module.exports = shine.jit;

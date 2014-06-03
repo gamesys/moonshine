@@ -1152,5 +1152,8 @@ shine.operations = {};
 
 
 
+	// PRECOMPILER_CODE_INSERTION_POINT
+
+
 })();
 
