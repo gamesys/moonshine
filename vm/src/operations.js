@@ -938,7 +938,7 @@ shine.operations = {};
 	// close
 
 	function close (a, b, c) {
-		close_internal.call(this, a, close_getValue);
+		close_internal.call(this, a, close_getValue, close_clearItem);
 	}
 
 
@@ -970,7 +970,7 @@ shine.operations = {};
 				this._localsUsedAsUpvalues.splice(i--, 1);
 				l--;
 
-				if (clearItem) clearItem(local.registerIndex);
+				if (clearItem) clearItem.call(this, local.registerIndex);
 			}
 		}
 	}
