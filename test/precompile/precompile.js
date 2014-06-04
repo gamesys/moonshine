@@ -11,12 +11,48 @@ var fs = require('fs'),
 
 
 
-
-function loadSource (path, callback) {
-	var filename = process.argv[2];
+function convertInstructions (source) {
+	var instructions = source.instructions || [],
+		buffer,
+		result,
+		i, l,
+		instruction,
+		offset;
 	
-	if (!filename) throw new ReferenceError('No source file provided.');
+	if (instructions instanceof Int32Array) return;
 
+	if (instructions.length == 0 || instructions[0].op === undefined) {
+		buffer = new ArrayBuffer(instructions.length * 4);
+		result = new Int32Array(buffer);
+
+		result.set(instructions);
+		source.instructions = result;
+
+		return;
+	}
+
+	buffer = new ArrayBuffer(instructions.length * 4 * 4);
+	result = new Int32Array(buffer);
+		
+
+	for (i = 0, l = instructions.length; i < l; i++) {
+		instruction = instructions[i];
+		offset = i * 4;
+
+		result[offset] = instruction.op;
+		result[offset + 1] = instruction.A;
+		result[offset + 2] = instruction.B;
+		result[offset + 3] = instruction.C;
+	}
+
+	source.instructions = result;
+};
+
+
+
+
+
+function loadSource (filename, callback) {
 	fs.readFile(filename, function (err, json) {
 		var source;
 
@@ -27,7 +63,7 @@ function loadSource (path, callback) {
 		} catch (e) {
 			throw new Error('Unable to parse source file. Are you sure it\'s a valid JSON file?');
 		}
-		
+
 		callback(null, source);
 	});
 }
@@ -38,6 +74,8 @@ function loadSource (path, callback) {
 function parseFunction (f, output) {
 	var func, i, index, js,
 		funcs = [];
+
+	convertInstructions(f);
 
 	for (i = 0; func = f.functions[i]; i++) {
 		funcs[i] = parseFunction(f.functions[i], output);
@@ -51,7 +89,7 @@ function parseFunction (f, output) {
 	js = js.replace(/=new shine\.Function\(cl\._vm,cl\._file,cl\._functions\[(\d+)\],cl._globals/g, function (match, index) {return '=shine_precompiler_create_func(shine_precompiler_func_' + funcs[index]._index;});
 
 	// func = window['shine_precompiler_func_' + index] = shine.operations.evaluateInScope(js);
-	output.source += 'var shine_precompiler_func_' + index + '=' + js + ';';
+	output.source += '/* line:' + f.lineDefined + ' */var shine_precompiler_func_' + index + '=' + js + ';';
 
 	func = {};
 	func._index = index;
@@ -61,12 +99,39 @@ function parseFunction (f, output) {
 
 
 
-loadSource('TODO:filename', function (err, source) {
+
+
+
+var filename = process.argv[2];
+if (!filename) throw new ReferenceError('No source file provided.');
+
+
+loadSource(filename, function (err, source) {
 	if (err) throw err;
 
 	var output = { source: '' },
-		main = parseFunction(source, output),
-		execute = 'shine_precompiler_create_func(shine_precompiler_func_' + main._index + ')();';
+		preload = '',
+		main, execute, def, match,
+		func, i;
+
+
+	if (source.format == 'moonshine.package') {
+		for (i in source.files) {
+			output.source += '\n\n/********************\n    file:' + i + '\n ******************/\n\n';
+			if (!(match = i.match(/(.*)\.lua\.json$/))) {
+				console.warn('File does not end in .lua.json.');
+			} else {
+				func = parseFunction(source.files[i], output);
+				preload += 'shine.lib["package"].preload["' + match[1].replace(/\//g, '.') + '"]=shine_precompiler_create_func(shine_precompiler_func_' + func._index + ');\n';
+				if (i == source.main) main = func;
+			}
+		}
+
+	} else {
+		main = parseFunction(source, output);
+	}
+
+	execute = 'shine_precompiler_create_func(shine_precompiler_func_' + main._index + ')();';
 
 
 	fs.readFile('../../vm/src/operations.js', function (err, operations) {
@@ -75,15 +140,14 @@ loadSource('TODO:filename', function (err, source) {
 		fs.readFile('./_bootstrap.js', function (err, bootstrap) {
 			bootstrap = '' + bootstrap;	
 
-			data = operations.replace('// PRECOMPILER_CODE_INSERTION_POINT', bootstrap + output.source + execute);
+			data = operations.split('// PRECOMPILER_CODE_INSERTION_POINT');
+			data = data[0] + bootstrap + output.source + preload + execute + data[1];
 
 			fs.writeFile('./output.js', data, function () {
 				console.log ('DONE');
 			});
 		});
 	});
-
-
 
 })
 

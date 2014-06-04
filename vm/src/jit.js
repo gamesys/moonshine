@@ -502,7 +502,7 @@ shine.jit = {};
 		var upvalueData = shine.gc.createArray(),
 			instructions = this._instructions,
 			proto = instructions.constructor.prototype,
-			slice = proto.slice || proto.subarray,
+			slice = proto.slice || proto.subarray || Array.prototype.slice,
 			opcode;
 
 		this.pc++;
