@@ -100,6 +100,49 @@ end
 assertTrue (b == '[1=2][2=4][3=8]', 'ipairs() should iterate over table items [1]')
 
 
+local t = {nil, 1, 2} 
+local s = ''
+
+for i, v in ipairs(t) do 
+    s = s..tostring(i)..'='..tostring(v)..';'
+end
+
+assertTrue (s == '', 'ipairs() should not iterate over nil values in a table.')
+
+
+t = {3, 4, nil, 1, 2} 
+s = ''
+
+for i, v in ipairs(t) do 
+    s = s..tostring(i)..'='..tostring(v)..';'
+end
+
+assertTrue (s == '1=3;2=4;', 'ipairs() should iterate over values up to but not including nil values in a table.')
+
+
+t = {
+  [0] = "zero",
+  [1] = "one",
+  [2] = "two",
+  [-1] = "negative",
+  foo = "string",
+  [0.5] = "half"
+}
+
+local r = {}
+
+for i, v in ipairs(t) do 
+    r[v] = true
+end
+
+assertTrue (not r.zero, 'ipairs() should not iterate over zero key')
+assertTrue (r.one, 'ipairs() should iterate over positive integer keys [1]')
+assertTrue (r.two, 'ipairs() should iterate over positive integer keys [2]')
+assertTrue (not r.negative, 'ipairs() should not iterate over negative keys')
+assertTrue (not r.string, 'ipairs() should not iterate over string keys')
+assertTrue (not r.half, 'ipairs() should not iterate over non-integer numeric keys')
+
+
 
 
 -- load

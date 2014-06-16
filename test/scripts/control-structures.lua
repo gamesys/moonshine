@@ -76,21 +76,4 @@ assertTrue (string.find(a, '[table: 0x%d+==1729]') ~= nil, 'for/pairs iteration 
 assertTrue (string.find(a, '[function: 0x%d+==test]') ~= nil, 'for/pairs iteration should include items with function as key.')
 
 
-local t = {nil, 1, 2} 
-local s = ''
 
-for i, v in ipairs(t) do 
-    s = s..tostring(i)..'='..tostring(v)..';'
-end
-
-assertTrue (s == '', 'ipairs() should not iterate over nil values in a table.')
-
-
-t = {3, 4, nil, 1, 2} 
-s = ''
-
-for i, v in ipairs(t) do 
-    s = s..tostring(i)..'='..tostring(v)..';'
-end
-
-assertTrue (s == '1=3;2=4;', 'ipairs() should iterate over values up to but not including nil values in a table.')
