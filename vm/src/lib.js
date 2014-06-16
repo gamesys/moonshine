@@ -129,6 +129,19 @@ var shine = shine || {};
 
 
 
+	function ipairsIterator (table, index) {
+		if (index === undefined) throw new shine.Error('Bad argument #2 to ipairs() iterator');
+
+		var nextIndex = index + 1,
+			numValues = table.__shine.numValues;
+
+		if (!numValues.hasOwnProperty(nextIndex) || numValues[nextIndex] === void 0) return void 0;
+		return [nextIndex, numValues[nextIndex]];
+	}
+	
+
+
+
 	function getWeekOfYear (d, firstDay, utc) { 
 		var dayOfYear = parseInt(DATE_FORMAT_HANDLERS['%j'](d), 10),
 			jan1 = new Date(d.getFullYear (), 0, 1, 12),
@@ -266,17 +279,7 @@ var shine = shine || {};
 	
 		ipairs: function (table) {
 			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in ipairs(). Table expected');
-			
-			var iterator = function (table, index) {
-				if (index === undefined) throw new shine.Error('Bad argument #2 to ipairs() iterator');
-
-				var nextIndex = index + 1;
-
-				if (!table.__shine.numValues.hasOwnProperty(nextIndex)) return undefined;
-				return [nextIndex, table.__shine.numValues[nextIndex]];
-			};
-	
-			return [iterator, table, 0];
+			return [ipairsIterator, table, 0];
 		},
 	
 	
