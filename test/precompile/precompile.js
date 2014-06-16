@@ -73,7 +73,7 @@ function loadSource (filename, callback) {
 
 function parseFunction (f, output) {
 	var func, i, index, js,
-		funcs = [];
+		funcs = [], init;
 
 	convertInstructions(f);
 
@@ -85,11 +85,14 @@ function parseFunction (f, output) {
 	js = shine.jit.toJS({_data: f});
 
 
-	js = js.replace(/(var cl=this,.*?;)/, '$1cl._globals=shine_precompiler_vm._globals;cl._localsUsedAsUpvalues=[];cl._functions=[' + funcs.map(function (f) {return 'shine_precompiler_func_'+f._index;}).toString() + '];');
-	js = js.replace(/=new shine\.Function\(cl\._vm,cl\._file,cl\._functions\[(\d+)\],cl._globals/g, function (match, index) {return '=shine_precompiler_create_func(shine_precompiler_func_' + funcs[index]._index;});
+	init = '$1cl._localsUsedAsUpvalues=createArray();';
+	if (funcs.length) init += 'cl._functions=[' + funcs.map(function (f) {return 'shine_precompiler_func_'+f._index;}).toString() + '];';
+
+	js = js.replace(/(var cl=this,.*?;)/, init);
+	js = js.replace(/=new shine\.Function\(cl\._vm,cl\._file,cl\._functions\[(\d+)\],cl._globals/g, function (match, index) {return '=create_func(shine_precompiler_func_' + funcs[index]._index;});
 
 	// func = window['shine_precompiler_func_' + index] = shine.operations.evaluateInScope(js);
-	output.source += '/* line:' + f.lineDefined + ' */var shine_precompiler_func_' + index + '=' + js + ';';
+	output.source += '\n\n/* line:' + f.lineDefined + ' */\nfunction shine_precompiler_func_' + index + '(){\n' + js.substr(11);
 
 	func = {};
 	func._index = index;
@@ -122,7 +125,7 @@ loadSource(filename, function (err, source) {
 				console.warn('File does not end in .lua.json.');
 			} else {
 				func = parseFunction(source.files[i], output);
-				preload += 'shine.lib["package"].preload["' + match[1].replace(/\//g, '.') + '"]=shine_precompiler_create_func(shine_precompiler_func_' + func._index + ');\n';
+				preload += 'shine.lib["package"].preload["' + match[1].replace(/\//g, '.') + '"]=create_func(shine_precompiler_func_' + func._index + ');\n';
 				if (i == source.main) main = func;
 			}
 		}
@@ -131,7 +134,7 @@ loadSource(filename, function (err, source) {
 		main = parseFunction(source, output);
 	}
 
-	execute = 'shine_precompiler_create_func(shine_precompiler_func_' + main._index + ')();';
+	execute = 'create_func(shine_precompiler_func_' + main._index + ')();';
 
 
 	fs.readFile('../../vm/src/operations.js', function (err, operations) {

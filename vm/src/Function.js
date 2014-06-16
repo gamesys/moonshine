@@ -188,19 +188,18 @@ shine.Function.prototype.call = function (context) {
  * @returns {Array} Array of the return values from the call.
  */
 shine.Function.prototype.apply = function (obj, args, internal) {
-	if ((obj || shine.EMPTY_OBJ) instanceof Array && !args) {
+	if (obj && obj instanceof Array && !args) {
 		args = obj;
 		obj = undefined;
 	}
 
-	if (++this._runCount == 2) {
+	if (shine.jit.enabled && ++this._runCount == 2) {
 		this._compile();
 		return this.apply.apply(this, arguments);
 	}
 
 	try {
 		return this.getInstance().apply(obj, args);
-
 	} catch (e) {
 		shine.Error.catchExecutionError(e);
 	}

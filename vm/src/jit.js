@@ -38,7 +38,16 @@ if (typeof shine == 'undefined') shine = {};
  * Namespace for functions related to the just-in-time compiler.
  * @namespace
  */
-shine.jit = {};
+shine.jit = shine.jit || {};
+
+
+
+
+/**
+ * Flag with which to switch JIT compiler on and off.
+ * @type boolean
+ */
+shine.jit.enabled = shine.jit.enable || false;
 
 
 
@@ -107,21 +116,25 @@ shine.jit = {};
 
 
 	function translate_move (a, b) {
-		return 'R' + a + '=R' + b + ';';
+		// return 'R' + a + '=R' + b + ';';
+		// return 'setupval(' + a + ',register[' + b + ']);';
+		return 'setR(R,' + a + ',R[' + b + ']);';
 	}
 
 
 
 
 	function translate_loadk (a, bx) {
-		return 'R' + a + '=' + formatValue(this.getConstant(bx)) + ';';
+		// return 'R' + a + '=' + formatValue(this.getConstant(bx)) + ';';
+		return 'setR(R,' + a + ',' + formatValue(this.getConstant(bx)) + ');';
 	}
 
 
 
 
 	function translate_loadbool (a, b, c) {
-		var result = 'R' + a + '=' + !!b + ';',
+		// var result = 'decr(register[' + a + ']);register[' + a + ']=' + !!b + ';',
+        var result = 'setR(R,' + a + ',' + !!b + ');',
 			pc;
 
 		if (c) {
@@ -137,16 +150,16 @@ shine.jit = {};
 
 	function translate_loadnil (a, b) {
 		var result = [];
-		for (var i = a; i <= b; i++) result.push('R' + i + '=');
+		for (var i = a; i <= b; i++) result.push('setR(R,' + i + ');');
 
-		return result.join('') + 'undefined;';
+		return result.join('');
 	}
 
 
 
 
 	function translate_getupval (a, b) {
-		return '(cl._upvalues[' + b + ']!==undefined)&&(R' + a + '=cl._upvalues[' + b + '].getValue());';
+		return '(cl._upvalues[' + b + ']!==void 0)&&(setR(R,' + a + ',cl._upvalues[' + b + '].getValue()));';
 	}
 
 
@@ -156,15 +169,15 @@ shine.jit = {};
 		var key = this.getConstant(b);
 
 		// return 'R' + a + '=cl._globals' + ((key == '_G')? '' : '[' + formatValue(key) + ']') + ';';
-		return 'R' + a + '=shine_precompiler_globals' + ((key == '_G')? '' : '[' + formatValue(key) + ']') + ';';
+		return 'setR(R,' + a + ',shine_g' + ((key == '_G')? '' : '[' + formatValue(key) + ']') + ');';
 	}
 
 
 
 
 	function translate_gettable (a, b, c) {
-		c = (c >= 256)? formatValue(this.getConstant(c - 256)) : 'R' + c;
-		return 'R' + a + '=gettable_internal(R' + b + ',' + c + ');';
+		c = (c >= 256)? formatValue(this.getConstant(c - 256)) : 'R[' + c + ']';
+		return 'setR(R,' + a + ',gettable_internal(R[' + b + '],' + c + '));';
 	}
 
 
@@ -172,48 +185,48 @@ shine.jit = {};
 
 	function translate_setglobal(a, b) {
 		var key = formatValue(this.getConstant(b));
-		return 'setglobal_internal.call(cl,' + key + ',R' + a + ');';
+		return 'setglobal_internal.call(cl,' + key + ',R[' + a + ']);';
 	}
 
 
 
 
 	function translate_setupval (a, b) {
-		return 'cl._upvalues[' + b + '].setValue(R' + a + ');';
+		return 'cl._upvalues[' + b + '].setValue(R[' + a + ']);';
 	}
 
 
 
 
 	function translate_settable (a, b, c) {
-		b = (b >= 256)? formatValue(this.getConstant(b - 256)) : 'R' + b;
-		c = (c >= 256)? formatValue(this.getConstant(c - 256)) : 'R' + c;
+		b = (b >= 256)? formatValue(this.getConstant(b - 256)) : 'R[' + b + ']';
+		c = (c >= 256)? formatValue(this.getConstant(c - 256)) : 'R[' + c + ']';
 
-		return 'settable_internal(R' + a + ',' + b + ',' + c + ');';
+		return 'settable_internal(R[' + a + '],' + b + ',' + c + ');';
 	}
 
 
 
 	function translate_newtable (a, b, c) {
-		return 'R' + a + '=newtable_internal();';
+		return 'setR(R,' + a + ',newtable_internal());';
 	}
 
 
 
 
 	function translate_self (a, b, c) {
-		c = (c >= 256)? formatValue(this.getConstant(c - 256)) : 'R' + c;
-		return 'R' + (a + 1) + '=R' + b + ';R' + a + '=self_internal(R' + b + ',' + c + ');';
+		c = (c >= 256)? formatValue(this.getConstant(c - 256)) : 'R[' + c + ']';
+		return 'setR(R,' + (a + 1) + ',R[' + b + ']);setR(R,' + a + ',self_internal(R[' + b + '],' + c + '));';
 	}
 
 
 
 
 	function translate_binary_arithmetic (a, b, c, name) {
-		b = (b >= 256)? formatValue(this.getConstant(b - 256)) : 'R' + b;
-		c = (c >= 256)? formatValue(this.getConstant(c - 256)) : 'R' + c;
+		b = (b >= 256)? formatValue(this.getConstant(b - 256)) : 'R[' + b + ']';
+		c = (c >= 256)? formatValue(this.getConstant(c - 256)) : 'R[' + c + ']';
 
-		return 'R' + a + '=' + 'binary_arithmetic_internal(' + b + ',' + c + ",'__" + name + "'," + name + '_internal);';
+		return 'setR(R,' + a + ',' + 'binary_arithmetic_internal(' + b + ',' + c + ",'__" + name + "'," + name + '_internal));';
 	}
 
 
@@ -255,31 +268,31 @@ shine.jit = {};
 
 
 	function translate_pow (a, b, c) {
-		b = (b >= 256)? formatValue(this.getConstant(b - 256)) : 'R' + b;
-		c = (c >= 256)? formatValue(this.getConstant(c - 256)) : 'R' + c;
+		b = (b >= 256)? formatValue(this.getConstant(b - 256)) : 'R[' + b + ']';
+		c = (c >= 256)? formatValue(this.getConstant(c - 256)) : 'R[' + c + ']';
 
-		return 'R' + a + '=' + 'binary_arithmetic_internal(' + b + ',' + c + ",'__pow',Math.pow);";
+		return 'setR(R,' + a + ',binary_arithmetic_internal(' + b + ',' + c + ",'__pow',Math.pow));";
 	}
 
 
 
 
 	function translate_unm (a, b) {
-		return 'R' + a + '=unm_internal(R' + b + ');';
+		return 'setR(R,' + a + ',unm_internal(R[' + b + ']));';
 	}
 
 
 
 
 	function translate_not (a, b) {
-		return 'R' + a + '=!R' + b + ';';
+		return 'setR(R,' + a + ',!R[' + b + ']);';
 	}
 
 
 
 
 	function translate_len (a, b) {
-		return 'R' + a + '=len_internal(R' + b + ');';
+		return 'setR(R,' + a + ',len_internal(R[' + b + ']));';
 	}
 
 
@@ -289,8 +302,10 @@ shine.jit = {};
 		var items = [],
 			i;
 
-		for (i = c - 1; i >= b; i--) items.push('R' + i);
-		return 'R' + a + '=concat_internal(R' + c + ',[' + items.join() + ']);';
+		// for (i = c - 1; i >= b; i--) items.push('register[' + i + ']');
+		// return 'setupval(' + a + ',concat_internal(register[' + c + '],[' + items.join() + ']));';
+
+        return 'setR(R,' + a + ',concat_internal(R[' + c + '],R.slice(' + b + ',' + c + ').reverse()));';
 	}
 
 
@@ -310,8 +325,8 @@ shine.jit = {};
 		this.jumpDestinations[pc] = 1;
 
 		a = a? '!' : '';
-		b = (b >= 256)? formatValue(this.getConstant(b - 256)) : 'R' + b;
-		c = (c >= 256)? formatValue(this.getConstant(c - 256)) : 'R' + c;
+		b = (b >= 256)? formatValue(this.getConstant(b - 256)) : 'R[' + b + ']';
+		c = (c >= 256)? formatValue(this.getConstant(c - 256)) : 'R[' + c + ']';
 
 		return 'if(' + a + 'eq_internal(' + b + ',' + c + ')){pc=' + pc + ';break}';
 	}
@@ -323,8 +338,8 @@ shine.jit = {};
 		var pc = this.pc + 2;
 		this.jumpDestinations[pc] = 1;
 
-		b = (b >= 256)? formatValue(this.getConstant(b - 256)) : 'R' + b;
-		c = (c >= 256)? formatValue(this.getConstant(c - 256)) : 'R' + c;		
+		b = (b >= 256)? formatValue(this.getConstant(b - 256)) : 'R[' + b + ']';
+		c = (c >= 256)? formatValue(this.getConstant(c - 256)) : 'R[' + c + ']';
 
 		return 'if(compare_internal(' + b + ',' + c + ",'" + mm + "'," + f +')!=' + a + '){pc=' + pc + ';break;}';
 	}
@@ -350,7 +365,7 @@ shine.jit = {};
 		var pc = this.pc + 2;
 		this.jumpDestinations[pc] = 1;
 
-		return 'if(shine.utils.coerceToBoolean(R' + a + ')!=' + c + '){pc=' + pc + ';break}';
+		return 'if(shine.utils.coerceToBoolean(R[' + a + '])!=' + c + '){pc=' + pc + ';break}';
 	}
 
 
@@ -360,11 +375,53 @@ shine.jit = {};
 		var pc = this.pc + 2;
 		this.jumpDestinations[pc] = 1;
 
-		return 'if(shine.utils.coerceToBoolean(R' + b + ')==' + c + '){R' + a + '=R' + b + '}else{pc=' + pc + ';break}'
+		return 'if(shine.utils.coerceToBoolean(R[' + b + '])==' + c + '){R[' + a + ']=R[' + b + ']}else{pc=' + pc + ';break}'
 	}
 
 
 
+    // function translate_call (a, b, c) {
+    //     var cvar = createVar.call(this, 'c'),
+    //         lvar = createVar.call(this, 'l'),
+    //         result, limit, args, i;
+ 
+    //     if (b === 0) { // Arguments from R(A+1) to top
+    //         args = 'R.slice(' + (a + 1) + ')';
+ 
+    //     } else if (b === 0) { // No arguments
+    //         args = 'shine.gc.createArray()';
+ 
+    //     } else { // Arguments from R(A+1) to R(A+B-1)
+    //         args = 'R.slice('+ (a + 1) +',' + (a + b - 1) + ')';
+    //     }
+ 
+    //     result = cvar + '=call_internal(R[' + a + '],' + args + ');R.length=' + a + ';';
+ 
+    //     if (c == 1) return result;
+ 
+ 
+ 
+    //     limit = (c == 0)? cvar + '.length' : c - 1;
+    //     result += 'if(' + cvar + ' instanceof Array){';
+ 
+    //     if (limit == 1) {
+    //         result += 'R[' + a + ']=' + cvar + '[0]';
+    //     } else {
+    //         result += 'for(_=0,' + lvar + '=' + limit + ';_<' + lvar + ';_++)R[' + a + '+_]=' + cvar + '[_]';
+    //     }
+ 
+    //     // if (c == 0) {
+    //     //     result += 'for(_=0,' + lvar + '=' + cvar + '.length;_<' + lvar + ';_++)R[' + a + '+_]=' + cvar + '[_]';            
+ 
+    //     // } else {
+    //     //     for (i = 0; i < c; i++) result += 'R[' + (a + i) + ']=' + cvar + '[' + i + '];';
+    //     // }
+ 
+    //     result += '}else{R[' + a + ']=' + cvar + '}';
+         
+    //     return result;
+    // }
+ 
 
 	function translate_call (a, b, c) {
 		var args = [],
@@ -372,15 +429,17 @@ shine.jit = {};
 			fvar = createVar.call(this, 'f'),
 			result, i, l, setupArr, limit, tos, notArrClause;
 
-		if (b === 0) { // Arguments from R(A+1) to top
-			setupArr = '_=[];for(' + fvar + '=' + (a + 1) + ';' + fvar + '<=tos;' + fvar + '++)_.push(eval("R"+' + fvar + '));';
-
-		} else { // Arguments from R(A+1) to R(A+B-1)
-			setupArr = '_=[' + createNumberString(a + b - 1, 'R', a + 1) + '];';
-		}
-
-		result = setupArr;
-		result += cvar + '=call_internal(R' + a + ',_);';
+        if (b === 0) { // Arguments from R(A+1) to top
+            args = '_=R.slice(' + (a + 1) + ')';
+ 
+        } else if (b === 1) { // No arguments
+            args = '_=createArray()';
+ 
+        } else { // Arguments from R(A+1) to R(A+B-1)
+            args = '_=R.slice('+ (a + 1) +',' + (a + b) + ')';
+        }
+ 
+        result = cvar + '=call_internal(R[' + a + '],' + args + ');R.length=' + a + ';collect(_);';
 
 		if (c == 1) return result;
 
@@ -389,22 +448,62 @@ shine.jit = {};
 			limit = cvar + '.length';
 			tos = (a - 1) + '+' + cvar + '.length';
 
-			notArrClause = 'R' + a + '=' + cvar + ';tos=' + a;
-
 		} else {
 			// Set registers from R(A) to R(A+C-2);
 		  	limit = c - 1;
 		  	tos = a + c - 2;
-
-			notArrClause = 'R' + a + '=' + cvar + ';for(_=1;_<' + limit + ';_++)eval("R"+(' + a + '+_)+"=undefined");';
 		}
 
 		result += 'if(' + cvar + ' instanceof Array){';
-		result += 'for(_=0;_<' + limit + ';_++)eval("R"+(' + a + '+_)+"=' + cvar + '[_]");tos=' + tos
-		result += '}else{' + notArrClause + '}';
+		result += 'for(_=0;_<' + limit + ';_++)setR(R,' + a + '+_,' + cvar + '[_]);';
+		result += '}else{setR(R,' + a + ',' + cvar + ')}';
 
 		return result;
 	}
+
+
+
+	function translate_call (a, b, c) {
+		var argLimits;
+			// cvar = createVar.call(this, 'c'),
+			// fvar = createVar.call(this, 'f'),
+			// result, i, l, setupArr, limit, tos, notArrClause;
+
+        if (b === 0) { // Arguments from R(A+1) to top
+            // args = '_=R.slice(' + (a + 1) + ')';
+            argLimits = (a + 1) + ',void 0';
+ 
+        } else if (b === 1) { // No arguments
+            // args = '_=createArray()';
+            argLimits = 'void 0,void 0';
+ 
+        } else { // Arguments from R(A+1) to R(A+B-1)
+            // args = '_=R.slice('+ (a + 1) +',' + (a + b) + ')';
+            argLimits = (a + 1) + ',' + (a + b);
+        }
+ 
+        return 'callR(R,' + a + ',' + c + ',' + argLimits + ');';
+
+		// if (c == 1) return result;
+
+		// if (c == 0) {
+		// 	// Set registers from R(A) and set the top of stack dependent on length;
+		// 	limit = cvar + '.length';
+		// 	tos = (a - 1) + '+' + cvar + '.length';
+
+		// } else {
+		// 	// Set registers from R(A) to R(A+C-2);
+		//   	limit = c - 1;
+		//   	tos = a + c - 2;
+		// }
+
+		// result += 'if(' + cvar + ' instanceof Array){';
+		// result += 'for(_=0;_<' + limit + ';_++)setR(R,' + a + '+_,' + cvar + '[_]);';
+		// result += '}else{setR(R,' + a + ',' + cvar + ')}';
+
+		// return result;
+	}
+
 
 
 
@@ -425,11 +524,20 @@ shine.jit = {};
 
 		if (b === 0) {
 			i = createVar.call(this, 'i');
-			result += '_=[];for(' + i + '=' + a + ';' + i + '<=tos;' + i + '++)_.push(eval("R"+' + i + '));return _;';
+			// result += '_=[];for(' + i + '=' + a + ';' + i + '<=tos;' + i + '++)_.push(getupval(' + i + '));return _;';
+            result += 'return R.slice(' + a + ');';
 
-		} else {
-			result += 'return[' + createNumberString(a + b - 2, 'R', a) + '];';
-		}
+        } else if (b == 1) {
+            result += 'return createArray();';
+ 
+        } else {
+            result += 'return R.slice(' + a + ',' + (a + b - 1) + ');';
+        }
+
+		// } else {
+		// 	// result += 'return[' + createNumberString(a + b - 2, 'R', a) + '];';
+		// 	result += 'return register.slice(' + a + ',' + (a + b - 2) + ');';
+		// }
 
 		return result;
 	}	
@@ -438,15 +546,15 @@ shine.jit = {};
 
 
 	function translate_forloop (a, sbx) {
-		var step = 'R' + (a + 2),
-			limit = 'R' + (a + 1),
-			index = 'R' + a + '+' + step,
+		var step = 'R[' + (a + 2) + ']',
+			limit = 'R[' + (a + 1) + ']',
+			index = 'R[' + a + ']+' + step,
 			forward = step + '/Math.abs(' + step + ')+1',
 			pc = this.pc + sbx + 1;
 
 		this.jumpDestinations[pc] = 1;
 
-		return 'R' + a + '=' + index + ';_=' + forward + ';if((_&&R' + a + '<=' + limit + ')||(!_&&R' + a + '>=' + limit + ')){R' + (a + 3) + '=R' + a + ';pc=' + pc + ';break}';
+		return 'setR(R,' + a + ',' + index + ');_=' + forward + ';if((_&&R[' + a + ']<=' + limit + ')||(!_&&R[' + a + ']>=' + limit + ')){setR(R,' + (a + 3) + ',R[' + a + ']);pc=' + pc + ';break}';
 	}
 
 
@@ -456,7 +564,7 @@ shine.jit = {};
 		var pc = this.pc + sbx + 1;
 		this.jumpDestinations[pc] = 1;
 
-		return 'R' + a + '=R' + a + '-R' + (a + 2) + ';pc=' + pc + ';break;';
+		return 'setR(R,' + a + ',R[' + a + ']-R[' + (a + 2) + ']);pc=' + pc + ';break;';
 	}
 
 
@@ -470,9 +578,9 @@ shine.jit = {};
 
 		this.jumpDestinations[pc] = 1;
 
-		result = fvar + '=tforloop_internal(R' + a + ',[R' + (a + 1) + '===null?void 0:R' + (a + 1) + ',R' + (a + 2) + '===null?void 0:R' + (a + 2) + ']);';
-		for (i = 0; i < c; i++) result += 'R' + (a + i + 3) + '=' + fvar + '[' + i + '];';
-		result += 'if(' + fvar + '[0]!==void 0){R' + (a + 2) + '=' + fvar + '[0]}else{pc=' + pc + ';break}';
+		result = fvar + '=tforloop_internal(R[' + a + '],[R[' + (a + 1) + ']===null?void 0:R[' + (a + 1) + '],R[' + (a + 2) + ']===null?void 0:R[' + (a + 2) + ']]);';
+		for (i = 0; i < c; i++) result += 'setR(R,' + (a + i + 3) + ',' + fvar + '[' + i + ']);';
+		result += 'if(' + fvar + '[0]!==void 0){setR(R,' + (a + 2) + ',' + fvar + '[0])}else{pc=' + pc + ';break}';
 
 		return result;
 	}
@@ -481,10 +589,14 @@ shine.jit = {};
 
 
 	function translate_setlist (a, b, c) {
-		var last = b == 0? 'tos' : b,
-			offset = 50 * (c - 1);
+		// var last = b == 0? 'R.length-1' : b,
+		// 	offset = 50 * (c - 1);
 		
-		return 'for(_=1;_<=' + last + ';_++)R' + a + '.setMember(' + offset + '+_,eval("R"+(' + a + '+_)));';
+		// if (this.vars.indexOf('getupval') < 0) this.vars.push('getupval');
+		// return 'for(_=1;_<=' + last + ';_++)R[' + a + '].setMember(' + offset + '+_,getupval(' + a + '+_));';
+		
+		// return 'setlistT(R,' + a + ',' + (50 * (c - 1)) + ',' + (b == 0? 'R.length-1' : b) + ');';
+		return 'setlistT(R,R[' + a + '],' + (a + 1) + ',' + (50 * (c - 1) + 1) + ',' + (b == 0? 'R.length-1' : b) + ');';
 	}
 
 
@@ -515,25 +627,30 @@ shine.jit = {};
 		}
 
 		this.pc--;
-		return 'R' + a + '=new shine.Function(cl._vm,cl._file,cl._functions[' + bx + '],cl._globals,closure_upvalues.call(cl,' + bx + ',' + JSON.stringify(upvalueData) + ',getupval,setupval));';
+		// return 'setR(R,' + a + ',new shine.Function(cl._vm,cl._file,cl._functions[' + bx + '],cl._globals,closure_upvalues.call(cl,' + bx + ',' + JSON.stringify(upvalueData) + ',getupval,setupval)));';
+		return 'setR(R,' + a + ',create_func(cl._functions[' + bx + '],closure_upvalues.call(cl,' + bx + ',' + (upvalueData.length? JSON.stringify(upvalueData) : 'EMPTY_ARR') + ',getupval,setupval)));';
 	}
 
 
 
 
 	function translate_vararg (a, b) {
-		var result = '',
+        var result = 'R.length=' + a + ';',
 			i, l;
 
 		if (b === 0) {
-			result = 'for(_=' + this.paramCount + ';_<arguments.length;_++)eval("R"+(_+' + (a - this.paramCount) + ')+"=arguments[_]");tos=' + (a - this.paramCount - 1) + '+arguments.length;';
+			result = 'for(_=' + this.paramCount + ';_<arguments.length;_++)setR(R,_+' + (a - this.paramCount) + ',arguments[_]);';
 
 		} else {
-			for (i = 0, l = this.stackSize - a; i < l; i++) {
-				result += 'R' + (a + i) + '=' + (i >= b - 1? 'undefined' : 'arguments[' + (this.paramCount + i) + ']') + ';';
-			}
+			// for (i = 0, l = this.stackSize - a; i < l; i++) {
+			// 	result += 'register[' + (a + i) + ']=' + (i >= b - 1? 'undefined' : 'arguments[' + (this.paramCount + i) + ']') + ';';
+			// }
 
-			result += 'tos=' + (a + b - 2) + ';';
+            for (i = 0, l = b - 1; i < l; i++) {
+                result += 'setR(R,' + (a + i) + ',arguments[' + (this.paramCount + i) + ']);';
+            }
+
+			// result += 'tos=' + (a + b - 2) + ';';
 		}
 
 		return result;
@@ -557,7 +674,8 @@ shine.jit = {};
 	 * @type string
 	 * @constant
 	 */
-	var REGISTER_DECLARATIONS = 'R0,R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12,R13,R14,R15,R16,R17,R18,R19,R20,R21,R22,R23,R24,R25,R26,R27,R28,R29,R30,R31,R32,R33,R34,R35,R36,R37,R38,R39,R40,R41,R42,R43,R44,R45,R46,R47,R48,R49,R50,R51,R52,R53,R54,R55,R56,R57,R58,R59,R60,R61,R62,R63,R64,R65,R66,R67,R68,R69,R70,R71,R72,R73,R74,R75,R76,R77,R78,R79,R80,R81,R82,R83,R84,R85,R86,R87,R88,R89,R90,R91,R92,R93,R94,R95,R96,R97,R98,R99,R100,R101,R102,R103,R104,R105,R106,R107,R108,R109,R110,R111,R112,R113,R114,R115,R116,R117,R118,R119,R120,R121,R122,R123,R124,R125,R126,R127,R128,R129,R130,R131,R132,R133,R134,R135,R136,R137,R138,R139,R140,R141,R142,R143,R144,R145,R146,R147,R148,R149,R150,R151,R152,R153,R154,R155,R156,R157,R158,R159,R160,R161,R162,R163,R164,R165,R166,R167,R168,R169,R170,R171,R172,R173,R174,R175,R176,R177,R178,R179,R180,R181,R182,R183,R184,R185,R186,R187,R188,R189,R190,R191,R192,R193,R194,R195,R196,R197,R198,R199,R200,R201,R202,R203,R204,R205,R206,R207,R208,R209,R210,R211,R212,R213,R214,R215,R216,R217,R218,R219,R220,R221,R222,R223,R224,R225,R226,R227,R228,R229,R230,R231,R232,R233,R234,R235,R236,R237,R238,R239,R240,R241,R242,R243,R244,R245,R246,R247,R248,R249,R250,R251,R252,R253,R254,R255';
+	// var REGISTER_DECLARATIONS = 'R0,R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12,R13,R14,R15,R16,R17,R18,R19,R20,R21,R22,R23,R24,R25,R26,R27,R28,R29,R30,R31,R32,R33,R34,R35,R36,R37,R38,R39,R40,R41,R42,R43,R44,R45,R46,R47,R48,R49,R50,R51,R52,R53,R54,R55,R56,R57,R58,R59,R60,R61,R62,R63,R64,R65,R66,R67,R68,R69,R70,R71,R72,R73,R74,R75,R76,R77,R78,R79,R80,R81,R82,R83,R84,R85,R86,R87,R88,R89,R90,R91,R92,R93,R94,R95,R96,R97,R98,R99,R100,R101,R102,R103,R104,R105,R106,R107,R108,R109,R110,R111,R112,R113,R114,R115,R116,R117,R118,R119,R120,R121,R122,R123,R124,R125,R126,R127,R128,R129,R130,R131,R132,R133,R134,R135,R136,R137,R138,R139,R140,R141,R142,R143,R144,R145,R146,R147,R148,R149,R150,R151,R152,R153,R154,R155,R156,R157,R158,R159,R160,R161,R162,R163,R164,R165,R166,R167,R168,R169,R170,R171,R172,R173,R174,R175,R176,R177,R178,R179,R180,R181,R182,R183,R184,R185,R186,R187,R188,R189,R190,R191,R192,R193,R194,R195,R196,R197,R198,R199,R200,R201,R202,R203,R204,R205,R206,R207,R208,R209,R210,R211,R212,R213,R214,R215,R216,R217,R218,R219,R220,R221,R222,R223,R224,R225,R226,R227,R228,R229,R230,R231,R232,R233,R234,R235,R236,R237,R238,R239,R240,R241,R242,R243,R244,R245,R246,R247,R248,R249,R250,R251,R252,R253,R254,R255';
+	// var REGISTER_DECLARATIONS = 'R0,R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12,R13,R14,R15,R16,R17,R18,R19,R20,R21,R22,R23,R24,R25,R26,R27,R28,R29,R30,R31,R32,R33,R34,R35,R36,R37,R38,R39,R40,R41,R42,R43,R44,R45,R46,R47,R48,R49,R50,R51,R52,R53,R54,R55,R56,R57,R58,R59,R60,R61,R62,R63,R64,R65,R66,R67,R68,R69,R70';
 
 
 
@@ -642,26 +760,27 @@ shine.jit = {};
 
 		// v5.0 compatibility (LUA_COMPAT_VARARG)
 		if (func._data.is_vararg == 7) {	
-			v = 'R' + paramCount;
-			compatibility =  '' + v + '=new shine.Table(Array.prototype.slice.call(arguments,' + paramCount + '));' + v + '.setMember("n", arguments.length-' + paramCount + ');';
+			compatibility =  'setR(R,' + paramCount + ',new shine.Table(Array.prototype.slice.call(arguments,' + paramCount + ')));R[' + paramCount + '].setMember("n", arguments.length-' + paramCount + ');';
 		}
 
 
 		// Upvalue optimisation
-		if (state.vars.indexOf('getupval') >= 0) upvalCode += 'getupval=function(x){return eval("R"+x)};';
-		if (state.vars.indexOf('setupval') >= 0) upvalCode += 'setupval=function(x,y){eval("R"+x+"=y")};';
+		if (state.vars.indexOf('getupval') >= 0) upvalCode += 'getupval=get_upv.bind(R);';
+        if (state.vars.indexOf('setupval') >= 0) upvalCode += 'setupval=set_upv.bind(R);';
 
 
 		// Add boilerplate
-		code = ['var cl=this,pc=0,tos,_,' + REGISTER_DECLARATIONS + (state.vars.length? ',' + state.vars.join(',') : '') + ';'];
-		code.push(compatibility, upvalCode);
+		code = ['var cl=this,R=createArray(),pc=0,_' + (state.vars.length? ',' + state.vars.join(',') : '') + ';'];
+		for (i = 0; i < paramCount; i++) code.push('setR(R,' + i + ',arguments[' + i + ']);');
+		if (compatibility) code.push(compatibility);
+		code.push(upvalCode);
 		code.push('shine.Closure._current=cl;while(1){switch(pc){');
 		code = code.concat(state.code);
 		code.push('}}');
 
 
 		// Output JS function
-		return 'function(' + createNumberString(paramCount - 1, 'R') + '){' + code.join('\n') + '}';
+		return 'function(){' + code.join('\n') + '}';
 	};
 
 

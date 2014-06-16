@@ -99,7 +99,7 @@ shine.gc = {
 	cacheArray: function (arr) {
 		arr.length = 0;
 		this.arrays.push(arr);
-		this.collected++;
+		// this.collected++;
 	},
 
 
@@ -112,7 +112,7 @@ shine.gc = {
 	cacheObject: function (obj) {
 		for (var i in obj) if (obj.hasOwnProperty(i)) delete obj[i];
 		this.objects.push(obj);
-		this.collected++;
+		// this.collected++;
 	},
 
 
