@@ -224,6 +224,27 @@ end
 assertTrue (#a == #'1:123;bar:Hello;foo:1;', 'pairs() should iterate over table items [2]')	-- Have to compare lengths because order is arbitrary
 
 
+local t = {
+  [0] = "zero",
+  [1] = "one",
+  [-1] = "negative",
+  foo = "string",
+  [0.5] = "half"
+}
+local r = {}
+
+for i, v in pairs(t) do 
+    r[v] = true
+end
+
+assertTrue (r.zero, 'pairs() should iterate over zero key')
+assertTrue (r.one, 'pairs() should iterate over positive integer keys')
+assertTrue (r.negative, 'pairs() should iterate over negative keys')
+assertTrue (r.string, 'pairs() should iterate over string keys')
+assertTrue (r.half, 'pairs() should iterate over non-integer numberic keys')
+
+
+
 
 
 -- pcall

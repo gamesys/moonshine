@@ -104,9 +104,11 @@ shine.Table.prototype.getMember = function (key) {
 			break;
 
 		case 'number':
-			value = this.__shine.numValues[key];
-			if (value !== undefined) return value;
-			break
+			if (key > 0 && key == key >> 0) {
+				value = this.__shine.numValues[key];
+				if (value !== undefined) return value;
+				break
+			}
 
 		default:
 			index = this.__shine.keys.indexOf(key);
@@ -145,8 +147,10 @@ shine.Table.prototype.setMember = function (key, value) {
 			break;
 
 		case 'number':
-			oldValue = this.__shine.numValues[key];
-			break;
+			if (key > 0 && key == key >> 0) {
+				oldValue = this.__shine.numValues[key];
+				break;
+			}
 
 		default:
 			keys = this.__shine.keys;
@@ -170,8 +174,10 @@ shine.Table.prototype.setMember = function (key, value) {
 			break;
 
 		case 'number':
-			this.__shine.numValues[key] = value;
-			break;
+			if (key > 0 && key == key >> 0) {
+				this.__shine.numValues[key] = value;
+				break;
+			}
 
 		default:
 			if (index < 0) {
