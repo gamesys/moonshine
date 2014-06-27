@@ -343,16 +343,36 @@ var shine = shine || {};
 			// SLOOOOOOOW...
 			var found = (index === undefined),
 				numValues = table.__shine.numValues,
+				keys,
 				i, l;
 
-			if (found || typeof index == 'number') {
-				for (i = 1, l = numValues.length; i < l; i++) {	
+			if (found || (typeof index == 'number' && index > 0 && index == index >> 0)) {
+				if (Object.keys) {
+					// Use Object.keys, if available.
+					keys = Object.keys(numValues);
+					
+					if (found) {
+						// First pass
+						i = 1;
 
-					if (!found) {
-						if (i === index) found = true;
-		
-					} else if (numValues.hasOwnProperty(i) && numValues[i] !== undefined) {
-						return [i, numValues[i]];
+					} else if (i = keys.indexOf('' + index) + 1) {
+						found = true;
+					} 
+
+					if (found && (i = keys[i]) !== undefined) return [i >>= 0, numValues[i]];
+
+				} else {
+					// Else use for-in (faster than for loop on tables with large holes)
+
+					for (l in numValues) {	
+						i = l >> 0;
+
+						if (!found) {
+							if (i === index) found = true;
+			
+						} else if (numValues[i] !== undefined) {
+							return [i, numValues[i]];
+						}
 					}
 				}
 			}
