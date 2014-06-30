@@ -32,163 +32,163 @@
 (function (shine) {
 
 
-/**
- * Represents a table in Lua.
- * @param {Object} obj Initial values to set up in the new table.
- */
-shine.Table = function (obj) {
+	/**
+	 * Represents a table in Lua.
+	 * @param {Object} obj Initial values to set up in the new table.
+	 */
+	shine.Table = function (obj) {
 
-	var isArr = ((obj || shine.EMPTY_OBJ) instanceof Array),
-		meta,
-		key,
-		value,
-		i;
+		var isArr = ((obj || shine.EMPTY_OBJ) instanceof Array),
+			meta,
+			key,
+			value,
+			i;
 
-	obj = obj || shine.gc.createObject();
+		obj = obj || shine.gc.createObject();
 
-	this.__shine = meta = shine.gc.createObject();
-	meta.type = 'table';
-	meta.index = ++shine.Table.count;
-	meta.keys = shine.gc.createArray();
-	meta.values = shine.gc.createArray();
-	meta.numValues = [undefined];
+		this.__shine = meta = shine.gc.createObject();
+		meta.type = 'table';
+		meta.index = ++shine.Table.count;
+		meta.keys = shine.gc.createArray();
+		meta.values = shine.gc.createArray();
+		meta.numValues = [undefined];
 
 
-	for (i in obj) {
-		if (obj.hasOwnProperty(i)) {
-			var iterate;
+		for (i in obj) {
+			if (obj.hasOwnProperty(i)) {
+				var iterate;
 
-			key = isArr? parseInt(i, 10) + 1: i;
-			value = obj[i];
-			if (value === null) value = undefined;
+				key = isArr? parseInt(i, 10) + 1: i;
+				value = obj[i];
+				if (value === null) value = undefined;
 
-			if (typeof getQualifiedClassName !== 'undefined') {
-				// ActionScript
-				iterate = (getQualifiedClassName(value) == 'Object' && !(value instanceof shine.Table) && !(value instanceof shine.Coroutine) && !(value instanceof shine.Function) && !(value instanceof shine.Closure)) || getQualifiedClassName(value) == 'Array';
-			} else {
-				// JavaScript
-				iterate = (typeof value == 'object' && value.constructor === Object) || value instanceof Array;
+				if (typeof getQualifiedClassName !== 'undefined') {
+					// ActionScript
+					iterate = (getQualifiedClassName(value) == 'Object' && !(value instanceof shine.Table) && !(value instanceof shine.Coroutine) && !(value instanceof shine.Function) && !(value instanceof shine.Closure)) || getQualifiedClassName(value) == 'Array';
+				} else {
+					// JavaScript
+					iterate = (typeof value == 'object' && value.constructor === Object) || value instanceof Array;
+				}
+				
+				this.setMember(key, iterate? new shine.Table(value) : value);
 			}
-			
-			this.setMember(key, iterate? new shine.Table(value) : value);
 		}
-	}
-	
-};
+		
+	};
 
 
-/**
- * Keeps a count of the number of tables created, in order to index them uniquely.
- * @type Number
- * @static
- */
-shine.Table.count = 0;
+	/**
+	 * Keeps a count of the number of tables created, in order to index them uniquely.
+	 * @type Number
+	 * @static
+	 */
+	shine.Table.count = 0;
 
 
 
 
-/**
- * Gets a member of this table. If not found, search the metatable chain.
- * @param {Object} key The member's key.
- * @returns {Object} The value of the member sought.
- */
-shine.Table.prototype.getMember = function (key) {
-	var typ = typeof key,
-		index, value, mt, mm;
+	/**
+	 * Gets a member of this table. If not found, search the metatable chain.
+	 * @param {Object} key The member's key.
+	 * @returns {Object} The value of the member sought.
+	 */
+	shine.Table.prototype.getMember = function (key) {
+		var typ = typeof key,
+			index, value, mt, mm;
 
-	if (typ == 'string' && (key == 'getMember' || key == 'setMember')) typ = 'object';
+		if (typ == 'string' && (key == 'getMember' || key == 'setMember')) typ = 'object';
 
-	switch (typ) {
-		case 'string':
-			if (this.hasOwnProperty(key) && this[key] !== undefined) return this[key];
-			break;
+		switch (typ) {
+			case 'string':
+				if (this.hasOwnProperty(key) && this[key] !== undefined) return this[key];
+				break;
 
-		case 'number':
-			value = this.__shine.numValues[key];
-			if (value !== undefined) return value;
-			break
+			case 'number':
+				value = this.__shine.numValues[key];
+				if (value !== undefined) return value;
+				break
 
-		default:
-			index = this.__shine.keys.indexOf(key);
-			if (index >= 0) return this.__shine.values[index];
-	}
-	
-	if ((mt = this.__shine.metatable) && (mm = mt.__index)) {
-		switch (mm.constructor) {
-			case shine.Table: return mm.getMember(key);
-			// case Function: return mm(this, key);
-			// case shine.Function: return mm.apply(this, [this, key])[0];
-			case Function:
-			case shine.Function:
-				value = mm.apply(this, [this, key]);
-				return (value instanceof Array)? value[0] : value;
+			default:
+				index = this.__shine.keys.indexOf(key);
+				if (index >= 0) return this.__shine.values[index];
 		}
-	}
-};
-
-
-
-
-/**
- * Sets a member of this table.
- * @param {Object} key The member's key.
- * @param {Object} value The new value of the member.
- */
-shine.Table.prototype.setMember = function (key, value) {
-	var mt = this.__shine.metatable,
-		typ = typeof key,
-		oldValue,
-		keys,
-		index;
-
-	if (typ == 'string' && (key == 'getMember' || key == 'setMember')) typ = 'object';
-
-	switch (typ) {
-		case 'string':
-			oldValue = this[key];
-			break;
-
-		case 'number':
-			oldValue = this.__shine.numValues[key];
-			break;
-
-		default:
-			keys = this.__shine.keys;
-			index = keys.indexOf(key);
-
-			oldValue = index == -1? undefined : this.__shine.values[index];
-			if (oldValue === undefined) shine.gc.incrRef(key);
-	}
-
-	if (oldValue === undefined && mt && mt.__newindex) {
-		switch (mt.__newindex.constructor) {
-			case shine.Table: return mt.__newindex.setMember(key, value);
-			case Function: return mt.__newindex(this, key, value);
-			case shine.Function: return mt.__newindex.apply(this, [this, key, value])[0];
-		}
-	}
-
-	switch (typ) {
-		case 'string':
-			this[key] = value;
-			break;
-
-		case 'number':
-			this.__shine.numValues[key] = value;
-			break;
-
-		default:
-			if (index < 0) {
-				index = keys.length;
-				keys[index] = key;
+		
+		if ((mt = this.__shine.metatable) && (mm = mt.__index)) {
+			switch (mm.constructor) {
+				case shine.Table: return mm.getMember(key);
+				// case Function: return mm(this, key);
+				// case shine.Function: return mm.apply(this, [this, key])[0];
+				case Function:
+				case shine.Function:
+					value = mm.apply(this, [this, key]);
+					return (value instanceof Array)? value[0] : value;
 			}
-			
-			this.__shine.values[index] = value;
-	}
+		}
+	};
 
-	shine.gc.incrRef(value);
-	shine.gc.decrRef(oldValue);
-};
+
+
+
+	/**
+	 * Sets a member of this table.
+	 * @param {Object} key The member's key.
+	 * @param {Object} value The new value of the member.
+	 */
+	shine.Table.prototype.setMember = function (key, value) {
+		var mt = this.__shine.metatable,
+			typ = typeof key,
+			oldValue,
+			keys,
+			index;
+
+		if (typ == 'string' && (key == 'getMember' || key == 'setMember')) typ = 'object';
+
+		switch (typ) {
+			case 'string':
+				oldValue = this[key];
+				break;
+
+			case 'number':
+				oldValue = this.__shine.numValues[key];
+				break;
+
+			default:
+				keys = this.__shine.keys;
+				index = keys.indexOf(key);
+
+				oldValue = index == -1? undefined : this.__shine.values[index];
+				if (oldValue === undefined) shine.gc.incrRef(key);
+		}
+
+		if (oldValue === undefined && mt && mt.__newindex) {
+			switch (mt.__newindex.constructor) {
+				case shine.Table: return mt.__newindex.setMember(key, value);
+				case Function: return mt.__newindex(this, key, value);
+				case shine.Function: return mt.__newindex.apply(this, [this, key, value])[0];
+			}
+		}
+
+		switch (typ) {
+			case 'string':
+				this[key] = value;
+				break;
+
+			case 'number':
+				this.__shine.numValues[key] = value;
+				break;
+
+			default:
+				if (index < 0) {
+					index = keys.length;
+					keys[index] = key;
+				}
+				
+				this.__shine.values[index] = value;
+		}
+
+		shine.gc.incrRef(value);
+		shine.gc.decrRef(oldValue);
+	};
 
 
 

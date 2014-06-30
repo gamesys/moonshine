@@ -1110,6 +1110,96 @@
 	/*****************************************************************/
 
 
+	var // GC
+		incr = shine.gc.incrRef,
+		decr = shine.gc.decrRef.bind(shine.gc),
+		collect = shine.gc.collect.bind(shine.gc),
+		createArray = shine.gc.createArray.bind(shine.gc),
+
+		// Constants
+		EMPTY_ARR = shine.EMPTY_ARR;
+
+
+	function get_upv (x) {
+		return this[x]
+	}
+
+
+	function set_upv (x,y) {
+		setR(this,x,y)
+	};
+
+
+	function setR (register, index, value) {
+		incr(value);
+		decr(register[index]);
+		register[index] = value;
+	}
+
+
+	function clearR (register, index) {
+		for (var i = index, l = register.length; i < l; i++) decr(register[i]);
+		register.length = index - 1;
+	}
+
+
+	function setRArr (register, index, limit, arr) {
+		for (var i = index, l = register.length; i < l; i++) decr(register[i]);
+		register.length = index;
+
+		if (!(arr instanceof Array)) arr = [arr];
+
+		for (var i = 0, l = limit || arr.length; i < l; i++) {
+			incr(register[index + i] = arr[i]);
+		}
+	}
+
+
+	function callR (register, index, c, argStart, argEnd) {
+		var args, result;
+
+		if (!argStart) {
+			args = createArray();
+		} else if (!argEnd) {
+			args = register.slice(argStart);
+		} else {
+			args = register.slice(argStart, argEnd);
+		}
+		
+		result = call_internal(register[index],args);
+
+		register.length = index;
+		collect(args);
+
+		if (c == 1) return;
+
+		if (!(result instanceof Array)) {
+			setR(register, index, result);
+		
+		} else {
+			result.unshift(index, 0);
+			Array.prototype.splice.apply(register, result);
+
+			collect(result);
+		}
+	}
+
+
+	function setlistT(R, t, index, keyStart, length) {
+		t.setMember(keyStart, R[index]);
+		if (--length) setlistT(R, t, index + 1, keyStart + 1, length);
+	}
+
+
+	function create_func (def, upvals, cl) {
+  	    return new shine.Function(cl._vm,cl._file,def,cl._globals,upvals);
+	}
+
+
+
+	/*****************************************************************/
+
+
 	/**
 	 * Array of operation handlers indexed by opcode.
 	 * @type Array
@@ -1135,7 +1225,10 @@
 	 * @returns {function} Resulting JavaScript function.
 	 */
 	shine.operations.evaluateInScope = function (funcDef) {
-		var func;
+		var func,
+			shine_g = shine.getCurrentVM()._globals;
+
+
 		eval('func=' + funcDef);
 
 		return func;
@@ -1144,8 +1237,31 @@
 
 
 
-	// PRECOMPILER_CODE_INSERTION_POINT
-
+	shine.operations.internal = {
+		getglobal: getglobal_internal,
+		gettable: gettable_internal,
+		setglobal: setglobal_internal,
+		settable: settable_internal,
+		newtable: newtable_internal,
+		self: self_internal,
+		binary_arithmetic: binary_arithmetic_internal,
+		add: add_internal,
+		sub: sub_internal,
+		mul: mul_internal,
+		div: div_internal,
+		mod: mod_internal,
+		unm: unm_internal,
+		len: len_internal,
+		concat: concat_internal,
+		eq: eq_internal,
+		compare: compare_internal,
+		call: call_internal,
+		tforloop: tforloop_internal,
+		close: close_internal,
+		closure_upvalues: closure_upvalues,
+		lt_func: lt_func,
+		le_func: le_func
+	};
 
 })(shine || {});
 

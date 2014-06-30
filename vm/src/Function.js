@@ -91,8 +91,6 @@ shine.Function.prototype._compile = function () {
 	var data = this._data,
 		me, closure, compiled;
 
- 	var t = performance.now();
-
 	if (!(compiled = data._compiled)) {
 		compiled = data._compiled = shine.jit.compile(this);
 	}
@@ -194,6 +192,7 @@ shine.Function.prototype.apply = function (obj, args, internal) {
 	}
 
 	if (shine.jit.enabled && ++this._runCount == 2) {
+		shine.Closure._current = this.getInstance()._instance;
 		this._compile();
 		return this.apply.apply(this, arguments);
 	}

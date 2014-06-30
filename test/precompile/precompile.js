@@ -51,7 +51,6 @@ function convertInstructions (source) {
 
 
 
-
 function loadSource (filename, callback) {
 	fs.readFile(filename, function (err, json) {
 		var source;
@@ -89,18 +88,13 @@ function parseFunction (f, output) {
 	if (funcs.length) init += 'cl._functions=[' + funcs.map(function (f) {return 'shine_precompiler_func_'+f._index;}).toString() + '];';
 
 	js = js.replace(/(var cl=this,.*?;)/, init);
-	js = js.replace(/=new shine\.Function\(cl\._vm,cl\._file,cl\._functions\[(\d+)\],cl._globals/g, function (match, index) {return '=create_func(shine_precompiler_func_' + funcs[index]._index;});
-
-	// func = window['shine_precompiler_func_' + index] = shine.operations.evaluateInScope(js);
-	output.source += '\n\n/* line:' + f.lineDefined + ' */\nfunction shine_precompiler_func_' + index + '(){\n' + js.substr(11);
+	js = js.replace(/cl._functions\[(\d+)\]/g, function (match, index) {return 'shine_precompiler_func_' + funcs[index]._index;});
+	output.source += '\n\n/* line:' + f.lineDefined + ' */\nfunction shine_precompiler_func_' + index + '(){\n' + js.substr(11) + 'shine_precompiler_func_' + index + '.toString=function(){return "function: 0x' + index.toString(16) + '"};';
 
 	func = {};
 	func._index = index;
 	return func;
 }
-
-
-
 
 
 
@@ -137,18 +131,12 @@ loadSource(filename, function (err, source) {
 	execute = 'create_func(shine_precompiler_func_' + main._index + ')();';
 
 
-	fs.readFile('../../vm/src/operations.js', function (err, operations) {
-		operations = '' + operations;
+	fs.readFile('./_bootstrap.js', function (err, bootstrap) {
+		bootstrap = '' + bootstrap;	
+		data = '(function(shine){' + bootstrap + output.source + preload + execute + '})(shine);';
 
-		fs.readFile('./_bootstrap.js', function (err, bootstrap) {
-			bootstrap = '' + bootstrap;	
-
-			data = operations.split('// PRECOMPILER_CODE_INSERTION_POINT');
-			data = data[0] + bootstrap + output.source + preload + execute + data[1];
-
-			fs.writeFile('./output.js', data, function () {
-				console.log ('DONE');
-			});
+		fs.writeFile('./output.js', data, function () {
+			console.log ('DONE');
 		});
 	});
 

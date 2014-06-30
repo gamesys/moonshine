@@ -16,23 +16,29 @@
 		<script src="../../vm/src/Table.js"></script>
 		<script src="../../vm/src/Error.js"></script>
 		<!-- // <script src="../../vm/src/File.js"></script> -->
-		<!-- // <script src="../../vm/src/operations.js"></script> -->
+		<script src="../../vm/src/operations.js"></script>
 		<script src="../../vm/src/jit.js"></script>
 		<script src="../../vm/src/lib.js"></script>
 		<script src="../../vm/src/utils.js"></script>
 		<script src="../../vm/src/output.js"></script>
 
+
 		<pre></pre>
 		<script>
-				var elOutput = document.getElementsByTagName('pre')[0];
+				var elOutput = document.getElementsByTagName('pre')[0],
+                    output = '';
 				
 				function escapeHTML(text) {
 				    return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 				}
 
-				shine.stdout.write = function (message) {
-					elOutput.innerHTML += escapeHTML(message) + '\n';
-				};
+                shine.stdout.write = function (message) {
+                    output += escapeHTML(message) + '\n';
+                };
+
+                window.setInterval(function () {
+                    elOutput.innerHTML = output;
+                },250);
 
 
 

@@ -1,5 +1,47 @@
 
-shine = shine || {};
+
+var // Operators
+	op = shine.operations.internal,
+	getglobal_internal = op.getglobal,
+	gettable_internal = op.gettable,
+	// setglobal_internal = op.setglobal,
+	settable_internal = op.settable,
+	newtable_internal = op.newtable,
+	self_internal = op.self,
+	binary_arithmetic_internal = op.binary_arithmetic,
+	add_internal = op.add,
+	sub_internal = op.sub,
+	mul_internal = op.mul,
+	div_internal = op.div,
+	mod_internal = op.mod,
+	unm_internal = op.unm,
+	len_internal = op.len,
+	concat_internal = op.concat,
+	eq_internal = op.eq,
+	compare_internal = op.compare,
+	call_internal = op.call,
+	tforloop_internal = op.tforloop,
+	close_internal = op.close,
+	closure_upvalues = op.closure_upvalues,
+	lt_func = op.lt_func,
+	le_func = op.le_func,
+
+	// VM
+	shine_env = window.shine.env || {},
+	shine_vm = new shine.VM(shine_env),
+	shine_g = shine_vm._globals,
+
+	// GC
+	incr = shine.gc.incrRef,
+	decr = shine.gc.decrRef.bind(shine.gc),
+	collect = shine.gc.collect.bind(shine.gc),
+	createArray = shine.gc.createArray.bind(shine.gc),
+
+	// Constants
+	EMPTY_ARR = shine.EMPTY_ARR;
+
+
+
 
 shine.Function = function () {};
 
@@ -19,45 +61,47 @@ shine.lib.load = shine.lib.loadfile = shine.lib.loadstring = function () {
 	throw new Error('Attempt to load file from precompiled script not allowed.');
 }
 
-
-
-var create_func = function (def, upvals) {
-	var cl = shine.gc.createObject();
-	cl._upvalues = upvals || shine.gc.createArray();
-	return def.bind(cl);
-}
-
-var shine_env = window.shine.env || {},
-	shine_vm = new shine.VM(shine_env),
-	shine_g = shine_vm._globals;
-
-
-
 function setglobal_internal(key, value) {
-	shine.gc.incrRef(value);
-	shine.gc.decrRef(shine_g[key]);
+	incr(value);
+	decr(shine_g[key]);
 	shine_g[key] = value;
 }
 
 
-var incr = shine.gc.incrRef;
-var decr = shine.gc.decrRef.bind(shine.gc);
-var collect = shine.gc.collect.bind(shine.gc);
-var createArray = shine.gc.createArray.bind(shine.gc);
 
-var get_upv = function(x){return this[x]};
-var set_upv = function(x,y){setR(this,x,y)};
-var EMPTY_ARR = shine.EMPTY_ARR;
+function get_upv (x) {
+	return this[x]
+}
 
-// Scope = function () {}
-// for (var i = 0; i < 256; i++) Scope.prototype['R'+i] = undefined;
+
+function set_upv (x,y) {
+	setR(this,x,y)
+};
+
+
 function setR (register, index, value) {
 	incr(value);
 	decr(register[index]);
 	register[index] = value;
 }
 
-// c29=call_internal(R[5],_=R.slice(6,8));R.length=5;collect(_);if(c29 instanceof Array){for(_=0;_<1;_++)setR(R,5+_,c29[_]);}else{setR(R,5,c29)}
+
+function clearR (register, index) {
+	for (var i = index, l = register.length; i < l; i++) decr(register[i]);
+	register.length = index - 1;
+}
+
+
+function setRArr (register, index, limit, arr) {
+	for (var i = index, l = register.length; i < l; i++) decr(register[i]);
+	register.length = index;
+
+	if (!(arr instanceof Array)) arr = [arr];
+
+	for (var i = 0, l = limit || arr.length; i < l; i++) {
+		incr(register[index + i] = arr[i]);
+	}
+}
 
 
 function callR (register, index, c, argStart, argEnd) {
@@ -89,17 +133,24 @@ function callR (register, index, c, argStart, argEnd) {
 	}
 }
 
-// for(_=1;_<=3;_++)R[12].setMember(0+_,getupval(12+_));
+
 function setlistT(R, t, index, keyStart, length) {
-	// var t = R[index],
-	// 	i;
-
-	// for (i = 1; i <= length; i++) {
-	// 	t.setMember(keyStart + i, R[index + i]);
-	// }
-
 	t.setMember(keyStart, R[index]);
 	if (--length) setlistT(R, t, index + 1, keyStart + 1, length);
 }
+
+
+
+function create_func (def, upvals) {
+	var cl = shine.gc.createObject(),
+		f;
+
+	cl._upvalues = upvals || shine.gc.createArray();
+	f = def.bind(cl);
+	f.__proto__ = def;
+
+	return f;
+}
+
 
 
