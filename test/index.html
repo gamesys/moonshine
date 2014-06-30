@@ -55,6 +55,7 @@
 			(function () {
 				
 				var elOutput = document.getElementById('output'),
+					output = '',
 					api;
 				
 				function escapeHTML(text) {
@@ -62,8 +63,12 @@
 				}	
 
 				shine.stdout.write = function (message) {
-					elOutput.innerHTML += escapeHTML(message) + '\n';
+					output += escapeHTML(message) + '\n';
 				};
+
+				window.setInterval(function () {
+					elOutput.innerHTML = output;
+				},250);
 
 
 				api = {
