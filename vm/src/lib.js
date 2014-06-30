@@ -29,11 +29,7 @@
 'use strict';
 
 
-var shine = shine || {};
-
-
-
-(function () {
+(function (shine) {
 
 	var RANDOM_MULTIPLIER = 16807,
 		RANDOM_MODULUS = 2147483647,
@@ -2066,4 +2062,4 @@ var shine = shine || {};
 	});
 	
 	
-})();
+})(shine || {});

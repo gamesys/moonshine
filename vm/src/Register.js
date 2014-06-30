@@ -29,145 +29,147 @@
 'use strict';
 
 
-var shine = shine || {};
+(function (shine) {
 
 
-/**
- * Represents a register.
- * @constructor
- */
-shine.Register = function () {
-	this._items = shine.gc.createArray();
-};
+	/**
+	 * Represents a register.
+	 * @constructor
+	 */
+	shine.Register = function () {
+		this._items = shine.gc.createArray();
+	};
 
 
-/**
- * Array of disposed registers, ready to be reused.
- * @type Array
- * @static
- */
-shine.Register._graveyard = [];
-
-
-
-
-/**
- * Returns a new, empty register.
- * @returns {shine.Register} An empty register
- */
-shine.Register.create = function () {
-	var o = shine.Register._graveyard.pop();
-	return o || new shine.Register(arguments);
-};
+	/**
+	 * Array of disposed registers, ready to be reused.
+	 * @type Array
+	 * @static
+	 */
+	shine.Register._graveyard = [];
 
 
 
 
-/**
- * Returns the number of items in the register.
- * @returns {Number} Number of items.
- */
-shine.Register.prototype.getLength = function () {
-	return this._items.length;
-};
+	/**
+	 * Returns a new, empty register.
+	 * @returns {shine.Register} An empty register
+	 */
+	shine.Register.create = function () {
+		var o = shine.Register._graveyard.pop();
+		return o || new shine.Register(arguments);
+	};
 
 
 
 
-/**
- * Retrieves an item from the register.
- * @param {Number} index Index of the item.
- * @returns {Object} Value of the item.
- */
-shine.Register.prototype.getItem = function (index) {
-	return this._items[index];
-};
+	/**
+	 * Returns the number of items in the register.
+	 * @returns {Number} Number of items.
+	 */
+	shine.Register.prototype.getLength = function () {
+		return this._items.length;
+	};
 
 
 
 
-/**
- * Sets the value an item in the register.
- * @param {Number} index Index of the item.
- * @param {Object} value Value of the item.
- */
-shine.Register.prototype.setItem = function (index, value) {
-	var item = this._items[index];
-
-	shine.gc.incrRef(value);
-	shine.gc.decrRef(item);
-
-	this._items[index] = value;
-};
+	/**
+	 * Retrieves an item from the register.
+	 * @param {Number} index Index of the item.
+	 * @returns {Object} Value of the item.
+	 */
+	shine.Register.prototype.getItem = function (index) {
+		return this._items[index];
+	};
 
 
 
 
-/**
- * Rewrites the values of all the items in the register.
- * @param {Array} arr The entire register.
- */
-shine.Register.prototype.set = function (arr) {
-	var i, 
-		l = Math.max(arr.length, this._items.length);
+	/**
+	 * Sets the value an item in the register.
+	 * @param {Number} index Index of the item.
+	 * @param {Object} value Value of the item.
+	 */
+	shine.Register.prototype.setItem = function (index, value) {
+		var item = this._items[index];
 
-	for (i = 0; i < l; i++) this.setItem(i, arr[i]);
-};
+		shine.gc.incrRef(value);
+		shine.gc.decrRef(item);
 
-
-
-
-/**
- * Inserts new items at the end of the register.
- * @param {...Object} One or more items to be inserted.
- */
-shine.Register.prototype.push = function () {
-	this._items.push.apply(this._items, arguments);
-};
+		this._items[index] = value;
+	};
 
 
 
 
-/**
- * Removes an item from the register.
- * @param {Number} index Index of the item to remove.
- */
-shine.Register.prototype.clearItem = function (index) {
-	delete this._items[index];
-};
+	/**
+	 * Rewrites the values of all the items in the register.
+	 * @param {Array} arr The entire register.
+	 */
+	shine.Register.prototype.set = function (arr) {
+		var i, 
+			l = Math.max(arr.length, this._items.length);
+
+		for (i = 0; i < l; i++) this.setItem(i, arr[i]);
+	};
 
 
 
 
-/**
- * Splices the register.
- * @param {Number} index Index of the first item to remove.
- * @param {Number} length Number of items to remove.
- * @param {...Object} One or more items to be inserted.
- */
-shine.Register.prototype.splice = function (index, length) {
-	this._items.splice.apply(this._items, arguments);
-};
+	/**
+	 * Inserts new items at the end of the register.
+	 * @param {...Object} One or more items to be inserted.
+	 */
+	shine.Register.prototype.push = function () {
+		this._items.push.apply(this._items, arguments);
+	};
 
 
 
 
-/**
- * Empties the register.
- */
-shine.Register.prototype.reset = function () {
-	for (var i = 0, l = this._items.length; i < l; i++) shine.gc.decrRef(this._items[i]);
-	this._items.length = 0;
-};
+	/**
+	 * Removes an item from the register.
+	 * @param {Number} index Index of the item to remove.
+	 */
+	shine.Register.prototype.clearItem = function (index) {
+		delete this._items[index];
+	};
 
 
 
 
-/**
- * Cleans up the register and caches it for reuse.
- */
-shine.Register.prototype.dispose = function () {
-	this._items.reset();
-	this.constructor._graveyard.push(this);
-};
+	/**
+	 * Splices the register.
+	 * @param {Number} index Index of the first item to remove.
+	 * @param {Number} length Number of items to remove.
+	 * @param {...Object} One or more items to be inserted.
+	 */
+	shine.Register.prototype.splice = function (index, length) {
+		this._items.splice.apply(this._items, arguments);
+	};
 
+
+
+
+	/**
+	 * Empties the register.
+	 */
+	shine.Register.prototype.reset = function () {
+		for (var i = 0, l = this._items.length; i < l; i++) shine.gc.decrRef(this._items[i]);
+		this._items.length = 0;
+	};
+
+
+
+
+	/**
+	 * Cleans up the register and caches it for reuse.
+	 */
+	shine.Register.prototype.dispose = function () {
+		this._items.reset();
+		this.constructor._graveyard.push(this);
+	};
+
+
+})(shine || {});

@@ -29,7 +29,7 @@
 'use strict';
 
 
-var shine = shine || {};
+(function (shine) {
 
 
 /**
@@ -193,15 +193,19 @@ shine.Table.prototype.setMember = function (key, value) {
 
 
 
-/**
- * Returns a unique identifier for the table.
- * @returns {string} Description.
- */
-shine.Table.prototype.toString = function () {
-	var mt;
-	
-	if (this.constructor != shine.Table) return 'userdata';
-	if (this.__shine && (mt = this.__shine.metatable) && mt.__tostring) return mt.__tostring.call(undefined, this)[0];
+	/**
+	 * Returns a unique identifier for the table.
+	 * @returns {string} Description.
+	 */
+	shine.Table.prototype.toString = function () {
+		var mt;
+		
+		if (this.constructor != shine.Table) return 'userdata';
+		if (this.__shine && (mt = this.__shine.metatable) && mt.__tostring) return mt.__tostring.call(undefined, this)[0];
 
-	return 'table: 0x' + this.__shine.index.toString(16);
-};
+		return 'table: 0x' + this.__shine.index.toString(16);
+	};
+
+
+
+})(shine || {});

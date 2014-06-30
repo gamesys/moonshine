@@ -33,15 +33,8 @@
 */
 
 
-
-
-var shine = shine || {};
-shine.operations = {};
-
-
-
-
-(function () {
+(function (shine) {
+	shine.operations = {};
 	
 
 	/******************************************************************
@@ -1154,5 +1147,5 @@ shine.operations = {};
 	// PRECOMPILER_CODE_INSERTION_POINT
 
 
-})();
+})(shine || {});
 

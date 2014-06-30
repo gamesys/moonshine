@@ -28,10 +28,7 @@
 'use strict';
 
 
-var shine = shine || {};
-
-
-(function () {
+(function (shine) {
 	/**
 	 * Pattern to identify a string value that can validly be converted to a number in Lua.
 	 * @type RegExp
@@ -258,4 +255,4 @@ var shine = shine || {};
 	};
 
 
-})();
+})(shine || {});

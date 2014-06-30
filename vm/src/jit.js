@@ -29,9 +29,9 @@
 'use strict';
 
 
-if (typeof shine == 'undefined') shine = {};
 
-
+(function (shine) {
+	
 
 
 /**
@@ -778,13 +778,11 @@ shine.jit.enabled = shine.jit.enable || false;
 		code = code.concat(state.code);
 		code.push('}}');
 
-
 		// Output JS function
 		return 'function(){' + code.join('\n') + '}';
 	};
 
 
+})(shine || {});
 
-
-})();
 if (typeof module != 'undefined') module.exports = shine.jit;
