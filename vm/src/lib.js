@@ -347,9 +347,9 @@ var shine = shine || {};
 				i, l;
 
 			if (found || (typeof index == 'number' && index > 0 && index == index >> 0)) {
-				if (Object.keys) {
+				if ('keys' in Object) {
 					// Use Object.keys, if available.
-					keys = Object.keys(numValues);
+					keys = Object['keys'](numValues);
 					
 					if (found) {
 						// First pass
@@ -1478,13 +1478,17 @@ var shine = shine || {};
 		dump: function (func) {
 			var data = func._data,
 				result = shine.gc.createObject(),
+				arr = shine.gc.createArray(),
 				i;
 
 			for (i in data) {
 				if (data.hasOwnProperty(i)) result[i] = data[i];
 			}
 
-			result.instructions = Array.apply(shine.gc.createArray(), result.instructions);
+			// Convert typed array to standard Array...
+			arr.push.apply(arr, result.instructions);
+			result.instructions = arr;
+
 			return JSON.stringify(result);
 		},
 		
