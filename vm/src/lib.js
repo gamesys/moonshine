@@ -585,7 +585,7 @@ var shine = shine || {};
 				return arguments.length - 1;
 				
 			} else if (index = parseInt(index, 10)) {
-				return Array.prototype.slice.call(arguments, index);
+				return arguments.constructor === Array? arguments.slice(index) : Array.prototype.slice.call(arguments, index);
 				
 			} else {
 				throw new shine.Error('bad argument #1 in select(). Number or "#" expected');
@@ -654,7 +654,7 @@ var shine = shine || {};
 
 			if (e !== undefined && e instanceof shine.Table && (mt = e.__shine.metatable) && (mm = mt.getMember('__tostring'))) return mm.call(mm, e);
 
-			if (e instanceof shine.Table || e instanceof shine.Function) return e.toString();
+			if (e && (e instanceof shine.Table || e instanceof shine.Function)) return e.toString();
 			if (typeof e == 'function') return 'function: [host code]';
 
 			return shine.utils.coerce(e, 'string') || 'userdata';
@@ -1533,7 +1533,7 @@ var shine = shine || {};
 				findData,
 				result = '',
 				parseData,
-				args = [].splice.call(arguments, 0),
+				args = arguments.constructor === Array? arguments : Array.prototype.slice.call(arguments, 0),
 				argIndex = 2,
 				index = 2;
 
