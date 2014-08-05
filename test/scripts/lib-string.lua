@@ -143,6 +143,7 @@ do
 	a = string.format("%.3f", 5.1)
 	b = "Lua version " .. string.format("%.1f", 5.1)
 	c = string.format("pi = %.4f", math.pi)
+	f = string.format("%.3f", 5)
 
     local d, m, y = 5, 11, 1990
     e = string.format("%02d/%02d/%04d", d, m, y)
@@ -152,6 +153,7 @@ do
 	assertTrue (b == 'Lua version 5.1', 'string.format() should format floating point numbers correctly[2]')
 	assertTrue (c == 'pi = 3.1416', 'string.format() should format floating point numbers correctly[3]')
 	assertTrue (e == '05/11/1990', 'string.format() should format decimals correctly [0]')
+	assertTrue (f == '5.000', 'string.format() should format floating point numbers correctly[4]')
 
 
 	a = function () string.format('%#####s', 'x') end

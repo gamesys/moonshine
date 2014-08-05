@@ -1625,7 +1625,13 @@ var shine = shine || {};
 					precision = meta.precision === Infinity? 6 : meta.precision;
 
 				arg = '' + Math.floor(Math.abs(arg));
-				if (precision > 0) arg += '.' + Math.round(mantissa * Math.pow(10, precision));
+
+				if (precision > 0) {
+					mantissa = Math.round(mantissa * Math.pow(10, precision));
+					precision -= ('' + mantissa).length;
+
+					arg += '.' + mantissa + (precision? pad('0', precision) : '');
+				}
 
 				return padNumber(arg, neg, meta);
 			}
