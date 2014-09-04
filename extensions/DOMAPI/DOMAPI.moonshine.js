@@ -46,6 +46,7 @@
 						children = Object.getOwnPropertyNames(property);
 
 						for (i = 0; child = children[i]; i++) {
+							if (child == 'caller' || child == 'callee' || child == 'arguments') continue;	// Avoid issues in strict mode. Fixes #24. 
 							f[child] = property[child];
 						}
 					}
