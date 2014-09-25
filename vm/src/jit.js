@@ -51,7 +51,10 @@
 
 
 
-	var SET_REG_PATTERN = /^setR\(R,(\d+),([^;]*?)\);$/;
+	var SET_REG_PATTERN = /^setR\(R,(\d+),([^;]*?)\);$/,
+
+
+	gc = shine.gc;
 
 
 
@@ -149,10 +152,15 @@
 
 
 	function translate_loadnil (a, b) {
-		var result = [];
-		for (var i = a; i <= b; i++) result.push('setR(R,' + i + ');');
+		var nils = gc.createArray(),
+			result;
 
-		return result.join('');
+		for (var i = a; i <= b; i++) nils.push('setR(R,' + i + ');');
+		result = nils.join('');
+
+		gc.collect(nils);
+
+		return result;
 	}
 
 
@@ -299,9 +307,6 @@
 
 
 	function translate_concat (a, b, c) {
-		var items = [],
-			i;
-
 		return 'setR(R,' + a + ',concat_internal(R[' + c + '],R.slice(' + b + ',' + c + ').reverse()));';
 	}
 
@@ -379,7 +384,8 @@
 
 
 	function translate_call (a, b, c) {
-		var argLimits;
+		var argLimits,
+			result;
 
 		if (b === 0) { // Arguments from R(A+1) to top
 			argLimits = (a + 1) + ',void 0';
@@ -392,7 +398,7 @@
 
 			var canRestructure = true,
 				i, l,
-				params = shine.gc.createArray(),
+				params = gc.createArray(),
 				match, func;
 
 			for (i = 1; i < b; i++) {
@@ -415,15 +421,16 @@
 					for (i = 1; i <= b; i++) this.code[this.pc - i] = '';
 
 					if (c == 1) {
-						return func + '.call(void 0,' + params.join(',') + ');';
+						result = func + '.call(void 0,' + params.join(',') + ');';
 					} else {
-						return 'setRArr(R,' + a + ',' + (c? c - 1 : 'void 0') + ',' + func + '.call(void 0,' + params.join(',') + '));';
+						result = 'setRArr(R,' + a + ',' + (c? c - 1 : 'void 0') + ',' + func + '.call(void 0,' + params.join(',') + '));';
 					}
 				}
 			} 
 		}
  
-		return 'callR(R,' + a + ',' + c + ',' + argLimits + ');';
+ 		gc.collect(params);
+		return result || 'callR(R,' + a + ',' + c + ',' + argLimits + ');';
 	}
 
 
@@ -566,11 +573,11 @@
 
 
 	function translate_closure (a, bx) {
-		var upvalueData = shine.gc.createArray(),
+		var upvalueData = gc.createArray(),
 			instructions = this._instructions,
 			proto = instructions.constructor.prototype,
 			slice = proto.slice || proto.subarray || Array.prototype.slice,
-			opcode;
+			opcode, result;
 
 		this.pc++;
 		if (this.vars.indexOf('getupval') < 0) this.vars.push('getupval');
@@ -584,10 +591,13 @@
 		this.pc--;
 
 		if (upvalueData.length || typeof process == 'undefined') {
-			return 'setR(R,' + a + ',create_func(cl._functions[' + bx + '],closure_upvalues.call(cl,' + bx + ',' + JSON.stringify(upvalueData) + ',getupval,setupval),cl));';
+			result = 'setR(R,' + a + ',create_func(cl._functions[' + bx + '],closure_upvalues.call(cl,' + bx + ',' + JSON.stringify(upvalueData) + ',getupval,setupval),cl));';
 		} else {
-			return 'setR(R,' + a + ',cl._functions[' + bx + ']);';
+			result = 'setR(R,' + a + ',cl._functions[' + bx + ']);';
 		}
+
+		gc.collect(upvalueData);
+		return result;
 	}
 
 
@@ -644,7 +654,7 @@
 			paramCount = func._data.paramCount,
 			isVararg = func._data.is_vararg > 0,
 
-			code = [],
+			code = gc.createArray(),
 			pc = 0,
 
 			state,
@@ -652,7 +662,9 @@
 			offset,
 			compatibility,
 			upvalCode = '',
+			paramNames = gc.createArray(),
 			func,
+			result,
 			i, l, v;
 
 
@@ -663,8 +675,8 @@
 			stackSize: func._data.maxStackSize,
 
 			pc: pc,
-			code: [],
-			vars: [],
+			code: gc.createArray(),
+			vars: gc.createArray(),
 			jumpDestinations: [1],
 
 			_constants: func._data.constants,
@@ -712,7 +724,12 @@
 
 		// Add boilerplate
 		code = ['/* ' + (func._file && func._file.url) + ":" + func._data.lineDefined + ' */', 'var cl=this,R=createArray(),pc=0,_' + (state.vars.length? ',' + state.vars.join(',') : '') + ';'];
-		for (i = 0; i < paramCount; i++) code.push('setR(R,' + i + ',arguments[' + i + ']);');
+		// for (i = 0; i < paramCount; i++) code.push('setR(R,' + i + ',arguments[' + i + ']);');
+		for (i = 0; i < paramCount; i++) {
+			code.push('setR(R,' + i + ',A' + i + ');');
+			paramNames.push('A' + i);
+		}
+
 		if (compatibility) code.push(compatibility);
 		code.push(upvalCode);
 		code.push('shine.Closure._current=cl;while(1){switch(pc){');
@@ -720,8 +737,17 @@
 		code.push('}}');
 
 
+
 		// Output JS function
-		return 'function(){' + code.join('\n') + '}';
+		// return 'function(){' + code.join('\n') + '}';
+		result = 'function(' + paramNames.join() + '){' + code.join('\n') + '}';
+
+
+		gc.collect(code);
+		gc.collect(paramNames);
+		gc.collect(state);
+
+		return result;
 	};
 
 
