@@ -28,7 +28,8 @@
 		mt = new shine.Table({
 
 			__index: function (t, key) {
-				var property = obj[key];
+				var property = obj[key],
+					i, children, child;
 
 				// Bind methods to object and convert args and return values
 				if (typeof property == 'function' || (property && property.prototype && typeof property.prototype.constructor == 'function')) {	// KLUDGE: Safari reports native constructors as objects, not functions :-s
@@ -39,6 +40,16 @@
 						if (typeof retval == 'object') return jsToLua(retval);
 						return [retval];
 					};
+
+					// Add static methods, etc
+					if (Object.getOwnPropertyNames) {
+						children = Object.getOwnPropertyNames(property);
+
+						for (i = 0; child = children[i]; i++) {
+							if (child == 'caller' || child == 'callee' || child == 'arguments') continue;	// Avoid issues in strict mode. Fixes #24. 
+							f[child] = property[child];
+						}
+					}
 
 					// Add a new method for instantiating classes
 					f.new = function () { 

@@ -125,6 +125,19 @@
 
 
 
+	function ipairsIterator (table, index) {
+		if (index === undefined) throw new shine.Error('Bad argument #2 to ipairs() iterator');
+
+		var nextIndex = index + 1,
+			numValues = table.__shine.numValues;
+
+		if (!numValues.hasOwnProperty(nextIndex) || numValues[nextIndex] === void 0) return void 0;
+		return [nextIndex, numValues[nextIndex]];
+	}
+	
+
+
+
 	function getWeekOfYear (d, firstDay, utc) { 
 		var dayOfYear = parseInt(DATE_FORMAT_HANDLERS['%j'](d), 10),
 			jan1 = new Date(d.getFullYear (), 0, 1, 12),
@@ -262,17 +275,7 @@
 	
 		ipairs: function (table) {
 			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in ipairs(). Table expected');
-			
-			var iterator = function (table, index) {
-				if (index === undefined) throw new shine.Error('Bad argument #2 to ipairs() iterator');
-
-				var nextIndex = index + 1;
-
-				if (!table.__shine.numValues.hasOwnProperty(nextIndex)) return undefined;
-				return [nextIndex, table.__shine.numValues[nextIndex]];
-			};
-	
-			return [iterator, table, 0];
+			return [ipairsIterator, table, 0];
 		},
 	
 	
@@ -336,16 +339,36 @@
 			// SLOOOOOOOW...
 			var found = (index === undefined),
 				numValues = table.__shine.numValues,
+				keys,
 				i, l;
 
-			if (found || typeof index == 'number') {
-				for (i = 1, l = numValues.length; i < l; i++) {	
+			if (found || (typeof index == 'number' && index > 0 && index == index >> 0)) {
+				if ('keys' in Object) {
+					// Use Object.keys, if available.
+					keys = Object['keys'](numValues);
+					
+					if (found) {
+						// First pass
+						i = 1;
 
-					if (!found) {
-						if (i === index) found = true;
-		
-					} else if (numValues.hasOwnProperty(i) && numValues[i] !== undefined) {
-						return [i, numValues[i]];
+					} else if (i = keys.indexOf('' + index) + 1) {
+						found = true;
+					} 
+
+					if (found && (i = keys[i]) !== undefined) return [i >>= 0, numValues[i]];
+
+				} else {
+					// Else use for-in (faster than for loop on tables with large holes)
+
+					for (l in numValues) {	
+						i = l >> 0;
+
+						if (!found) {
+							if (i === index) found = true;
+			
+						} else if (numValues[i] !== undefined) {
+							return [i, numValues[i]];
+						}
 					}
 				}
 			}
@@ -570,7 +593,7 @@
 				return arguments.length - 1;
 				
 			} else if (index = parseInt(index, 10)) {
-				return Array.prototype.slice.call(arguments, index);
+				return arguments.constructor === Array? arguments.slice(index) : Array.prototype.slice.call(arguments, index);
 				
 			} else {
 				throw new shine.Error('bad argument #1 in select(). Number or "#" expected');
@@ -639,8 +662,8 @@
 
 			if (e !== undefined && e instanceof shine.Table && (mt = e.__shine.metatable) && (mm = mt.getMember('__tostring'))) return mm.call(mm, e);
 
-			if (e instanceof shine.Table || e instanceof shine.Function) return e.toString();
-			if (typeof e == 'function') return e.toString && e.toString() || 'function: [host code]';
+			if (e && (e instanceof shine.Table || e instanceof shine.Function)) return e.toString();
+			if (typeof e == 'function') return 'function: [host code]';
 
 			return shine.utils.coerceToString(e) || 'userdata';
 		},
@@ -1461,7 +1484,20 @@
 		
 		
 		dump: function (func) {
-			return JSON.stringify(func._data);
+			var data = func._data,
+				result = shine.gc.createObject(),
+				arr = shine.gc.createArray(),
+				i;
+
+			for (i in data) {
+				if (data.hasOwnProperty(i)) result[i] = data[i];
+			}
+
+			// Convert typed array to standard Array...
+			arr.push.apply(arr, result.instructions);
+			result.instructions = arr;
+
+			return JSON.stringify(result);
 		},
 		
 		
@@ -1505,7 +1541,7 @@
 				findData,
 				result = '',
 				parseData,
-				args = [].splice.call(arguments, 0),
+				args = arguments.constructor === Array? arguments : Array.prototype.slice.call(arguments, 0),
 				argIndex = 2,
 				index = 2;
 
@@ -1597,7 +1633,13 @@
 					precision = meta.precision === Infinity? 6 : meta.precision;
 
 				arg = '' + Math.floor(Math.abs(arg));
-				if (precision > 0) arg += '.' + Math.round(mantissa * Math.pow(10, precision));
+
+				if (precision > 0) {
+					mantissa = Math.round(mantissa * Math.pow(10, precision));
+					precision -= ('' + mantissa).length;
+
+					arg += '.' + mantissa + (precision? pad('0', precision) : '');
+				}
 
 				return padNumber(arg, neg, meta);
 			}

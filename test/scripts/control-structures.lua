@@ -76,3 +76,4 @@ assertTrue (string.find(a, '[table: 0x%d+==1729]') ~= nil, 'for/pairs iteration 
 assertTrue (string.find(a, '[function: 0x%d+==test]') ~= nil, 'for/pairs iteration should include items with function as key.')
 
 
+

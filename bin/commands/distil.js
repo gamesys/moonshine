@@ -216,19 +216,20 @@ function distilFile (source, destination, switches, callback) {
 
 
 function distilPackage (files, root, switches, callback) {
-	var outstanding = 0,
+	var fileQueue = [].concat(files),
 		outputFilename = switches.outputFilename,
 		packageMain = pathLib.relative('.', pathLib.resolve(switches.packageMain)),
 		packageData = {
 			format: 'moonshine.package',
 			files: {},
 			main: files[0][1]
-		},
-		i, l;
+		};
 
 
-	function checkDone () {
-		if (!outstanding) {
+	function processNextFile () {
+		var file, source, destination;
+
+		if (!fileQueue.length) {
 			createPath(outputFilename);
 
 			fs.writeFile(outputFilename, JSON.stringify(packageData), function (err) {
@@ -237,30 +238,28 @@ function distilPackage (files, root, switches, callback) {
 
 				callback();
 			});
+
+			return;
 		}
+
+		file = fileQueue.shift();
+		source = file[0];
+		destination = file[1];
+
+		var main = (packageMain == source);
+		if (main) packageData.main = destination;
+
+		distil(source, switches, function (tree) {
+			tree.sourcePath = getRelativePath(source, root + '/' + pathLib.dirname(destination));
+
+			packageData.files[destination] = tree;
+			console.log(COLORS.WHITE + 'Added to package: ' + source + (main? ' [main]' : '') + COLORS.RESET);
+
+			processNextFile();
+		});
 	}
 
-	for (i = 0, l = files.length; i < l; i++) {
-		outstanding++;
-
-		(function (source, destination) {
-			var main = (packageMain == source);
-			if (main) packageData.main = destination;
-
-			distil(source, switches, function (tree) {
-				tree.sourcePath = getRelativePath(source, root + '/' + pathLib.dirname(destination));
-
-				packageData.files[destination] = tree;
-				console.log(COLORS.WHITE + 'Added to package: ' + source + (main? ' [main]' : '') + COLORS.RESET);
-
-				outstanding--;
-				checkDone();
-			});
-
-		})(files[i][0], files[i][1]);
-	}
-
-	checkDone();
+	processNextFile();
 }
 
 
