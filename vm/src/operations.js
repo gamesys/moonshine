@@ -974,7 +974,7 @@
 		var upvalueData = shine.gc.createArray(),
 			instructions = this._instructions,
 			proto = instructions.constructor.prototype,
-			slice = proto.slice || proto.subarray,
+			slice = proto.slice || proto.subarray || instructions.subarray,
 			opcode, f;
 
 		while ((opcode = instructions[this._pc * 4]) !== undefined && (opcode === 0 || opcode === 4) && this._instructions[this._pc * 4 + 1] === 0) {	// move, getupval
