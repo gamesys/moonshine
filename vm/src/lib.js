@@ -470,6 +470,8 @@
 				preload,
 				paths,
 				path,
+				filename, 
+				data,
 				failedPaths = shine.gc.createArray();
 
 
@@ -516,6 +518,16 @@
 			modname = shine.utils.coerceToString(modname);
 			if (module = packageLib.loaded[modname]) return module;
 			if (preload = packageLib.preload[modname]) return load(preload);
+
+			filename = modname.replace(/\./g, "/") + '.lua.json';
+			data = vm.fileManager._cache[filename];
+
+			if (data) {
+				var file = new shine.File(filename, data);
+				preload = new shine.Function(vm, file, file.data, vm._globals);
+				packageLib.preload[modname] = preload;
+				return load(preload);
+			}
 
 			paths = packageLib.path.replace(/;;/g, ';').split(';');
 			vm.suspend();

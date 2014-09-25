@@ -396,7 +396,7 @@
 				match, func;
 
 			for (i = 1; i < b; i++) {
-				if (!(match = this.code[this.pc - i].match(SET_REG_PATTERN)) || match[1] != '' + (a + b - i)) {
+				if (!((match = this.code[this.pc - i]) && match.match(SET_REG_PATTERN)) || match[1] != "" + (a + b - i)) {
 					canRestructure = false;
 					break;
 				// } else if (match[2].indexOf('setR(') >= 0) {
@@ -711,7 +711,7 @@
 
 
 		// Add boilerplate
-		code = ['var cl=this,R=createArray(),pc=0,_' + (state.vars.length? ',' + state.vars.join(',') : '') + ';'];
+		code = ['/* ' + (func._file && func._file.url) + ":" + func._data.lineDefined + ' */', 'var cl=this,R=createArray(),pc=0,_' + (state.vars.length? ',' + state.vars.join(',') : '') + ';'];
 		for (i = 0; i < paramCount; i++) code.push('setR(R,' + i + ',arguments[' + i + ']);');
 		if (compatibility) code.push(compatibility);
 		code.push(upvalCode);

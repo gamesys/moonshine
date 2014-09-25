@@ -770,10 +770,7 @@
 		var retvals, mt, c;
 
 		if (f !== undefined) {
-			if (f instanceof shine.Function) {
-				retvals = f.apply(null, args, true);
-
-			} else if (f.apply) {
+			if (f.apply) {
 				retvals = f.apply(null, args);
 
 			} else if (f instanceof shine.Table && (mt = f.__shine.metatable) && (c = mt.getMember('__call')) && c.apply) {

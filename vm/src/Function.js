@@ -97,17 +97,18 @@ shine.Function.prototype._compile = function () {
 
 	if (compiled) {
 		me = this;
-		closure = shine.gc.createObject();
-
-		closure._vm = this._vm;
-		closure._globals = this._globals;
-		closure._upvalues = this._upvalues;
-		closure._constants = data.constants;
-		closure._functions = data.functions;
-		// closure._localFunctions = shine.gc.createArray();
-		closure._localsUsedAsUpvalues = shine.gc.createArray();
 
 		this.apply = function (context, args) {
+			closure = shine.gc.createObject();
+
+			closure._vm = me._vm;
+			closure._globals = me._globals;
+			closure._upvalues = me._upvalues;
+			closure._constants = data.constants;
+			closure._functions = data.functions;
+			// closure._localFunctions = shine.gc.createArray();
+			closure._localsUsedAsUpvalues = shine.gc.createArray();
+
 			return compiled.apply(closure, args); 
 		}
 	}
