@@ -25,7 +25,10 @@
 
 
 var shine = require('../../index'),
-	parseArgs = require('./common').parseArgs;
+	parseArgs = require('./common').parseArgs,
+	defaultSwitches = {
+		jit: ['-jit', false]
+	};
 
 
 // If set, use LUA_PATH environment variable
@@ -38,9 +41,11 @@ module.exports = {
 
 	exec: function () {
 		var vm = new shine.VM(),
-			args = parseArgs(),
+			args = parseArgs(defaultSwitches),
 			filenames = args.filenames,
 			filename, i;
+
+		shine.jit.enabled = args.switches.jit;
 
 		for (i = 0; filename = filenames[i]; i++) {
 			vm.load(filename);
