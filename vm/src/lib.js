@@ -355,7 +355,9 @@
 						found = true;
 					} 
 
-					if (found && (i = keys[i]) !== undefined) return [i >>= 0, numValues[i]];
+					if (found && (i = keys[i]) !== undefined && numValues[i] !== undefined) {
+						return [i >>= 0, numValues[i]];
+					}
 
 				} else {
 					// Else use for-in (faster than for loop on tables with large holes)
