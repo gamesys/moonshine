@@ -147,8 +147,8 @@ function buildLibrary () {
  */
 function minifyLibrary () {
 	var filename = './minified.js',
-		// cmd = 'java -jar /usr/local/bin/yuicompressor-2.4.7.jar ' + OUTPUT_FILENAME + ' -o ' + filename;
-		cmd = 'java -jar /usr/local/bin/compiler.jar --js ' + OUTPUT_FILENAME + ' --js_output_file ' + filename;
+		cmd = 'java -jar /usr/local/bin/yuicompressor-2.4.7.jar ' + OUTPUT_FILENAME + ' -o ' + filename;
+		// cmd = 'java -jar /usr/local/bin/compiler.jar --js ' + OUTPUT_FILENAME + ' --js_output_file ' + filename;
 
 	exec(cmd, function (err) {
 		if (err) throw err;
