@@ -513,7 +513,7 @@
 				if (vm._resumeStack.length) {
 					result = vm._resumeStack.pop()._run();
 
-				} else if (shine.debug && shine.debug._resumeStack.length) {
+				} else if (shine.debug && shine.debug._resumeStack && shine.debug._resumeStack.length) {
 					result = shine.debug._resumeStack.pop()._run();
 
 				} else {

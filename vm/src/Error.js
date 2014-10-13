@@ -133,12 +133,16 @@ shine.Error.prototype._stackToString = function () {
 			}
 
 
-			if (filename = closure._file.data.sourcePath) {
-				filename = closure._file.url.match('^(.*)\/.*?$');
-				filename = (filename === null? '.' : filename[1] || '') + '/' + filename;
-				filename = filename.replace(/\/\.\//g, '/').replace(/\/.*?\/\.\.\//g, '/');
+			if (closure._file && closure._file.url) {
+				if (filename = closure._file.data.sourcePath) {
+					filename = closure._file.url.match('^(.*)\/.*?$');
+					filename = (filename === null? '.' : filename[1] || '') + '/' + filename;
+					filename = filename.replace(/\/\.\//g, '/').replace(/\/.*?\/\.\.\//g, '/');
+				} else {
+					filename = closure._file.url;
+				}
 			} else {
-				filename = closure._file.url;
+				filename = '(compiled code)';
 			}
 
 			result.push ((funcName || 'function') + ' [' + (filename || 'file') + ':' + (closure._data.linePositions? closure._data.linePositions[pc] : '?') + ']')

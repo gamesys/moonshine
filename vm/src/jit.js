@@ -575,8 +575,8 @@
 	function translate_closure (a, bx) {
 		var upvalueData = gc.createArray(),
 			instructions = this._instructions,
-			proto = instructions.constructor.prototype,
-			slice = proto.slice || proto.subarray || Array.prototype.slice,
+			process = process,
+			slice = instructions.slice || instructions.subarray,
 			opcode, result;
 
 		this.pc++;
