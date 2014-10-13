@@ -488,7 +488,7 @@
 
 		if (canLoop) {
 			loopVar = 'R[' + (a + 3) + ']';
-			this.code[pc - 1] = 'for(' + loopVar + '=R[' + a + '],' + limitVar + '=' + limit + ';' + loopVar + (forward? '<' : '>') + '=' + limitVar + ';' + loopVar + '+=' + step +'){';
+			this.code[pc - 1] = 'for(' + loopVar + '=R[' + a + '],' + limitVar + '=' + limit + ';' + loopVar + (step > 0? '<' : '>') + '=' + limitVar + ';' + loopVar + '+=' + step +'){';
 			delete this.jumpDestinations[this.pc];
 			return '}';
 		}
