@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+mxmlc ./as/Runner.as -static-link-runtime-shared-libraries=true -source-path=./as -library-path=../vm -output=./as/runner.swf 

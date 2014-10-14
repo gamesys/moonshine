@@ -20,7 +20,6 @@
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --
 
-print("started "..getTimestamp())
 
 do
 	local passed, failed = 0, 0
