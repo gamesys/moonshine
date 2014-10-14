@@ -1476,7 +1476,7 @@ shine.Function.prototype.apply = function (obj, args, internal) {
 		obj = undefined;
 	}
 
-	if (shine.jit.enabled && ++this._runCount == 2) {
+	if (shine.jit.enabled && ++this._runCount == shine.jit.INVOCATION_TOLERANCE) {
 		shine.Closure._current = this.getInstance()._instance;
 		this._compile();
 		return this.apply.apply(this, arguments);
@@ -2080,12 +2080,16 @@ shine.Error.prototype._stackToString = function () {
 			}
 
 
-			if (filename = closure._file.data.sourcePath) {
-				filename = closure._file.url.match('^(.*)\/.*?$');
-				filename = (filename === null? '.' : filename[1] || '') + '/' + filename;
-				filename = filename.replace(/\/\.\//g, '/').replace(/\/.*?\/\.\.\//g, '/');
+			if (closure._file && closure._file.url) {
+				if (filename = closure._file.data.sourcePath) {
+					filename = closure._file.url.match('^(.*)\/.*?$');
+					filename = (filename === null? '.' : filename[1] || '') + '/' + filename;
+					filename = filename.replace(/\/\.\//g, '/').replace(/\/.*?\/\.\.\//g, '/');
+				} else {
+					filename = closure._file.url;
+				}
 			} else {
-				filename = closure._file.url;
+				filename = '(compiled code)';
 			}
 
 			result.push ((funcName || 'function') + ' [' + (filename || 'file') + ':' + (closure._data.linePositions? closure._data.linePositions[pc] : '?') + ']')
@@ -3095,8 +3099,7 @@ shine.File.prototype.dispose = function () {
 	function closure (a, bx) {
 		var upvalueData = shine.gc.createArray(),
 			instructions = this._instructions,
-			proto = instructions.constructor.prototype,
-			slice = proto.slice || proto.subarray,
+			slice = instructions.slice || instructions.subarray,
 			opcode, f;
 
 		while ((opcode = instructions[this._pc * 4]) !== undefined && (opcode === 0 || opcode === 4) && this._instructions[this._pc * 4 + 1] === 0) {	// move, getupval
@@ -3417,7 +3420,19 @@ shine.File.prototype.dispose = function () {
 
 
 
-	var SET_REG_PATTERN = /^setR\(R,(\d+),([^;]*?)\);$/;
+	/**
+	 * The number of times that a function is interpreted before it is compiled.
+	 * @type number
+	 */
+	shine.jit.INVOCATION_TOLERANCE = 2;
+
+
+
+
+	var SET_REG_PATTERN = /^setR\(R,(\d+),([^;]*?)\);$/,
+
+
+	gc = shine.gc;
 
 
 
@@ -3515,10 +3530,15 @@ shine.File.prototype.dispose = function () {
 
 
 	function translate_loadnil (a, b) {
-		var result = [];
-		for (var i = a; i <= b; i++) result.push('setR(R,' + i + ');');
+		var nils = gc.createArray(),
+			result;
 
-		return result.join('');
+		for (var i = a; i <= b; i++) nils.push('setR(R,' + i + ');');
+		result = nils.join('');
+
+		gc.collect(nils);
+
+		return result;
 	}
 
 
@@ -3665,9 +3685,6 @@ shine.File.prototype.dispose = function () {
 
 
 	function translate_concat (a, b, c) {
-		var items = [],
-			i;
-
 		return 'setR(R,' + a + ',concat_internal(R[' + c + '],R.slice(' + b + ',' + c + ').reverse()));';
 	}
 
@@ -3745,7 +3762,8 @@ shine.File.prototype.dispose = function () {
 
 
 	function translate_call (a, b, c) {
-		var argLimits;
+		var argLimits,
+			result;
 
 		if (b === 0) { // Arguments from R(A+1) to top
 			argLimits = (a + 1) + ',void 0';
@@ -3758,7 +3776,7 @@ shine.File.prototype.dispose = function () {
 
 			var canRestructure = true,
 				i, l,
-				params = shine.gc.createArray(),
+				params = gc.createArray(),
 				match, func;
 
 			for (i = 1; i < b; i++) {
@@ -3781,15 +3799,16 @@ shine.File.prototype.dispose = function () {
 					for (i = 1; i <= b; i++) this.code[this.pc - i] = '';
 
 					if (c == 1) {
-						return func + '.call(void 0,' + params.join(',') + ');';
+						result = func + '.call(void 0,' + params.join(',') + ');';
 					} else {
-						return 'setRArr(R,' + a + ',' + (c? c - 1 : 'void 0') + ',' + func + '.call(void 0,' + params.join(',') + '));';
+						result = 'setRArr(R,' + a + ',' + (c? c - 1 : 'void 0') + ',' + func + '.call(void 0,' + params.join(',') + '));';
 					}
 				}
 			} 
 		}
  
-		return 'callR(R,' + a + ',' + c + ',' + argLimits + ');';
+ 		gc.collect(params);
+		return result || 'callR(R,' + a + ',' + c + ',' + argLimits + ');';
 	}
 
 
@@ -3847,7 +3866,7 @@ shine.File.prototype.dispose = function () {
 
 		if (canLoop) {
 			loopVar = 'R[' + (a + 3) + ']';
-			this.code[pc - 1] = 'for(' + loopVar + '=R[' + a + '],' + limitVar + '=' + limit + ';' + loopVar + (forward? '<' : '>') + '=' + limitVar + ';' + loopVar + '+=' + step +'){';
+			this.code[pc - 1] = 'for(' + loopVar + '=R[' + a + '],' + limitVar + '=' + limit + ';' + forward + '?' + loopVar  + '<=' + limitVar + ':' + loopVar  + '>=' + limitVar + ';' + loopVar + '+=' + step +'){';
 			delete this.jumpDestinations[this.pc];
 			return '}';
 		}
@@ -3932,11 +3951,11 @@ shine.File.prototype.dispose = function () {
 
 
 	function translate_closure (a, bx) {
-		var upvalueData = shine.gc.createArray(),
+		var upvalueData = gc.createArray(),
 			instructions = this._instructions,
-			proto = instructions.constructor.prototype,
-			slice = proto.slice || proto.subarray || Array.prototype.slice,
-			opcode;
+			process = process,
+			slice = instructions.slice || instructions.subarray,
+			opcode, result;
 
 		this.pc++;
 		if (this.vars.indexOf('getupval') < 0) this.vars.push('getupval');
@@ -3950,10 +3969,13 @@ shine.File.prototype.dispose = function () {
 		this.pc--;
 
 		if (upvalueData.length || typeof process == 'undefined') {
-			return 'setR(R,' + a + ',create_func(cl._functions[' + bx + '],closure_upvalues.call(cl,' + bx + ',' + JSON.stringify(upvalueData) + ',getupval,setupval),cl));';
+			result = 'setR(R,' + a + ',create_func(cl._functions[' + bx + '],closure_upvalues.call(cl,' + bx + ',' + JSON.stringify(upvalueData) + ',getupval,setupval),cl));';
 		} else {
-			return 'setR(R,' + a + ',cl._functions[' + bx + ']);';
+			result = 'setR(R,' + a + ',cl._functions[' + bx + ']);';
 		}
+
+		gc.collect(upvalueData);
+		return result;
 	}
 
 
@@ -4010,7 +4032,7 @@ shine.File.prototype.dispose = function () {
 			paramCount = func._data.paramCount,
 			isVararg = func._data.is_vararg > 0,
 
-			code = [],
+			code = gc.createArray(),
 			pc = 0,
 
 			state,
@@ -4018,7 +4040,9 @@ shine.File.prototype.dispose = function () {
 			offset,
 			compatibility,
 			upvalCode = '',
+			paramNames = gc.createArray(),
 			func,
+			result,
 			i, l, v;
 
 
@@ -4029,8 +4053,8 @@ shine.File.prototype.dispose = function () {
 			stackSize: func._data.maxStackSize,
 
 			pc: pc,
-			code: [],
-			vars: [],
+			code: gc.createArray(),
+			vars: gc.createArray(),
 			jumpDestinations: [1],
 
 			_constants: func._data.constants,
@@ -4078,7 +4102,12 @@ shine.File.prototype.dispose = function () {
 
 		// Add boilerplate
 		code = ['/* ' + (func._file && func._file.url) + ":" + func._data.lineDefined + ' */', 'var cl=this,R=createArray(),pc=0,_' + (state.vars.length? ',' + state.vars.join(',') : '') + ';'];
-		for (i = 0; i < paramCount; i++) code.push('setR(R,' + i + ',arguments[' + i + ']);');
+		// for (i = 0; i < paramCount; i++) code.push('setR(R,' + i + ',arguments[' + i + ']);');
+		for (i = 0; i < paramCount; i++) {
+			code.push('setR(R,' + i + ',A' + i + ');');
+			paramNames.push('A' + i);
+		}
+
 		if (compatibility) code.push(compatibility);
 		code.push(upvalCode);
 		code.push('shine.Closure._current=cl;while(1){switch(pc){');
@@ -4086,8 +4115,17 @@ shine.File.prototype.dispose = function () {
 		code.push('}}');
 
 
+
 		// Output JS function
-		return 'function(){' + code.join('\n') + '}';
+		// return 'function(){' + code.join('\n') + '}';
+		result = 'function(' + paramNames.join() + '){' + code.join('\n') + '}';
+
+
+		gc.collect(code);
+		gc.collect(paramNames);
+		gc.collect(state);
+
+		return result;
 	};
 
 
@@ -4431,7 +4469,9 @@ if (typeof module != 'undefined') module.exports = shine.jit;
 						found = true;
 					} 
 
-					if (found && (i = keys[i]) !== undefined) return [i >>= 0, numValues[i]];
+					if (found && (i = keys[i]) !== undefined && numValues[i] !== undefined) {
+						return [i >>= 0, numValues[i]];
+					}
 
 				} else {
 					// Else use for-in (faster than for loop on tables with large holes)
@@ -4587,7 +4627,7 @@ if (typeof module != 'undefined') module.exports = shine.jit;
 				if (vm._resumeStack.length) {
 					result = vm._resumeStack.pop()._run();
 
-				} else if (shine.debug && shine.debug._resumeStack.length) {
+				} else if (shine.debug && shine.debug._resumeStack && shine.debug._resumeStack.length) {
 					result = shine.debug._resumeStack.pop()._run();
 
 				} else {
