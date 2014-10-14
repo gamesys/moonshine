@@ -192,7 +192,7 @@ shine.Function.prototype.apply = function (obj, args, internal) {
 		obj = undefined;
 	}
 
-	if (shine.jit.enabled && ++this._runCount == 2) {
+	if (shine.jit.enabled && ++this._runCount == shine.jit.INVOCATION_TOLERANCE) {
 		shine.Closure._current = this.getInstance()._instance;
 		this._compile();
 		return this.apply.apply(this, arguments);

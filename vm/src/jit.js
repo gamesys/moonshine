@@ -51,6 +51,15 @@
 
 
 
+	/**
+	 * The number of times that a function is interpreted before it is compiled.
+	 * @type number
+	 */
+	shine.jit.INVOCATION_TOLERANCE = 2;
+
+
+
+
 	var SET_REG_PATTERN = /^setR\(R,(\d+),([^;]*?)\);$/,
 
 
