@@ -85,6 +85,7 @@
 		compileQueue = [],
 		frameCounter = 0,
 		waitingToCompile = false,
+		getNow = Date['now']? Date['now'] : function () { return new Date().getTime(); },
 		waitTimerStarted;
 
 
@@ -177,7 +178,7 @@
 	function enableCompileTimer () {
 		if (!waitingToCompile) {
 			waitingToCompile = true;
-			waitTimerStarted = Date.now();
+			waitTimerStarted = getNow();
 			frameCounter = 0;
 
 			window.setTimeout(onWaitTimerTick, shine.jit.COMPILE_INTERVAL);
@@ -199,7 +200,7 @@
 
 
 	function onWaitTimerTick () {
-		var now = Date.now(),
+		var now = getNow(),
 			fps = 1000 * frameCounter / (now - waitTimerStarted);
 
 		if (fps >= shine.jit.MIN_FPS_TO_COMPILE) { 
