@@ -61,10 +61,20 @@
 
 
 	/**
-	 * The number of milliseconds of idle time that needs to pass before the compiler starts processing the queue.
+	 * The minimum FPS required before the compiler will kick in.
+	 * Set to zero for synchronous compile.
 	 * @type number
 	 */
-	shine.jit.IDLE_COMPILE_TIMEOUT = 15;
+	shine.jit.MIN_FPS_TO_COMPILE = 59;
+
+
+
+
+	/**
+	 * The length of interval between checks on FPS before compile, in ms.
+	 * @type number
+	 */
+	shine.jit.COMPILE_INTERVAL = 500;
 
 
 
@@ -74,13 +84,14 @@
 		Function_apply = shine.Function.prototype.apply,
 		compileQueue = [],
 		frameCounter = 0,
-		waitingToCompile = false;
+		waitingToCompile = false,
+		waitTimerStarted;
 
 
 
 
 	/******************************************************************
-	*  Hooks
+	*  Hooks to elsewhere
 	******************************************************************/
 
 	shine.Function.prototype.apply = function () {
@@ -103,7 +114,6 @@
 			}
 		}
 
-		framesSinceBusy = 0;
 		return Function_apply.apply(this, arguments);
 	};
 
@@ -119,7 +129,6 @@
 
 		if (!data._compiling) {
 			data._compiling = true;
-			// window.top.sentToCompiler++;
 
 			shine.jit.compile(this, function (compiled) {
 				if (data._compiled = compiled) {
@@ -129,7 +138,8 @@
 			});
 		}
 	};
-// window.top.sentToCompiler = 0;
+
+
 
 
 	function createRunner (instance, data, compiled) {
@@ -144,10 +154,19 @@
 			closure._functions = data.functions;
 			closure._localsUsedAsUpvalues = shine.gc.createArray();
 
-			framesSinceBusy = 0;
 			return compiled.apply(closure, args); 
 		};
 	}
+
+
+	/******************************************************************
+	*  Hooks from elsewhere (event handlers)
+	******************************************************************/
+
+
+	shine.jit.onCompile = function () {};   // Overwrite to monitor jit compiler activity.
+
+
 
 
 	/******************************************************************
@@ -158,6 +177,10 @@
 	function enableCompileTimer () {
 		if (!waitingToCompile) {
 			waitingToCompile = true;
+			waitTimerStarted = Date.now();
+			frameCounter = 0;
+
+			window.setTimeout(onWaitTimerTick, shine.jit.COMPILE_INTERVAL);
 			window.requestAnimationFrame(onAnimationFrame);
 		}
 	}
@@ -166,31 +189,43 @@
 
 
 	function onAnimationFrame () {
-		if (++framesSinceBusy > shine.jit.IDLE_COMPILE_TIMEOUT) {
-			processNextInQueue();
-		} else {
-			window.requestAnimationFrame(onAnimationFrame);		
+		if (waitingToCompile) {
+			frameCounter++;
+			window.requestAnimationFrame(onAnimationFrame);
 		}
 	}
 
 
 
 
-	function processNextInQueue () {
-		while (compileQueue.length) compile.apply(null, compileQueue.shift());
-			
-		// if (compileQueue.length) {
-		// 	window.requestAnimationFrame(onAnimationFrame);	
-		// } else {
-			waitingToCompile = false;
-		// }
+	function onWaitTimerTick () {
+		var now = Date.now(),
+			fps = 1000 * frameCounter / (now - waitTimerStarted);
+
+		if (fps >= shine.jit.MIN_FPS_TO_COMPILE) { 
+			processQueue();
+
+		} else {
+			frameCounter = 0;
+			waitTimerStarted = now;
+			window.setTimeout(onWaitTimerTick, shine.jit.COMPILE_INTERVAL);
+		}
 	}
 
-// window.top.compiled =0
+
+
+
+	function processQueue () {
+		waitingToCompile = false;
+		shine.jit.onCompile();
+
+		while (compileQueue.length) compile.apply(null, compileQueue.shift());
+	}
+
+
 
 
 	function compile (func, callback) {
-// window.top.compiled++;
 		var js = shine.jit.toJS(func);
 		callback(shine.operations.evaluateInScope(js, func._vm));
 	}
@@ -546,8 +581,8 @@
 					canRestructure = false;
 					break;
 				// } else if (match[2].indexOf('setR(') >= 0) {
-				// 	canRestructure = false;
-				// 	break;
+				//  canRestructure = false;
+				//  break;
 				} else {
 					params.unshift(match[2]);
 				}
@@ -569,7 +604,7 @@
 			} 
 		}
  
- 		gc.collect(params);
+		gc.collect(params);
 		return result || 'callR(R,' + a + ',' + c + ',' + argLimits + ');';
 	}
 
@@ -603,7 +638,7 @@
 		}
 
 		return result;
-	}	
+	}   
 
 
 
@@ -723,7 +758,7 @@
 		if (this.vars.indexOf('getupval') < 0) this.vars.push('getupval');
 		if (this.vars.indexOf('setupval') < 0) this.vars.push('setupval');
 
-		while ((opcode = instructions[this.pc * 4]) !== undefined && (opcode === 0 || opcode === 4) && this._instructions[this.pc * 4 + 1] === 0) {	// move, getupval
+		while ((opcode = instructions[this.pc * 4]) !== undefined && (opcode === 0 || opcode === 4) && this._instructions[this.pc * 4 + 1] === 0) { // move, getupval
 			upvalueData.push.apply(upvalueData, slice.call(instructions, this.pc * 4, this.pc * 4 + 4));
 			this.pc++;
 		}
@@ -778,11 +813,11 @@
 	 * @returns {function} A JavaScript representation of the function.
 	 */
 	// shine.jit.compile = function (func) {
-	// 	var js = shine.jit.toJS(func);
-	// 	return shine.operations.evaluateInScope(js);
+	//  var js = shine.jit.toJS(func);
+	//  return shine.operations.evaluateInScope(js);
 	// };
 	shine.jit.compile = function (func, callback) {
-		if (shine.jit.IDLE_COMPILE_TIMEOUT) {
+		if (shine.jit.MIN_FPS_TO_COMPILE) {
 			compileQueue.push(arguments);
 			enableCompileTimer();
 
@@ -834,7 +869,7 @@
 			getConstant: function (index) {
 				if (this._constants[index] === null) return;
 				return this._constants[index];
-			}			
+			}           
 		};
 
 
@@ -861,7 +896,7 @@
 
 
 		// v5.0 compatibility (LUA_COMPAT_VARARG)
-		if (func._data.is_vararg == 7) {	
+		if (func._data.is_vararg == 7) {    
 			compatibility =  'setR(R,' + paramCount + ',new shine.Table(Array.prototype.slice.call(arguments,' + paramCount + ')));R[' + paramCount + '].setMember("n", arguments.length-' + paramCount + ');';
 		}
 
