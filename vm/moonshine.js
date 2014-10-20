@@ -1324,6 +1324,7 @@ var shine = shine || {};
  * @param {object} data Object containing the Luac data for the function.
  * @param {object} globals The global variables for the environment in which the function is declared.
  * @param {object} [upvalues] The upvalues passed from the parent closure.
+ * @see Hooks into this function in jit.js.
  */
 shine.Function = function (vm, file, data, globals, upvalues) {
 	var me, compiled, closure, runner;
@@ -1336,7 +1337,6 @@ shine.Function = function (vm, file, data, globals, upvalues) {
 	this._index = shine.Function._index++;
 	this.instances = shine.gc.createArray();
 	this._retainCount = 0;
-	this._runCount = 0;
 
  	this._convertInstructions();
 };
@@ -1370,33 +1370,9 @@ shine.Function.prototype.getInstance = function () {
 
 /**
  * Compiles the function to JavaScript.
+ * @see Implemented in jit.js.
  */
-shine.Function.prototype._compile = function () {
-	var data = this._data,
-		me, closure, compiled;
-
-	if (!(compiled = data._compiled)) {
-		compiled = data._compiled = shine.jit.compile(this);
-	}
-
-	if (compiled) {
-		me = this;
-
-		this.apply = function (context, args) {
-			closure = shine.gc.createObject();
-
-			closure._vm = me._vm;
-			closure._globals = me._globals;
-			closure._upvalues = me._upvalues;
-			closure._constants = data.constants;
-			closure._functions = data.functions;
-			// closure._localFunctions = shine.gc.createArray();
-			closure._localsUsedAsUpvalues = shine.gc.createArray();
-
-			return compiled.apply(closure, args); 
-		}
-	}
-};
+shine.Function.prototype._compile = function () {};
 
 
 
@@ -1468,6 +1444,7 @@ shine.Function.prototype.call = function (context) {
  * Calls the function, implicitly creating a new instance and using items of an array as arguments.
  * @param {object} [obj = {}] The object on which to apply the function. Included for compatibility with JavaScript's Function.apply().
  * @param {Array} args Array containing arguments to use.
+ * @see Hooks into this function in jit.js.
  * @returns {Array} Array of the return values from the call.
  */
 shine.Function.prototype.apply = function (obj, args, internal) {
@@ -1476,18 +1453,11 @@ shine.Function.prototype.apply = function (obj, args, internal) {
 		obj = undefined;
 	}
 
-	if (shine.jit.enabled && ++this._runCount == shine.jit.INVOCATION_TOLERANCE) {
-		shine.Closure._current = this.getInstance()._instance;
-		this._compile();
-		return this.apply.apply(this, arguments);
-	}
-
 	try {
 		return this.getInstance().apply(obj, args);
 	} catch (e) {
 		shine.Error.catchExecutionError(e);
 	}
-
 };
 
 
@@ -3346,9 +3316,9 @@ shine.File.prototype.dispose = function () {
 	 * @param {string} funcDef String containing a JavaScript function definition.
 	 * @returns {function} Resulting JavaScript function.
 	 */
-	shine.operations.evaluateInScope = function (funcDef) {
+	shine.operations.evaluateInScope = function (funcDef, vm) {
 		var func,
-			shine_g = shine.getCurrentVM()._globals;
+			shine_g = (vm || shine.getCurrentVM())._globals;
 
 
 		eval('func=' + funcDef);
@@ -3421,7 +3391,7 @@ shine.File.prototype.dispose = function () {
 
 
 	/**
-	 * The number of times that a function is interpreted before it is compiled.
+	 * The number of times that a function is interpreted before it is set to be compiled.
 	 * @type number
 	 */
 	shine.jit.INVOCATION_TOLERANCE = 2;
@@ -3429,10 +3399,177 @@ shine.File.prototype.dispose = function () {
 
 
 
+	/**
+	 * The minimum FPS required before the compiler will kick in.
+	 * Set to zero for synchronous compile.
+	 * @type number
+	 */
+	shine.jit.MIN_FPS_TO_COMPILE = 59;
+
+
+
+
+	/**
+	 * The length of interval between checks on FPS before compile, in ms.
+	 * @type number
+	 */
+	shine.jit.COMPILE_INTERVAL = 500;
+
+
+
+
 	var SET_REG_PATTERN = /^setR\(R,(\d+),([^;]*?)\);$/,
+		gc = shine.gc,
+		Function_apply = shine.Function.prototype.apply,
+		compileQueue = [],
+		frameCounter = 0,
+		waitingToCompile = false,
+		getNow = Date['now']? Date['now'] : function () { return new Date().getTime(); },
+		waitTimerStarted;
 
 
-	gc = shine.gc;
+
+
+	/******************************************************************
+	*  Hooks to elsewhere
+	******************************************************************/
+
+	shine.Function.prototype.apply = function () {
+		var data,
+			compiled;
+
+		if (shine.jit.enabled) {
+			data = this._data;
+
+			// If function has already been compiled...
+			if (compiled = data._compiled) {
+				this.apply = createRunner(this, data, compiled);
+				return this.apply.apply(this, arguments);
+			}
+
+			this._runCount = this._runCount || 0;
+
+			if (!this._compiling && ++this._runCount == shine.jit.INVOCATION_TOLERANCE) {
+				this._compile();
+			}
+		}
+
+		return Function_apply.apply(this, arguments);
+	};
+
+
+
+
+	/**
+	 * Compiles the function to JavaScript.
+	 */
+	shine.Function.prototype._compile = function () {
+		var me = this,
+			data = this._data;
+
+		if (!data._compiling) {
+			data._compiling = true;
+
+			shine.jit.compile(this, function (compiled) {
+				if (data._compiled = compiled) {
+					data._compiling = false;
+					me.apply = createRunner(me, data, compiled);
+				}
+			});
+		}
+	};
+
+
+
+
+	function createRunner (instance, data, compiled) {
+		return function (context, args) {
+			var closure = shine.gc.createObject(),
+				retvals;
+
+			closure._vm = instance._vm;
+			closure._globals = instance._globals;
+			closure._upvalues = instance._upvalues;
+			closure._constants = data.constants;
+			closure._functions = data.functions;
+			closure._localsUsedAsUpvalues = shine.gc.createArray();
+
+			return compiled.apply(closure, args); 
+		};
+	}
+
+
+	/******************************************************************
+	*  Hooks from elsewhere (event handlers)
+	******************************************************************/
+
+
+	shine.jit.onCompile = function () {};   // Overwrite to monitor jit compiler activity.
+
+
+
+
+	/******************************************************************
+	*  Compile Queue
+	******************************************************************/
+
+
+	function enableCompileTimer () {
+		if (!waitingToCompile) {
+			waitingToCompile = true;
+			waitTimerStarted = getNow();
+			frameCounter = 0;
+
+			window.setTimeout(onWaitTimerTick, shine.jit.COMPILE_INTERVAL);
+			window.requestAnimationFrame(onAnimationFrame);
+		}
+	}
+
+
+
+
+	function onAnimationFrame () {
+		if (waitingToCompile) {
+			frameCounter++;
+			window.requestAnimationFrame(onAnimationFrame);
+		}
+	}
+
+
+
+
+	function onWaitTimerTick () {
+		var now = getNow(),
+			fps = 1000 * frameCounter / (now - waitTimerStarted);
+
+		if (fps >= shine.jit.MIN_FPS_TO_COMPILE) { 
+			processQueue();
+
+		} else {
+			frameCounter = 0;
+			waitTimerStarted = now;
+			window.setTimeout(onWaitTimerTick, shine.jit.COMPILE_INTERVAL);
+		}
+	}
+
+
+
+
+	function processQueue () {
+		waitingToCompile = false;
+		shine.jit.onCompile();
+
+		while (compileQueue.length) compile.apply(null, compileQueue.shift());
+	}
+
+
+
+
+	function compile (func, callback) {
+		var js = shine.jit.toJS(func);
+		callback(shine.operations.evaluateInScope(js, func._vm));
+	}
+
 
 
 
@@ -3784,8 +3921,8 @@ shine.File.prototype.dispose = function () {
 					canRestructure = false;
 					break;
 				// } else if (match[2].indexOf('setR(') >= 0) {
-				// 	canRestructure = false;
-				// 	break;
+				//  canRestructure = false;
+				//  break;
 				} else {
 					params.unshift(match[2]);
 				}
@@ -3807,7 +3944,7 @@ shine.File.prototype.dispose = function () {
 			} 
 		}
  
- 		gc.collect(params);
+		gc.collect(params);
 		return result || 'callR(R,' + a + ',' + c + ',' + argLimits + ');';
 	}
 
@@ -3841,7 +3978,7 @@ shine.File.prototype.dispose = function () {
 		}
 
 		return result;
-	}	
+	}   
 
 
 
@@ -3961,7 +4098,7 @@ shine.File.prototype.dispose = function () {
 		if (this.vars.indexOf('getupval') < 0) this.vars.push('getupval');
 		if (this.vars.indexOf('setupval') < 0) this.vars.push('setupval');
 
-		while ((opcode = instructions[this.pc * 4]) !== undefined && (opcode === 0 || opcode === 4) && this._instructions[this.pc * 4 + 1] === 0) {	// move, getupval
+		while ((opcode = instructions[this.pc * 4]) !== undefined && (opcode === 0 || opcode === 4) && this._instructions[this.pc * 4 + 1] === 0) { // move, getupval
 			upvalueData.push.apply(upvalueData, slice.call(instructions, this.pc * 4, this.pc * 4 + 4));
 			this.pc++;
 		}
@@ -4015,9 +4152,18 @@ shine.File.prototype.dispose = function () {
 	 * @param {shine.Function} func The input Moonshine function definition.
 	 * @returns {function} A JavaScript representation of the function.
 	 */
-	shine.jit.compile = function (func) {
-		var js = shine.jit.toJS(func);
-		return shine.operations.evaluateInScope(js);
+	// shine.jit.compile = function (func) {
+	//  var js = shine.jit.toJS(func);
+	//  return shine.operations.evaluateInScope(js);
+	// };
+	shine.jit.compile = function (func, callback) {
+		if (shine.jit.MIN_FPS_TO_COMPILE) {
+			compileQueue.push(arguments);
+			enableCompileTimer();
+
+		} else {
+			compile(func, callback);
+		}
 	};
 
 
@@ -4063,7 +4209,7 @@ shine.File.prototype.dispose = function () {
 			getConstant: function (index) {
 				if (this._constants[index] === null) return;
 				return this._constants[index];
-			}			
+			}           
 		};
 
 
@@ -4090,7 +4236,7 @@ shine.File.prototype.dispose = function () {
 
 
 		// v5.0 compatibility (LUA_COMPAT_VARARG)
-		if (func._data.is_vararg == 7) {	
+		if (func._data.is_vararg == 7) {    
 			compatibility =  'setR(R,' + paramCount + ',new shine.Table(Array.prototype.slice.call(arguments,' + paramCount + ')));R[' + paramCount + '].setMember("n", arguments.length-' + paramCount + ');';
 		}
 
