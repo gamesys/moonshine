@@ -52,7 +52,7 @@
 
 
 	/**
-	 * The number of times that a function is interpreted before it is compiled.
+	 * The number of times that a function is interpreted before it is set to be compiled.
 	 * @type number
 	 */
 	shine.jit.INVOCATION_TOLERANCE = 2;
@@ -60,10 +60,141 @@
 
 
 
+	/**
+	 * The number of milliseconds of idle time that needs to pass before the compiler starts processing the queue.
+	 * @type number
+	 */
+	shine.jit.IDLE_COMPILE_TIMEOUT = 15;
+
+
+
+
 	var SET_REG_PATTERN = /^setR\(R,(\d+),([^;]*?)\);$/,
+		gc = shine.gc,
+		Function_apply = shine.Function.prototype.apply,
+		compileQueue = [],
+		frameCounter = 0,
+		waitingToCompile = false;
 
 
-	gc = shine.gc;
+
+
+	/******************************************************************
+	*  Hooks
+	******************************************************************/
+
+	shine.Function.prototype.apply = function () {
+		var data,
+			compiled;
+
+		if (shine.jit.enabled) {
+			data = this._data;
+
+			// If function has already been compiled...
+			if (compiled = data._compiled) {
+				this.apply = createRunner(this, data, compiled);
+				return this.apply.apply(this, arguments);
+			}
+
+			this._runCount = this._runCount || 0;
+
+			if (!this._compiling && ++this._runCount == shine.jit.INVOCATION_TOLERANCE) {
+				this._compile();
+			}
+		}
+
+		framesSinceBusy = 0;
+		return Function_apply.apply(this, arguments);
+	};
+
+
+
+
+	/**
+	 * Compiles the function to JavaScript.
+	 */
+	shine.Function.prototype._compile = function () {
+		var me = this,
+			data = this._data;
+
+		if (!data._compiling) {
+			data._compiling = true;
+			// window.top.sentToCompiler++;
+
+			shine.jit.compile(this, function (compiled) {
+				if (data._compiled = compiled) {
+					data._compiling = false;
+					me.apply = createRunner(me, data, compiled);
+				}
+			});
+		}
+	};
+// window.top.sentToCompiler = 0;
+
+
+	function createRunner (instance, data, compiled) {
+		return function (context, args) {
+			var closure = shine.gc.createObject(),
+				retvals;
+
+			closure._vm = instance._vm;
+			closure._globals = instance._globals;
+			closure._upvalues = instance._upvalues;
+			closure._constants = data.constants;
+			closure._functions = data.functions;
+			closure._localsUsedAsUpvalues = shine.gc.createArray();
+
+			framesSinceBusy = 0;
+			return compiled.apply(closure, args); 
+		};
+	}
+
+
+	/******************************************************************
+	*  Compile Queue
+	******************************************************************/
+
+
+	function enableCompileTimer () {
+		if (!waitingToCompile) {
+			waitingToCompile = true;
+			window.requestAnimationFrame(onAnimationFrame);
+		}
+	}
+
+
+
+
+	function onAnimationFrame () {
+		if (++framesSinceBusy > shine.jit.IDLE_COMPILE_TIMEOUT) {
+			processNextInQueue();
+		} else {
+			window.requestAnimationFrame(onAnimationFrame);		
+		}
+	}
+
+
+
+
+	function processNextInQueue () {
+		while (compileQueue.length) compile.apply(null, compileQueue.shift());
+			
+		// if (compileQueue.length) {
+		// 	window.requestAnimationFrame(onAnimationFrame);	
+		// } else {
+			waitingToCompile = false;
+		// }
+	}
+
+// window.top.compiled =0
+
+
+	function compile (func, callback) {
+// window.top.compiled++;
+		var js = shine.jit.toJS(func);
+		callback(shine.operations.evaluateInScope(js, func._vm));
+	}
+
 
 
 
@@ -646,9 +777,18 @@
 	 * @param {shine.Function} func The input Moonshine function definition.
 	 * @returns {function} A JavaScript representation of the function.
 	 */
-	shine.jit.compile = function (func) {
-		var js = shine.jit.toJS(func);
-		return shine.operations.evaluateInScope(js);
+	// shine.jit.compile = function (func) {
+	// 	var js = shine.jit.toJS(func);
+	// 	return shine.operations.evaluateInScope(js);
+	// };
+	shine.jit.compile = function (func, callback) {
+		if (shine.jit.IDLE_COMPILE_TIMEOUT) {
+			compileQueue.push(arguments);
+			enableCompileTimer();
+
+		} else {
+			compile(func, callback);
+		}
 	};
 
 

@@ -1220,9 +1220,9 @@
 	 * @param {string} funcDef String containing a JavaScript function definition.
 	 * @returns {function} Resulting JavaScript function.
 	 */
-	shine.operations.evaluateInScope = function (funcDef) {
+	shine.operations.evaluateInScope = function (funcDef, vm) {
 		var func,
-			shine_g = shine.getCurrentVM()._globals;
+			shine_g = (vm || shine.getCurrentVM())._globals;
 
 
 		eval('func=' + funcDef);

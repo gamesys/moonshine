@@ -40,6 +40,7 @@ var shine = shine || {};
  * @param {object} data Object containing the Luac data for the function.
  * @param {object} globals The global variables for the environment in which the function is declared.
  * @param {object} [upvalues] The upvalues passed from the parent closure.
+ * @see Hooks into this function in jit.js.
  */
 shine.Function = function (vm, file, data, globals, upvalues) {
 	var me, compiled, closure, runner;
@@ -52,7 +53,6 @@ shine.Function = function (vm, file, data, globals, upvalues) {
 	this._index = shine.Function._index++;
 	this.instances = shine.gc.createArray();
 	this._retainCount = 0;
-	this._runCount = 0;
 
  	this._convertInstructions();
 };
@@ -86,33 +86,9 @@ shine.Function.prototype.getInstance = function () {
 
 /**
  * Compiles the function to JavaScript.
+ * @see Implemented in jit.js.
  */
-shine.Function.prototype._compile = function () {
-	var data = this._data,
-		me, closure, compiled;
-
-	if (!(compiled = data._compiled)) {
-		compiled = data._compiled = shine.jit.compile(this);
-	}
-
-	if (compiled) {
-		me = this;
-
-		this.apply = function (context, args) {
-			closure = shine.gc.createObject();
-
-			closure._vm = me._vm;
-			closure._globals = me._globals;
-			closure._upvalues = me._upvalues;
-			closure._constants = data.constants;
-			closure._functions = data.functions;
-			// closure._localFunctions = shine.gc.createArray();
-			closure._localsUsedAsUpvalues = shine.gc.createArray();
-
-			return compiled.apply(closure, args); 
-		}
-	}
-};
+shine.Function.prototype._compile = function () {};
 
 
 
@@ -184,6 +160,7 @@ shine.Function.prototype.call = function (context) {
  * Calls the function, implicitly creating a new instance and using items of an array as arguments.
  * @param {object} [obj = {}] The object on which to apply the function. Included for compatibility with JavaScript's Function.apply().
  * @param {Array} args Array containing arguments to use.
+ * @see Hooks into this function in jit.js.
  * @returns {Array} Array of the return values from the call.
  */
 shine.Function.prototype.apply = function (obj, args, internal) {
@@ -192,18 +169,11 @@ shine.Function.prototype.apply = function (obj, args, internal) {
 		obj = undefined;
 	}
 
-	if (shine.jit.enabled && ++this._runCount == shine.jit.INVOCATION_TOLERANCE) {
-		shine.Closure._current = this.getInstance()._instance;
-		this._compile();
-		return this.apply.apply(this, arguments);
-	}
-
 	try {
 		return this.getInstance().apply(obj, args);
 	} catch (e) {
 		shine.Error.catchExecutionError(e);
 	}
-
 };
 
 
