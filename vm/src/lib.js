@@ -340,6 +340,7 @@
 			var found = (index === undefined),
 				numValues = table.__shine.numValues,
 				keys,
+				key, value,
 				i, l;
 
 			if (found || (typeof index == 'number' && index > 0 && index == index >> 0)) {
@@ -355,8 +356,9 @@
 						found = true;
 					} 
 
-					if (found && (i = keys[i]) !== undefined && numValues[i] !== undefined) {
-						return [i >>= 0, numValues[i]];
+					if (found) {
+						while ((key = keys[i]) !== void 0 && (value = numValues[key]) === void 0) i++;
+						if (value !== void 0) return [i >>= 0, value];
 					}
 
 				} else {

@@ -244,6 +244,16 @@ assertTrue (r.string, 'pairs() should iterate over string keys')
 assertTrue (r.half, 'pairs() should iterate over non-integer numberic keys')
 
 
+t = { nil, nil, 123 }
+a = ''
+
+for i, v in pairs(t) do
+  a = a..i..':'..v..';'
+end
+
+assertTrue (a == '3:123;', 'pairs() should iterate over numeric table items')
+
+
 
 
 

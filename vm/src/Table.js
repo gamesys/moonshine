@@ -180,12 +180,7 @@
 
 			case 'number':
 				if (positiveIntegerKey) {
-					if (value === undefined) {
-						delete this.__shine.numValues[key];
-					} else {
-						this.__shine.numValues[key] = value;
-					}
-
+					this.__shine.numValues[key] = value;
 					break;
 				}
 
