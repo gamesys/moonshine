@@ -44,6 +44,7 @@ var switches = getSwitches(process.argv),
 
 
 	SOURCE_FILENAMES = [
+		'../src/init.js',
 		'../src/gc.js',
 		'../src/EventEmitter.js',
 		'../src/FileManager.js',
