@@ -82,7 +82,7 @@
 	var SET_REG_PATTERN = /^setR\(R,(\d+),([^;]*?)\);$/,
 		gc = shine.gc,
 		Function_apply = shine.Function.prototype.apply,
-		compileQueue = [],
+		compileQueue = gc.createArray(),
 		frameCounter = 0,
 		waitingToCompile = false,
 		getNow = Date['now']? Date['now'] : function () { return new Date().getTime(); },
@@ -145,7 +145,7 @@
 
 	function createRunner (instance, data, compiled) {
 		return function (context, args) {
-			var closure = shine.gc.createObject(),
+			var closure = gc.createObject(),
 				retvals;
 
 			closure._vm = instance._vm;
@@ -153,7 +153,7 @@
 			closure._upvalues = instance._upvalues;
 			closure._constants = data.constants;
 			closure._functions = data.functions;
-			closure._localsUsedAsUpvalues = shine.gc.createArray();
+			closure._localsUsedAsUpvalues = gc.createArray();
 
 			return compiled.apply(closure, args); 
 		};
@@ -220,7 +220,11 @@
 		waitingToCompile = false;
 		shine.jit.onCompile();
 
-		while (compileQueue.length) compile.apply(null, compileQueue.shift());
+		while (compileQueue.length) {
+			var item = compileQueue.shift()
+			compile(item[0], item[1]);
+			gc.collect(item);
+		}
 	}
 
 
@@ -239,21 +243,8 @@
 	******************************************************************/
 
 
-	/**
-	 * Create a comma delimited string of consecutive numbers.
-	 * @param {number} last The number on which to end the sequence.
-	 * @param {string} [prefix=''] Optional prefix to each number in the string.
-	 * @param {number} [first=0] Optional start number.
-	 * @returns {string} Comma delimited string.
-	 */
-	function createNumberString (last, prefix, first) { 
-		prefix = '' + (prefix || '');
-		var x = first || 0; 
-		if (last < x) return '';
-		return Array(last - x + 1).join().replace(new RegExp('','g'), function () { return prefix + x++; }); 
-	}
-
-
+	var NEWLINE_PATTERN = /\n/g,
+		APOS_PATTERN = /'/g;
 
 
 	/**
@@ -263,8 +254,8 @@
 	 */
 	function formatValue (value) {
 		if (typeof value == 'string') {
-			value = value.replace(/\n/g, '\\n');
-			value = value.replace(/'/g, '\\\'');
+			value = value.replace(NEWLINE_PATTERN, '\\n');
+			value = value.replace(APOS_PATTERN, '\\\'');
 			return "'" + value + "'";
 		}
 
@@ -295,8 +286,6 @@
 
 
 	function translate_move (a, b) {
-		// return 'R' + a + '=R' + b + ';';
-		// return 'setupval(' + a + ',register[' + b + ']);';
 		return 'setR(R,' + a + ',R[' + b + ']);';
 	}
 
@@ -304,7 +293,6 @@
 
 
 	function translate_loadk (a, bx) {
-		// return 'R' + a + '=' + formatValue(this.getConstant(bx)) + ';';
 		return 'setR(R,' + a + ',' + formatValue(this.getConstant(bx)) + ');';
 	}
 
@@ -312,7 +300,6 @@
 
 
 	function translate_loadbool (a, b, c) {
-		// var result = 'decr(register[' + a + ']);register[' + a + ']=' + !!b + ';',
 		var result = 'setR(R,' + a + ',' + !!b + ');',
 			pc;
 
@@ -351,8 +338,6 @@
 
 	function translate_getglobal (a, b) {
 		var key = this.getConstant(b);
-
-		// return 'R' + a + '=cl._globals' + ((key == '_G')? '' : '[' + formatValue(key) + ']') + ';';
 		return 'setR(R,' + a + ',shine_g' + ((key == '_G')? '' : '[' + formatValue(key) + ']') + ');';
 	}
 
@@ -813,13 +798,12 @@
 	 * @param {shine.Function} func The input Moonshine function definition.
 	 * @returns {function} A JavaScript representation of the function.
 	 */
-	// shine.jit.compile = function (func) {
-	//  var js = shine.jit.toJS(func);
-	//  return shine.operations.evaluateInScope(js);
-	// };
 	shine.jit.compile = function (func, callback) {
 		if (shine.jit.MIN_FPS_TO_COMPILE) {
-			compileQueue.push(arguments);
+			var args = gc.createArray();
+			args.push(func, callback);
+
+			compileQueue.push(args);
 			enableCompileTimer();
 
 		} else {
@@ -862,17 +846,18 @@
 			pc: pc,
 			code: gc.createArray(),
 			vars: gc.createArray(),
-			jumpDestinations: [1],
+			jumpDestinations: gc.createArray(),
 
 			_constants: func._data.constants,
 			_instructions: func._data.instructions,
 
 			getConstant: function (index) {
-				if (this._constants[index] === null) return;
-				return this._constants[index];
+				var val = this._constants[index];
+				return this._constants[index] === null? void 0 : val;
 			}           
 		};
 
+		state.jumpDestinations.push(1);
 
 		// Get code representation of instructions
 		l = instructions.length / 4;
@@ -927,9 +912,13 @@
 		// return 'function(){' + code.join('\n') + '}';
 		result = 'function(' + paramNames.join() + '){' + code.join('\n') + '}';
 
-
 		gc.collect(code);
 		gc.collect(paramNames);
+
+		gc.collect(state.code);
+		gc.collect(state.vars);
+		gc.collect(state.jumpDestinations);
+
 		gc.collect(state);
 
 		return result;

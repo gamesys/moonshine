@@ -1152,16 +1152,17 @@
 
 
 	function callR (register, index, c, argStart, argEnd) {
-		var args, result;
+		var result, i, limit,
+		args = createArray();
 
-		if (!argStart) {
-			args = createArray();
-		} else if (!argEnd) {
-			args = register.slice(argStart);
-		} else {
-			args = register.slice(argStart, argEnd);
+		if (argStart) {
+			limit = argEnd? argEnd : register.length;
+
+			for (i = argStart; i < limit; i++) {
+				args.push(register[i]);
+			}
 		}
-		
+
 		result = call_internal(register[index],args);
 
 		register.length = index;
@@ -1171,7 +1172,7 @@
 
 		if (!(result instanceof Array)) {
 			setR(register, index, result);
-		
+
 		} else {
 			result.unshift(index, 0);
 			Array.prototype.splice.apply(register, result);
