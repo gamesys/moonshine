@@ -329,12 +329,12 @@ function addOne ()
 	function nested ()
 		assertTrue (b == 20, 'Functions should be able to access locals of parent closures [2]')
 		
-		local c = 9
-		assertTrue (c == 9, 'Functions should be able to access their own locals')
+		local cc = 9
+		assertTrue (cc == 9, 'Functions should be able to access their own locals')
 	end
 	
 	nested ()
-	assertTrue (c == nil, 'Function locals should not be accessible from outside the function')
+	assertTrue (cc == nil, 'Function locals should not be accessible from outside the function')
 	
 	b = b + 1
 	assertTrue (b == 21, 'Operations performed on upvalues should use external value')
