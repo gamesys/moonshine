@@ -61,10 +61,14 @@ var shine = shine || {};
 		this._runConfig = config || {};
 
 		var me = this,
+			version,
 			fs;
 
-		if (filename.substr(0, 5) == String.fromCharCode(27, 76, 117, 97, 81)) {
+		if (filename.substr(0, 4) == String.fromCharCode(27, 76, 117, 97)) {
 			// Lua byte code string
+			version = filename.charCodeAt(4).toString(16);
+			if (version != '51') throw new SyntaxError('The specified file was compiled with Lua v' + version[0] + '.' + version[1] + '; Moonshine can only parse bytecode created using the Lua v5.1 compiler.');
+
 			this._parseData(filename);
 			if (callback) callback(this._tree);
 
