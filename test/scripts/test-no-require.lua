@@ -118,7 +118,7 @@ end
 local a = 1
 assertTrue (a == 1, 'Local should retain value')
 
-local a, b = 5, 20
+local a, b, c, d = 5, 20, 0, nil
 assertTrue (a == 5, 'Local should change value')
 assertTrue (b == 20, 'Local should accept multiple assignments')
 
@@ -131,11 +131,22 @@ assertTrue (result == -15, 'Minus operator should result in subtraction of opera
 result = a * b
 assertTrue (result == 100, 'Asterisk operator should result in multiplication of operands')
 
+
 result = b / a
 assertTrue (result == 4, 'Slash operator should result in division of operands')
 
 result = a / b
 assertTrue (result == .25, 'Division should handle floating point results')
+
+result = a / c
+assertTrue (result == math.huge, 'Division by zero should return infinity')
+
+result = a / -c
+assertTrue (result == -math.huge, 'Division by negative zero should return negative infinity')
+
+xpcall(function () result = a / d end, function () result = 'failed' end)
+assertTrue (result == 'failed', 'Division by nil should error')
+
 
 result = 5 % 3
 assertTrue (result == 2, 'Modulo operator should return the remainder of the division of the two operands')

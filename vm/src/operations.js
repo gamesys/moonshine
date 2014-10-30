@@ -365,6 +365,7 @@
 
 
 	function div_internal (x, y) {
+		if (y === undefined) throw new shine.Error('attempt to perform arithmetic on a nil value');
 		return x / y;
 	}
 
