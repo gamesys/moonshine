@@ -53,6 +53,11 @@ Removes the debugging information from the output file(s).
 \-w, \-\-watch
 .RS 4
 Watches the filepaths given for changes and runs the distilation process again.
+.RE
+.PP
+\-c, \-\-compiler
+.RS 4
+Sets the Lua compiler executable to be used. Defaults to "luac".
 .SH EXAMPLES
 .PP
 moonshine distil -s -o myoutput.json myinput.lua

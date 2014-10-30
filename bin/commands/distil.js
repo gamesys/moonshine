@@ -37,7 +37,8 @@ var Parser = require('../../distillery/distillery.moonshine.js').Parser,
 		packageMain: ['-pm', ''],
 		noRecursion: ['-R', false],
 		stripDebugging: ['-s', false],
-		watch: ['-w', false]
+		watch: ['-w', false],
+		compiler: ['-c', 'luac']
 	};
 
 
@@ -145,11 +146,12 @@ function getFileDestinations (root, dest, path, depth) {
 
 
 
-function compile (filename, callback) {
+function compile (filename, switches, callback) {
 	var luacFilename = filename + '.moonshine.luac',
+		compiler = switches.compiler,
 		errPart;
 
-	exec('luac -o ' + luacFilename + ' ' + filename, function (err, stdout, stderr) {
+	exec(compiler + ' -o ' + luacFilename + ' ' + filename, function (err, stdout, stderr) {
 		if (err) {
 			errPart = err.message.split(/:\s?/);
 			if (errPart[1] != 'luac') throw e;
@@ -167,7 +169,7 @@ function compile (filename, callback) {
 
 
 function distil (source, switches, callback) {
-	compile(source, function (bytecode) {
+	compile(source, switches, function (bytecode) {
 		
 		var parser = new Parser(),
 			config = {
