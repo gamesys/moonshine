@@ -53,6 +53,12 @@ assertTrue (result == -math.huge, 'Division by negative zero should return negat
 xpcall(function () result = a / d end, function () result = 'failed' end)
 assertTrue (result == 'failed', 'Division by nil should error')
 
+xpcall(function () result = a / 'x' end, function () result = 'failed2' end)
+assertTrue (result == 'failed2', 'Division by string value should error')
+
+xpcall(function () result = 'x' / a end, function () result = 'failed3' end)
+assertTrue (result == 'failed3', 'Division of string value should error')
+
 
 result = 5 % 3
 assertTrue (result == 2, 'Modulo operator should return the remainder of the division of the two operands')
