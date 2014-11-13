@@ -21,15 +21,16 @@
  */
  
 (function () {
-	var originalValue = window.shine;
+	if (typeof window != 'undefined') {
+		var originalValue = window.shine;
 
-	window.shine = {
-		noConflict: function () {
-			window.shine = originalValue;
-			return this;
-		}
-	};
-
+		window.shine = {
+			noConflict: function () {
+				window.shine = originalValue;
+				return this;
+			}
+		};
+	}
 })();
 
 
@@ -2473,6 +2474,7 @@ shine.File.prototype.dispose = function () {
 
 
 	function div_internal (x, y) {
+		if (y === undefined) throw new shine.Error('attempt to perform arithmetic on a nil value');
 		return x / y;
 	}
 
@@ -4609,7 +4611,7 @@ if (typeof module != 'undefined') module.exports = shine.jit;
 				if ('keys' in Object) {
 					// Use Object.keys, if available.
 					keys = Object['keys'](numValues);
-					
+
 					if (found) {
 						// First pass
 						i = 1;
@@ -4620,7 +4622,7 @@ if (typeof module != 'undefined') module.exports = shine.jit;
 
 					if (found) {
 						while ((key = keys[i]) !== void 0 && (value = numValues[key]) === void 0) i++;
-						if (value !== void 0) return [i >>= 0, value];
+						if (value !== void 0) return [key >>= 0, value];
 					}
 
 				} else {
