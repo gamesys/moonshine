@@ -248,11 +248,22 @@ t = { nil, nil, 123 }
 a = ''
 
 for i, v in pairs(t) do
-  a = a..i..':'..v..';'
+	a = a..i..':'..v..';'
 end
 
 assertTrue (a == '3:123;', 'pairs() should iterate over numeric table items')
 
+
+t = {}
+t[10] = {}
+t[15] = {}
+s = ''
+
+for i in pairs(t) do
+	s = s..i..';'
+end
+
+assertTrue (s == '10;15;', 'pairs() should return correct numeric keys')
 
 
 

@@ -1414,6 +1414,7 @@ assertTrue (b == '[1=2][2=4][3=8]', 'ipairs() should iterate over table items [1
 
 -- pairs
 
+
 local a, b = "", {foo=1}
 b["bar"] = "Hello",
 table.insert(b, 123)
@@ -1423,6 +1424,48 @@ for i, v in pairs(b) do
 end
 
 assertTrue (#a == #'1:123;bar:Hello;foo:1;', 'pairs() should iterate over table items [2]')	-- Have to compare lengths because order is arbitrary
+
+
+local t = {
+  [0] = "zero",
+  [1] = "one",
+  [-1] = "negative",
+  foo = "string",
+  [0.5] = "half"
+}
+local r = {}
+
+for i, v in pairs(t) do 
+    r[v] = true
+end
+
+assertTrue (r.zero, 'pairs() should iterate over zero key')
+assertTrue (r.one, 'pairs() should iterate over positive integer keys')
+assertTrue (r.negative, 'pairs() should iterate over negative keys')
+assertTrue (r.string, 'pairs() should iterate over string keys')
+assertTrue (r.half, 'pairs() should iterate over non-integer numberic keys')
+
+
+t = { nil, nil, 123 }
+a = ''
+
+for i, v in pairs(t) do
+	a = a..i..':'..v..';'
+end
+
+assertTrue (a == '3:123;', 'pairs() should iterate over numeric table items')
+
+
+t = {}
+t[10] = {}
+t[15] = {}
+s = ''
+
+for i in pairs(t) do
+	s = s..i..';'
+end
+
+assertTrue (s == '10;15;', 'pairs() should return correct numeric keys')
 
 
 

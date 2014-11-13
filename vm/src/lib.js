@@ -358,7 +358,7 @@
 
 					if (found) {
 						while ((key = keys[i]) !== void 0 && (value = numValues[key]) === void 0) i++;
-						if (value !== void 0) return [i >>= 0, value];
+						if (value !== void 0) return [key >>= 0, value];
 					}
 
 				} else {
