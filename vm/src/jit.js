@@ -330,7 +330,7 @@
 
 
 	function translate_getupval (a, b) {
-		return '(cl._upvalues[' + b + ']!==void 0)&&(setR(R,' + a + ',cl._upvalues[' + b + '].getValue()));';
+		return 'setR(R,' + a + ',cl._upvalues[' + b + ']===void 0?void 0:cl._upvalues[' + b + '].getValue());';
 	}
 
 
@@ -607,23 +607,19 @@
 
 
 	function translate_return (a, b) {
-		var result = '',
+		var close = translate_close.call(this, 0),
 			i;
-
-		result = translate_close.call(this, 0);
 
 		if (b === 0) {
 			i = createVar.call(this, 'i');
-			result += 'return R.slice(' + a + ');';
+			return '_=R.slice(' + a + ');' + close + 'return _;';
 
 		} else if (b == 1) {
-			result += 'return createArray();';
+			return close + 'return createArray();';
  
 		} else {
-			result += 'return R.slice(' + a + ',' + (a + b - 1) + ');';
+			return '_=R.slice(' + a + ',' + (a + b - 1) + ');' + close + 'return _;';
 		}
-
-		return result;
 	}   
 
 
