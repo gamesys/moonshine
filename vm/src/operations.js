@@ -1112,6 +1112,7 @@
 		decr = shine.gc.decrRef.bind(shine.gc),
 		collect = shine.gc.collect.bind(shine.gc),
 		createArray = shine.gc.createArray.bind(shine.gc),
+		cacheArray = shine.gc.cacheArray.bind(shine.gc),
 
 		// Constants
 		EMPTY_ARR = shine.EMPTY_ARR;
@@ -1141,57 +1142,76 @@
 
 
 	function setRArr (register, index, limit, arr) {
-		for (var i = index, l = register.length; i < l; i++) decr(register[i]);
-		register.length = index;
-
-		if (!(arr instanceof Array)) arr = [arr];
-
-		for (var i = 0, l = limit || arr.length; i < l; i++) {
+		var toDecr = register.splice(index, Infinity),
+			i, l;
+ 
+		if (!(arr instanceof Array)) {
+			i = createArray();
+			i.push(arr);
+			arr = i;
+		}
+ 
+		for (i = 0, l = limit || arr.length; i < l; i++) {
 			incr(register[index + i] = arr[i]);
 		}
-	}
+ 
+		for (i = 0, l = toDecr.length; i < l; i++) {
+			decr(register.shift());
+		}
 
+		cacheArray(arr);
+	}
+ 
 
 	function callR (register, index, c, argStart, argEnd) {
-		var result, i, limit,
-		args = createArray();
-
+		var args = createArray(),
+			result, i, limit, toDecr;
+ 
+ 
 		if (argStart) {
 			limit = argEnd? argEnd : register.length;
-
+ 
 			for (i = argStart; i < limit; i++) {
 				args.push(register[i]);
 			}
 		}
-
+ 
 		result = call_internal(register[index],args);
-
-		register.length = index;
-		collect(args);
-
-		if (c == 1) return;
-
-		if (!(result instanceof Array)) {
+		toDecr = register.splice(index, Infinity);
+ 
+		if (c == 1) {
+			// NOOP
+		 
+		} else if (!(result instanceof Array)) {
 			setR(register, index, result);
-
+		 
 		} else {
+			for (i = 0, limit = result.length; i < limit; i++) incr(result[i]);
+		 
 			result.unshift(index, 0);
 			Array.prototype.splice.apply(register, result);
-
-			collect(result);
+			 
+			cacheArray(result);
 		}
+
+		for (i = 0, limit = toDecr.length; i < limit; i++) {
+			decr(toDecr.shift());
+		}
+
+ 		cacheArray(args);
 	}
-
-
-	function setlistT(R, t, index, keyStart, length) {
+ 
+ 
+	function setlistT (R, t, index, keyStart, length) {
 		t.setMember(keyStart, R[index]);
 		if (--length) setlistT(R, t, index + 1, keyStart + 1, length);
 	}
-
-
+ 
+ 
 	function create_func (def, upvals, cl) {
-  	    return new shine.Function(cl._vm,cl._file,def,cl._globals,upvals);
+		return new shine.Function(cl._vm,cl._file,def,cl._globals,upvals);
 	}
+ 
 
 
 
