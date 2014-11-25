@@ -200,6 +200,8 @@
 
 
 	function onWaitTimerTick () {
+		if (!shine || !shine.jit) return;
+		
 		var now = getNow(),
 			fps = 1000 * frameCounter / (now - waitTimerStarted);
 
