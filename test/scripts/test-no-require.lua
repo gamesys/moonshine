@@ -2173,6 +2173,7 @@ do
     q = string.format("%-9.3f", 123.45)
 	r = string.format("%-+9.3f", 123.45)
 	s = string.format("%.0f", 123.45)
+	t = string.format("%.4f", 123.05)
 
 	assertTrue (a == '123.450000', 'string.format() should format floats correctly[1]')
 	assertTrue (b == '123.45000000', 'string.format() should format floats correctly[2]')
@@ -2193,6 +2194,7 @@ do
 	assertTrue (q == '123.450  ', 'string.format() should format floats correctly[17]')
 	assertTrue (r == '+123.450 ', 'string.format() should format floats correctly[18]')
 	assertTrue (s == '123', 'string.format() should format floats correctly[19]')
+	assertTrue (t == '123.0500', 'string.format() should format floats correctly[20]')
 
 
 	a = string.format("%x", 123)

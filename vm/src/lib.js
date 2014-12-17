@@ -1639,9 +1639,8 @@
 				arg = '' + Math.floor(Math.abs(arg));
 
 				if (precision > 0) {
-					mantissa = Math.round(mantissa * Math.pow(10, precision));
-					precision -= ('' + mantissa).length;
-
+					mantissa = mantissa.toFixed(precision).substr(2);
+					precision -= mantissa.length;
 					arg += '.' + mantissa + (precision? pad('0', precision) : '');
 				}
 
