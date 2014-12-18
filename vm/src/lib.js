@@ -153,31 +153,9 @@
 		// TODO Add support for balanced character matching (not sure this is easily achieveable).
 		pattern = '' + pattern;
 
-		var n = 0,
-			i, l, character, addSlash;
+		var i;
 					
 		for (i in ROSETTA_STONE) if (ROSETTA_STONE.hasOwnProperty(i)) pattern = pattern.replace(new RegExp(i, 'g'), ROSETTA_STONE[i]);
-		l = pattern.length;
-
-		for (i = 0; i < l; i++) {
-			character = pattern.substr(i, 1);
-			addSlash = false;
-
-			if (character == '[') {
-				if (n) addSlash = true;
-				n++;
-
-			} else if (character == ']') {
-				n--;
-				if (n) addSlash = true;
-			}
-
-			if (addSlash) {
-				// pattern = pattern.substr(0, i) + '\\' + pattern.substr(i++);
-				pattern = pattern.substr(0, i) + pattern.substr(i++ + 1);
-				l++;
-			}
-		}			
 
 		return pattern;	
 	}
