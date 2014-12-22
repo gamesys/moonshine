@@ -153,9 +153,11 @@
 		// TODO Add support for balanced character matching (not sure this is easily achieveable).
 		pattern = '' + pattern;
 
-		var i;
-					
-		for (i in ROSETTA_STONE) if (ROSETTA_STONE.hasOwnProperty(i)) pattern = pattern.replace(new RegExp(i, 'g'), ROSETTA_STONE[i]);
+		for (var i in ROSETTA_STONE) {
+			if (ROSETTA_STONE.hasOwnProperty(i)) {
+				pattern = pattern.replace(new RegExp(i, 'g'), ROSETTA_STONE[i]);
+			}
+		}
 
 		return pattern;	
 	}

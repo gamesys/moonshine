@@ -508,22 +508,15 @@ local c = string.lower (a);
 assertTrue (b == '', 'string.lower() should return an empty string if passed an empty string')
 assertTrue (c == 'mclaren mercedes', 'string.lower() should return the string in the first argument with all character in lower case')
 
--- match
 
-local a = '[4,8]'
 
-local b = string.match(a,'[%[]');
-local c = string.match(a,'%[');
-
-assertTrue(b == '[', 'string.match() should return the magic character when we search for it as part of a group.')
-assertTrue(c == '[', 'string.match() should return the magic character when we search for it outside of a group.')
 
 -- match
 local a = '[4,8]'
 
-local b = string.match(a,'[%[]');
-local c = string.match(a,'%[');
-local d = string.match(a,'[[]');
+local b = string.match(a,'[%[]')
+local c = string.match(a,'%[')
+local d = string.match(a,'[[]')
 
 local e = string.match(a,'[]]')
 local f = string.match(a,'[]4]')
@@ -548,6 +541,8 @@ assertTrue(i == '8]', 'string.match() should handle unescaped closing bracket co
 assertTrue(j == ',8', 'string.match() should handle unbalanced and multiple char-sets correctly')
 assertTrue(k == '8]', 'string.match() should handle nested char-sets correctly [1]')
 assertTrue(l == nil, 'string.match() should handle nested char-sets correctly [2]')
+
+
 
 
 -- rep

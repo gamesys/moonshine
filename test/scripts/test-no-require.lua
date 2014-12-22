@@ -2365,9 +2365,9 @@ assertTrue (c == 'mclaren mercedes', 'string.lower() should return the string in
 -- match
 local a = '[4,8]'
 
-local b = string.match(a,'[%[]');
-local c = string.match(a,'%[');
-local d = string.match(a,'[[]');
+local b = string.match(a,'[%[]')
+local c = string.match(a,'%[')
+local d = string.match(a,'[[]')
 
 local e = string.match(a,'[]]')
 local f = string.match(a,'[]4]')
