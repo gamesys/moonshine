@@ -510,6 +510,37 @@ assertTrue (c == 'mclaren mercedes', 'string.lower() should return the string in
 
 
 
+-- match
+local a = '[4,8]'
+
+local b = string.match(a,'[%[]');
+local c = string.match(a,'%[');
+local d = string.match(a,'[[]');
+
+local e = string.match(a,'[]]')
+local f = string.match(a,'[]4]')
+local g = string.match(a,'[]8]')
+local h = string.match(a,'[]4]8]')
+local i = string.match(a,'[]4]?8]')
+
+local j = string.match(a,'[[,][8,]')
+local k = string.match(a,'[4[8]]')
+local l = string.match('8','[4[8]]')
+
+assertTrue(b == '[', 'string.match() should return the magic character when we search for it as part of a group')
+assertTrue(c == '[', 'string.match() should return the magic character when we search for it outside of a group')
+assertTrue(d == '[', 'string.match() should handle unescaped opening bracket in char-set correctly')
+
+assertTrue(e == ']', 'string.match() should handle unescaped closing bracket correctly [1]')
+assertTrue(f == '4', 'string.match() should handle unescaped closing bracket correctly [2]')
+assertTrue(g == '8', 'string.match() should handle unescaped closing bracket correctly [3]')
+assertTrue(h == nil, 'string.match() should handle unescaped closing bracket correctly [4]')
+assertTrue(i == '8]', 'string.match() should handle unescaped closing bracket correctly [5]')
+
+assertTrue(j == ',8', 'string.match() should handle unbalanced and multiple char-sets correctly')
+assertTrue(k == '8]', 'string.match() should handle nested char-sets correctly [1]')
+assertTrue(l == nil, 'string.match() should handle nested char-sets correctly [2]')
+
 
 -- rep
 
