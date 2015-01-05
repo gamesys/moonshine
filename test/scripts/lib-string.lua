@@ -543,6 +543,13 @@ assertTrue(k == '8]', 'string.match() should handle nested char-sets correctly [
 assertTrue(l == nil, 'string.match() should handle nested char-sets correctly [2]')
 
 
+local a = string.match('[123x456]','[0%x]')
+local b = string.match('123x456','[0%D]')
+
+assertTrue(a == '1', 'string.match() should return the correct values from character classes in char-sets [1]')
+assertTrue(b == 'x', 'string.match() should return the correct values from character classes in char-sets [2]')
+
+
 
 
 -- rep
