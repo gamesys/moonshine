@@ -545,10 +545,13 @@ assertTrue(l == nil, 'string.match() should handle nested char-sets correctly [2
 
 local a = string.match('[123x456]','[0%x]')
 local b = string.match('123x456','[0%D]')
+local c = string.match('123x456','[0%Dfg%p2]')
+local d = string.match('123x456','[0%Dfg%p5]')
 
 assertTrue(a == '1', 'string.match() should return the correct values from character classes in char-sets [1]')
 assertTrue(b == 'x', 'string.match() should return the correct values from character classes in char-sets [2]')
-
+assertTrue(c == '2', 'string.match() should return the first match from character classes in char-sets [1]')
+assertTrue(d == 'x', 'string.match() should return the first match from character classes in char-sets [2]')
 
 
 
