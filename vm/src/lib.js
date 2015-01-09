@@ -152,6 +152,7 @@
 	function translatePattern (pattern) {
 		// TODO Add support for balanced character matching (not sure this is easily achieveable).
 		pattern = '' + pattern;
+        console.log('Initial Pattern:',pattern);
 
 		for (var i in ROSETTA_STONE) {
 			if (ROSETTA_STONE.hasOwnProperty(i)) {
@@ -159,6 +160,48 @@
 			}
 		}
 
+     	var n = 0, l, character;
+     	l = pattern.length;
+
+		for (i = 0; i < l; i++) {
+			character = pattern.substr(i, 1);
+
+			if (character == '\\') {
+				// Skip the next character since we've escaped this one.
+				if (i < l) { i++; }	
+			} else if (character == '[' ) {
+
+				// We've started the set, we need to end the set.
+
+            	// Get the first character in the set.
+            	i++; character = pattern.substr(i,1);
+            	// The carat immediately allows us to use the next character as the unskippable one.
+				if (character == '^') {
+				 	i++; character = pattern.substr(i,1);
+				}
+				// Check if the first character is a ].  If it is, it's special 
+				// (as far as Lua is concerned) and needs to be escaped.
+				if (character == ']') {
+					pattern = pattern.substr(0, i) + '\\' + pattern.substr(i++);
+					l++;
+				}
+
+		    	do {
+           	    	if (i == l) { 
+          	    		// Throw an error. 
+           	    	}
+					if (character == '\\') {
+						if (i < l) { i++; }	
+					}
+					if (i < l) { i++; }
+					character = pattern.substr(i,1);
+         	    } while (character != ']');
+
+            }
+
+		}			
+		
+		console.log('Resulting Pattern:',pattern);
 		return pattern;	
 	}
 	
@@ -1862,10 +1905,25 @@
 		
 			var matches = s.match(new RegExp(translatePattern (pattern)));
 			
-			if (!matches) return;
-			if (!matches[1]) return matches[0];
+			console.log('matches:', matches);
+
+			if (!matches) {
+				console.log('match returns nil');
+				return;
+			}
+
+			console.log('matches[0]:', matches[0]);
+
+			if (!matches[1]) {
+				console.log('match returns:',matches[0]);
+				return matches[0];
+			}
+
+			console.log('matches[1]:', matches[1]);
 
 			matches.shift();
+
+			console.log('match returns:',matches);
 			return matches;
 		},
 		
