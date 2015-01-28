@@ -1,23 +1,29 @@
 --------------------------------------------------------------------------
 -- Moonshine - a Lua virtual machine.
 --
--- Copyright (C) 2013 Gamesys Limited,
--- 10 Piccadilly, London W1J 0DD
 -- Email: moonshine@gamesys.co.uk
 -- http://moonshinejs.org
 --
--- This program is free software: you can redistribute it and/or modify
--- it under the terms of the GNU General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
+-- Copyright (c) 2013-2015 Gamesys Limited. All rights reserved.
 --
--- This program is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
+-- Permission is hereby granted, free of charge, to any person obtaining
+-- a copy of this software and associated documentation files (the
+-- "Software"), to deal in the Software without restriction, including
+-- without limitation the rights to use, copy, modify, merge, publish,
+-- distribute, sublicense, and/or sell copies of the Software, and to
+-- permit persons to whom the Software is furnished to do so, subject to
+-- the following conditions:
 --
--- You should have received a copy of the GNU General Public License
--- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-- The above copyright notice and this permission notice shall be
+-- included in all copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+-- EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+-- MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+-- IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+-- CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+-- TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+-- SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 --
 
 
@@ -90,29 +96,6 @@ do
 end
 
 
-
-
---------------------------------------------------------------------------
--- Moonshine - a Lua virtual machine.
---
--- Copyright (C) 2013 Gamesys Limited,
--- 10 Piccadilly, London W1J 0DD
--- Email: moonshine@gamesys.co.uk
--- http://moonshinejs.org
---
--- This program is free software: you can redistribute it and/or modify
--- it under the terms of the GNU General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
---
--- This program is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
--- You should have received a copy of the GNU General Public License
--- along with this program.  If not, see <http://www.gnu.org/licenses/>.
---
 
 
 local a = 1
@@ -298,29 +281,6 @@ end
 
 
 
---------------------------------------------------------------------------
--- Moonshine - a Lua virtual machine.
---
--- Copyright (C) 2013 Gamesys Limited,
--- 10 Piccadilly, London W1J 0DD
--- Email: moonshine@gamesys.co.uk
--- http://moonshinejs.org
---
--- This program is free software: you can redistribute it and/or modify
--- it under the terms of the GNU General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
---
--- This program is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
--- You should have received a copy of the GNU General Public License
--- along with this program.  If not, see <http://www.gnu.org/licenses/>.
---
-
-
 local b = 20
 
 function addOne ()
@@ -401,30 +361,6 @@ x = addThree (4)
 assertTrue (x == 7, 'Functions should be able to be curried')
 
 
-
-
-
---------------------------------------------------------------------------
--- Moonshine - a Lua virtual machine.
---
--- Copyright (C) 2013 Gamesys Limited,
--- 10 Piccadilly, London W1J 0DD
--- Email: moonshine@gamesys.co.uk
--- http://moonshinejs.org
---
--- This program is free software: you can redistribute it and/or modify
--- it under the terms of the GNU General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
---
--- This program is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
--- You should have received a copy of the GNU General Public License
--- along with this program.  If not, see <http://www.gnu.org/licenses/>.
---
 
 
 a = {1,2,3,4}
@@ -544,30 +480,6 @@ assertTrue (t['1'] == 'string', 'A numerical table index should return a differe
 
 
 
---------------------------------------------------------------------------
--- Moonshine - a Lua virtual machine.
---
--- Copyright (C) 2013 Gamesys Limited,
--- 10 Piccadilly, London W1J 0DD
--- Email: moonshine@gamesys.co.uk
--- http://moonshinejs.org
---
--- This program is free software: you can redistribute it and/or modify
--- it under the terms of the GNU General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
---
--- This program is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
--- You should have received a copy of the GNU General Public License
--- along with this program.  If not, see <http://www.gnu.org/licenses/>.
---
-
-
-
 local a, b, i = 0, 0, 0
 
 for i = 1, 5 do
@@ -622,30 +534,6 @@ assertTrue (string.find(a, '[table: 0x%d+==1729]') ~= nil, 'for/pairs iteration 
 assertTrue (string.find(a, '[function: 0x%d+==test]') ~= nil, 'for/pairs iteration should include items with function as key.')
 
 
-
-
-
---------------------------------------------------------------------------
--- Moonshine - a Lua virtual machine.
---
--- Copyright (C) 2013 Gamesys Limited,
--- 10 Piccadilly, London W1J 0DD
--- Email: moonshine@gamesys.co.uk
--- http://moonshinejs.org
---
--- This program is free software: you can redistribute it and/or modify
--- it under the terms of the GNU General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
---
--- This program is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
--- You should have received a copy of the GNU General Public License
--- along with this program.  If not, see <http://www.gnu.org/licenses/>.
---
 
 
 -- Coercion
@@ -839,30 +727,6 @@ assertTrue (b, 'Negation operator should not error when passed a number')
 assertTrue (not (c), 'Negation operator should error when passed a table')
 
 
-
-
-
---------------------------------------------------------------------------
--- Moonshine - a Lua virtual machine.
---
--- Copyright (C) 2013 Gamesys Limited,
--- 10 Piccadilly, London W1J 0DD
--- Email: moonshine@gamesys.co.uk
--- http://moonshinejs.org
---
--- This program is free software: you can redistribute it and/or modify
--- it under the terms of the GNU General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
---
--- This program is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
--- You should have received a copy of the GNU General Public License
--- along with this program.  If not, see <http://www.gnu.org/licenses/>.
---
 
 
 -- Event metametods
@@ -1263,29 +1127,6 @@ assertTrue (x == 'Ron Dennis', 'When executing a table, __call metamethod should
 assertTrue (y == 'CEO', 'When executing a table with a __call metamethod, the return value(s) of __call function should be returned')
 
 
-
-
---------------------------------------------------------------------------
--- Moonshine - a Lua virtual machine.
---
--- Copyright (C) 2013 Gamesys Limited,
--- 10 Piccadilly, London W1J 0DD
--- Email: moonshine@gamesys.co.uk
--- http://moonshinejs.org
---
--- This program is free software: you can redistribute it and/or modify
--- it under the terms of the GNU General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
---
--- This program is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
--- You should have received a copy of the GNU General Public License
--- along with this program.  If not, see <http://www.gnu.org/licenses/>.
---
 
 
 -------------
@@ -1853,30 +1694,6 @@ assertTrue (c == nil, 'xpcall() should only return the first item of the result 
 
 
 
-
---------------------------------------------------------------------------
--- Moonshine - a Lua virtual machine.
---
--- Copyright (C) 2013 Gamesys Limited,
--- 10 Piccadilly, London W1J 0DD
--- Email: moonshine@gamesys.co.uk
--- http://moonshinejs.org
---
--- This program is free software: you can redistribute it and/or modify
--- it under the terms of the GNU General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
---
--- This program is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
--- You should have received a copy of the GNU General Public License
--- along with this program.  If not, see <http://www.gnu.org/licenses/>.
---
-
-
 -- STRING FUNCTIONS
 
 
@@ -2428,28 +2245,7 @@ local b = string.upper ('JavaScript');
 assertTrue (a == '', 'string.upper() should return an empty string if passed an empty string')
 assertTrue (b == 'JAVASCRIPT', 'string.upper() should return the first argument in uppercase')
 
-function maths ()
-	--------------------------------------------------------------------------
-	-- Moonshine - a Lua virtual machine.
-	--
-	-- Copyright (C) 2013 Gamesys Limited,
-	-- 10 Piccadilly, London W1J 0DD
-	-- Email: moonshine@gamesys.co.uk
-	-- http://moonshinejs.org
-	--
-	-- This program is free software: you can redistribute it and/or modify
-	-- it under the terms of the GNU General Public License as published by
-	-- the Free Software Foundation, either version 3 of the License, or
-	-- (at your option) any later version.
-	--
-	-- This program is distributed in the hope that it will be useful,
-	-- but WITHOUT ANY WARRANTY; without even the implied warranty of
-	-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	-- GNU General Public License for more details.
-	--
-	-- You should have received a copy of the GNU General Public License
-	-- along with this program.  If not, see <http://www.gnu.org/licenses/>.
-	--
+function tables ()
 
 
 	-- TABLE FUNCTIONS
@@ -2692,30 +2488,14 @@ function maths ()
 	assertTrue (a[7] == 1, 'table.sort() should sort elements into order defined by sort function [7]')
 	assertTrue (a[8] == nil, 'table.sort() should not affect the table if the given index is past the length of the table')
 
+end
+
+tables()
 
 
-	--------------------------------------------------------------------------
-	-- Moonshine - a Lua virtual machine.
-	--
-	-- Copyright (C) 2013 Gamesys Limited,
-	-- 10 Piccadilly, London W1J 0DD
-	-- Email: moonshine@gamesys.co.uk
-	-- http://moonshinejs.org
-	--
-	-- This program is free software: you can redistribute it and/or modify
-	-- it under the terms of the GNU General Public License as published by
-	-- the Free Software Foundation, either version 3 of the License, or
-	-- (at your option) any later version.
-	--
-	-- This program is distributed in the hope that it will be useful,
-	-- but WITHOUT ANY WARRANTY; without even the implied warranty of
-	-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	-- GNU General Public License for more details.
-	--
-	-- You should have received a copy of the GNU General Public License
-	-- along with this program.  If not, see <http://www.gnu.org/licenses/>.
-	--
 
+
+function maths ()
 
 	-- MATHS FUNCTIONS
 
@@ -2893,28 +2673,6 @@ end
 maths()
 
 
-
---------------------------------------------------------------------------
--- Moonshine - a Lua virtual machine.
---
--- Copyright (C) 2013 Gamesys Limited,
--- 10 Piccadilly, London W1J 0DD
--- Email: moonshine@gamesys.co.uk
--- http://moonshinejs.org
---
--- This program is free software: you can redistribute it and/or modify
--- it under the terms of the GNU General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
---
--- This program is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU General Public License for more details.
---
--- You should have received a copy of the GNU General Public License
--- along with this program.  If not, see <http://www.gnu.org/licenses/>.
---
 
 
 local datetest = function ()

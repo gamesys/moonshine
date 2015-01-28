@@ -18,7 +18,7 @@
 			"email": "paul.cuthbertson@gamesys.co.uk"
 		}
 	],
-	"version": "0.1.6",
+	"version": "0.2.0",
 	"engines": {
 		"node": ">=0.8.x"
 	},
@@ -37,7 +37,7 @@
 		"url": "https://github.com/gamesys/moonshine"
 	},
 	"license": {
-		"type": "GPL-3.0",
+		"type": "MIT",
 		"url": "http://moonshinejs.org/license"
 	},
 	"bugs": {
