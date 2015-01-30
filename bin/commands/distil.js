@@ -160,7 +160,7 @@ function compile (filename, switches, callback) {
 	exec(compiler + ' -o ' + luacFilename + ' ' + filename, function (err, stdout, stderr) {
 		if (err) {
 			errPart = err.message.split(/:\s?/);
-			if (errPart[1] != 'luac') throw e;
+			if (errPart[1] != 'luac') throw err;
 			
 			console.error(COLORS.RED + 'Luac compile error in file ' + errPart[2] + ' on line ' + errPart[3] + ':\n\t' + errPart[4] + COLORS.RESET);
 			return;
