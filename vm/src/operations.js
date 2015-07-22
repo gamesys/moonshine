@@ -393,7 +393,7 @@
 		if (c === 0 || c === -Infinity || c === Infinity || window.isNaN(b) || window.isNaN(c)) return NaN;
 
 		result = Math.abs(b) % (absC = Math.abs(c));
-		if (b * c < 0) result = absC - result;
+		if (b * c < 0 && result != 0) result = absC - result;
 		if (c < 0) result *= -1;
 
 		return result;
