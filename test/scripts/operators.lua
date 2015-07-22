@@ -94,9 +94,9 @@ do
 	assertEqual (-d % e, 5, 'Modulo operator should always return a positive number if the divisor is positive and wrap around if passed a negative dividend')
 	assertEqual (d % -e, -5, 'Modulo operator should always return a negative number if the divisor is negative')
 	assertEqual (-d % -e, -2, 'Modulo operator should always wrap around when passed a negative dividend')
-	assertEqual (j % k, 0, 'Modulo operator should always return zero when the absoulte remainder is zero')
-	assertEqual (-j % k, 0, 'Modulo operator should always return zero when the absoulte remainder is zero and the dividend is negative')
-	assertEqual (j % -k, 0, 'Modulo operator should always return zero when the absoulte remainder is zero and the divisor is negative')
+	assertEqual (j % k, 0, 'Modulo operator should always return zero when the absolute remainder is zero')
+	assertEqual (-j % k, 0, 'Modulo operator should always return zero when the absolute remainder is zero and the dividend is negative')
+	assertEqual (j % -k, 0, 'Modulo operator should always return zero when the absolute remainder is zero and the divisor is negative')
 
 
 	assertEqual (d % f, g, 'Modulo operator should always return "nan" when passed zero as a divisor')
