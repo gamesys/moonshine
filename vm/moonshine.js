@@ -602,19 +602,38 @@ shine.FileManager.prototype.dispose = function () {
 
 
 	/**
-	 * Loads a file containing compiled Luac code, decompiled to JSON.
-	 * @param {string} url The url of the file to load.
+	 * Loads a script.
+	 * @param {string} script The URL, JSON blob or bytecode string of the script to be loaded.
 	 * @param {boolean} [execute = true] Whether or not to execute the file once loaded.
 	 * @param {object} [coConfig] Coroutine configuration. Only applicable if execute == true.
 	 */
-	shine.VM.prototype.load = function (url, execute, coConfig) {
+	shine.VM.prototype.load = function (script, execute, coConfig) {
 		var me = this;
 
-		this.fileManager.load(url, function (err, file) {
-			if (err) throw new URIError('Failed to load file: ' + url + ' (' + err + ')');
+		this.fileManager.load(script, function (err, file) {
+			if (err) throw new URIError('Failed to load file: ' + script + ' (' + err + ')');
 
 			me._trigger('file-loaded', file);
 			if (execute || execute === undefined) me.execute(coConfig, file);
+		});
+	};
+
+
+
+
+	/**
+	 * Preloads a module into the Lua environment.
+	 * @param {string} modname The under which the module will be made available in package.preload.
+	 * @param {string} mod The URL, JSON blob or bytecode string of the module.
+	 */
+	shine.VM.prototype.preload = function (modname, mod) {
+		var me = this;
+
+		this.fileManager.load(mod, function (err, file) {
+			if (err) throw new URIError('Failed to preload module for: ' + modname + ' (' + err + ')');
+
+			var func = new shine.Function(me, file, file.data, me._globals);
+			me._globals['package'].preload[modname] = func;
 		});
 	};
 
