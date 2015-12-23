@@ -1653,7 +1653,7 @@ shine.Coroutine._add = function (co) {
  */
 shine.Coroutine._remove = function () {
 	var vm = shine.getCurrentVM();
-	vm._coroutineRunning = vm._coroutineStack.pop();
+	if (vm) vm._coroutineRunning = vm._coroutineStack.pop();
 };
 
 
@@ -5090,7 +5090,7 @@ if (typeof module != 'undefined') module.exports = shine.jit;
 			switch (co.status) {
 				case shine.RUNNING: return (co === getVM()._coroutineRunning)? 'running' : 'normal';
 				case shine.SUSPENDED: return 'suspended';
-				case shine.DEAD: return 'dead';
+				default: return 'dead';
 			}
 		},
 		

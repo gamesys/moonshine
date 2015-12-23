@@ -102,7 +102,7 @@ shine.Coroutine._add = function (co) {
  */
 shine.Coroutine._remove = function () {
 	var vm = shine.getCurrentVM();
-	vm._coroutineRunning = vm._coroutineStack.pop();
+	if (vm) vm._coroutineRunning = vm._coroutineStack.pop();
 };
 
 

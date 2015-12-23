@@ -1,2 +1,6 @@
 #!/usr/bin/env bash
-../bin/moonshine distil ./scripts -o ./test-package.json -pm ./scripts/test-runner.lua
+COMPILER='luac'
+if [ $1 ]; then
+  COMPILER=$1
+fi
+../bin/moonshine distil ./scripts -o ./test-package.json -pm ./scripts/test-runner.lua -c $COMPILER

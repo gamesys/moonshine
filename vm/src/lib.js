@@ -789,7 +789,7 @@
 			switch (co.status) {
 				case shine.RUNNING: return (co === getVM()._coroutineRunning)? 'running' : 'normal';
 				case shine.SUSPENDED: return 'suspended';
-				case shine.DEAD: return 'dead';
+				default: return 'dead';
 			}
 		},
 		

@@ -96,3 +96,17 @@ assertTrue (arguments == 'OaMaIaIIaanilnillooptrueIIaanilIb123nilnilMbObMaIaIIaa
 
 
 
+order = ''
+local c = coroutine.create(function() order = order..'1' coroutine.yield(2) order = order..'3' return 4 end)
+local res, retval = coroutine.resume(c)
+
+assertTrue (res, 'coroutine should yeild successfully')
+assertEqual (retval, 2, 'coroutine should yeild correct value')
+assertEqual (order, '1', 'coroutine should yeild at correct point.')
+
+res, retval = coroutine.resume(c)
+
+assertTrue (res, 'coroutine should yeild successfully when function returns at end')
+assertEqual (retval, 4, 'coroutine should yeild value that is returned from function')
+assertEqual (order, '13', 'coroutine should resume at correct point.')
+assertEqual (coroutine.status(c), 'dead', 'coroutine should be dead after function returns')
