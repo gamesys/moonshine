@@ -5747,7 +5747,7 @@ if (typeof module != 'undefined') module.exports = shine.jit;
 		},
 
 
-		path: '?.lua.json;?.json;modules/?.lua.json;modules/?.json;modules/?/?.lua.json;modules/?/index.lua.json',
+		path: '?.lua.json;?.json;?/init.lua.json;?/init.json;modules/?.lua.json;modules/?.json;modules/?/?.lua.json;modules/?/index.lua.json',
 
 
 		preload: {},
