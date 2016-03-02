@@ -1329,7 +1329,9 @@ do
 	------------------------------------------------------------------------
 	function luaU:DumpSizeT(x, D)
 		self:DumpBlock(self:from_int(x), D)
-		self:DumpBlock(self:from_int(0), D)
+		if size_size_t == 8 then
+			self:DumpBlock(self:from_int(0), D)
+		end
 	end
 
 	------------------------------------------------------------------------
