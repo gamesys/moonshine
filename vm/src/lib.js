@@ -1924,7 +1924,7 @@
 			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("Bad argument #1 to 'sub' (string expected, got " + typeof s + ")");
 			s = '' + s;
 			i = i || 1;
-			j = j || s.length;
+			if (j === undefined) j = s.length;
 			
 			if (i > 0) {
 				i = i - 1;
@@ -1933,6 +1933,7 @@
 			}
 			
 			if (j < 0) j = s.length + j + 1;
+			if (i > j) return '';
 			
 			return s.substring(i, j);
 		},
