@@ -559,6 +559,9 @@ local g = string.sub (a, -4, -2)
 
 local h = string.sub (a, 5, -2)
 local i = string.sub (a, 0)
+local j = string.sub (a, 4, 0)
+local k = string.sub (a, 4, 2)
+local l = string.sub (a, -2, -3)
 
 assertTrue (b == 'Pub Standards', 'string.sub() should return the first argument if the second argument is 1')
 assertTrue (c == 'Standards', 'string.sub() should return a subset of the first argument from the nth character onwards, when n is the second argument and positive')
@@ -569,6 +572,9 @@ assertTrue (f == 'and', 'string.sub() should return a subset of the first argume
 
 assertTrue (h == 'Standard', 'string.sub() should return a subset of the first argument from the nth character to the last but mth character, when n is the second argument and positive and m is the third argument and negative')
 assertTrue (i == 'Pub Standards', 'string.sub() should return a subset of the first argument from the last but nth character to the last but mth character, when n is the second argument and negative and m is the third argument and negative')
+assertTrue (j == '', 'string.sub() should not coalesce its third argument to the length of the first when the former is a number')
+assertTrue (k == '', 'string.sub() should return an empty string when the second argument is greater than the third')
+assertTrue (l == '', 'string.sub() should return an empty string when the second argument is greater than the third')
 
 
 
