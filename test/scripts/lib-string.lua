@@ -514,7 +514,15 @@ local c = string.lower (a);
 assertTrue (b == '', 'string.lower() should return an empty string if passed an empty string')
 assertTrue (c == 'mclaren mercedes', 'string.lower() should return the string in the first argument with all character in lower case')
 
+-- match
 
+local a = '[4,8]'
+
+local b = string.match(a,'[%[]');
+local c = string.match(a,'%[');
+
+assertTrue(b == '[', 'string.match() should return the magic character when we search for it as part of a group.')
+assertTrue(c == '[', 'string.match() should return the magic character when we search for it outside of a group.')
 
 
 -- rep
