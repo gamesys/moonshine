@@ -18,7 +18,7 @@
 			"email": "paul.cuthbertson@gamesys.co.uk"
 		}
 	],
-	"version": "0.2.1",
+	"version": "0.2.1-bh",
 	"engines": {
 		"node": ">=0.8.x"
 	},
