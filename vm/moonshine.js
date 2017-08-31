@@ -6699,7 +6699,7 @@ if (typeof module != 'undefined') module.exports = shine.jit;
 	var	compileQueue = [],
 		compile,
 		script = document.querySelector('script[src$="/luac.moonshine.js"]'),
-		yueliangUrl = (script? script.src.substr(0, script.src.length - 18) : '.') + '/yueliang.lua.json';
+		yueliangUrl = (script? script.src.substr(0, script.src.length - 18) : '') + '/yueliang.lua.json';
 
 
 
