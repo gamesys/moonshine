@@ -6624,6 +6624,7 @@ if (typeof module != 'undefined') module.exports = shine.jit;
 			}
 
 
+			xhr.onerror = function () { console.log('[moonshine] ERROR - Failed XHR request to load ' + url) }
 			xhr.onload = function (e) {
 				if (this.status == 200) {
 					if (success) success(parse(this.response));
