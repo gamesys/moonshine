@@ -281,6 +281,8 @@
 	
 		ipairs: function (table) {
 			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in ipairs(). Table expected');
+      var mt, mm
+ 			if ( (mt = table.__shine.metatable) && (mm = mt.getMember('__ipairs')) ) return mm.call(mm, table);
 			return [ipairsIterator, table, 0];
 		},
 	
@@ -419,6 +421,8 @@
 		 */
 		pairs: function (table) {
 			if (!((table || shine.EMPTY_OBJ) instanceof shine.Table)) throw new shine.Error('Bad argument #1 in pairs(). Table expected');
+      var mt, mm
+			if ( (mt = table.__shine.metatable) && (mm = mt.getMember('__pairs')) ) return mm.call(mm, table);
 			return [shine.lib.next, table];
 		},
 	
