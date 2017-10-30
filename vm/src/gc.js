@@ -36,7 +36,7 @@
 'use strict';
 
 
-var shine = shine || {};
+var shine = this.shine = this.shine || {};
 
 
 (function (shine) {
