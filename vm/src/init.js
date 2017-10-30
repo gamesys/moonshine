@@ -1,3 +1,5 @@
+'use strict';
+
 
 (function () {
 	if (typeof window != 'undefined') {

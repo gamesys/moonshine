@@ -821,7 +821,7 @@
 	
 		
 		
-		yield: function () {
+		'yield': function () {
 			var running = getVM()._coroutineRunning,
 				args;
 

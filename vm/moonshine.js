@@ -25,6 +25,8 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+'use strict';
+
 
 (function () {
 	if (typeof window != 'undefined') {
@@ -49,7 +51,7 @@
 'use strict';
 
 
-var shine = shine || {};
+var shine = this.shine = this.shine || {};
 
 
 (function (shine) {
@@ -235,7 +237,7 @@ var shine = shine || {};
 'use strict';
 
 
-var shine = shine || {};
+var shine = this.shine = this.shine || {};
 
 
 /**
@@ -313,7 +315,7 @@ if (typeof module == 'object' && module.exports) module.exports.EventEmitter = s
 'use strict';
 
 
-var shine = shine || {};
+var shine = this.shine = this.shine || {};
 
 
 /**
@@ -973,7 +975,7 @@ shine.FileManager.prototype.dispose = function () {
 'use strict';
 
 
-var shine = shine || {};
+var shine = this.shine = this.shine || {};
 
 
 /**
@@ -1332,7 +1334,7 @@ shine.Closure.prototype.dispose = function (force) {
 'use strict';
 
 
-var shine = shine || {};
+var shine = this.shine = this.shine || {};
 
 
 /**
@@ -1568,7 +1570,7 @@ shine.Function.prototype.dispose = function (force) {
 'use strict';
 
 
-var shine = shine || {};
+var shine = this.shine = this.shine || {};
 
 
 /**
@@ -1965,7 +1967,7 @@ shine.Coroutine.prototype._dispose = function () {
 'use strict';
 
 
-var shine = shine || {};
+var shine = this.shine = this.shine || {};
 
 
 /**
@@ -2108,7 +2110,7 @@ shine.Error.prototype.toString = function () {
 'use strict';
 
 
-var shine = shine || {};
+var shine = this.shine = this.shine || {};
 
 
 /**
@@ -5103,7 +5105,7 @@ if (typeof module != 'undefined') module.exports = shine.jit;
 	
 		
 		
-		yield: function () {
+		'yield': function () {
 			var running = getVM()._coroutineRunning,
 				args;
 
@@ -6206,7 +6208,7 @@ if (typeof module != 'undefined') module.exports = shine.jit;
 			if (typeof s != 'string' && typeof s != 'number') throw new shine.Error("Bad argument #1 to 'sub' (string expected, got " + typeof s + ")");
 			s = '' + s;
 			i = i || 1;
-			j = j || s.length;
+			if (j === undefined) j = s.length;
 			
 			if (i > 0) {
 				i = i - 1;
@@ -6215,6 +6217,7 @@ if (typeof module != 'undefined') module.exports = shine.jit;
 			}
 			
 			if (j < 0) j = s.length + j + 1;
+			if (i > j) return '';
 			
 			return s.substring(i, j);
 		},

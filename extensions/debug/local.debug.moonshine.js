@@ -32,7 +32,7 @@
  */
 
 
-var shine = shine || {};
+var shine = this.shine = this.shine || {};
 shine.debug = shine.debug || {};
 
 
