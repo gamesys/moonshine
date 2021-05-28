@@ -34,7 +34,7 @@
  *
  * Note: Requires Google Closure Compiler to be installed in /usr/local/bin
  *       https://developers.google.com/closure/compiler/
- * 
+ *
  * Examples:
  * 	./build				Builds JavaScript lib files.
  * 	./build -swc 		Builds JavaScript and ActionScript lib files.
@@ -66,7 +66,7 @@ var switches = getSwitches(process.argv),
 		'../src/jit.js',
 		'../src/lib.js',
 		'../src/utils.js',
-		'../src/output.js'		
+		'../src/output.js'
 	],
 	OUTPUT_FILENAME = '../moonshine.js',
 	HEADER_FILENAME = './header.js',
@@ -165,7 +165,7 @@ function minifyLibrary () {
 		appendFile(output, filename);
 
 		fs.closeSync(output);
-		fs.unlink(filename);
+		fs.unlinkSync(filename);
 
 		console.log('File written: ' + MINIFIED_OUTPUT_FILENAME);
 		if (switches['-module']) buildModule();
@@ -190,7 +190,7 @@ function buildSWC () {
 
 	exec(cmd, function (err) {
 		if (err) throw err;
-		fs.unlink(filename);
+		fs.unlinkSync(filename);
 
 		console.log('File written: ' + SWC_OUTPUT_FILENAME);
 	});
@@ -210,8 +210,7 @@ function buildModule () {
 	fs.writeSync(output, 'define(function(require,exports,module){\n');
 	appendFile(output, MINIFIED_OUTPUT_FILENAME);
 	fs.writeSync(output, '\n});');
-	
+
 	fs.closeSync(output);
 	console.log('File written: ' + MODULE_FILENAME);
 }
-
