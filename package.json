@@ -44,7 +44,7 @@
 		"url": "https://github.com/gamesys/moonshine/issues"
 	},
 	"dependencies": {
-		"express": "3.2.5",
-		"socket.io": "0.9.14"
+		"express": "^3.21.2",
+		"socket.io": "^4.1.2"
 	}
 }
