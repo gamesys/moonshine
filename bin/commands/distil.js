@@ -111,7 +111,7 @@ function parseCommand (args) {
 		for (i = 0, l = files.length; i < l; i++) {
 			outstanding++;
 
-			distilFile(files[i][0], files[i][1], args.switches, function () { 
+			distilFile(files[i][0], files[i][1], args.switches, function () {
 				if (!--outstanding) success();
 			});
 
@@ -161,13 +161,13 @@ function compile (filename, switches, callback) {
 		if (err) {
 			errPart = err.message.split(/:\s?/);
 			if (errPart[1] != 'luac') throw err;
-			
+
 			console.error(COLORS.RED + 'Luac compile error in file ' + errPart[2] + ' on line ' + errPart[3] + ':\n\t' + errPart[4] + COLORS.RESET);
 			return;
 		}
 
 		callback(fs.readFileSync(luacFilename, 'binary').toString());
-		fs.unlink(luacFilename);
+		fs.unlinkSync(luacFilename);
 	});
 }
 
@@ -176,7 +176,7 @@ function compile (filename, switches, callback) {
 
 function distil (source, switches, callback) {
 	compile(source, switches, function (bytecode) {
-		
+
 		var parser = new Parser(),
 			config = {
 				stripDebugging: switches.stripDebugging,
